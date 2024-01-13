@@ -18,7 +18,11 @@ import { MaterialList } from '../materials/material-list';
 import { Sprite2D } from '../materials/sprite2d';
 import { Mesh, MeshReference } from '../mesh/mesh';
 import { MeshAnimatedVertices } from '../mesh/mesh-animated-vertices';
-import { ParticleCloud, ParticleSprite, ParticleSpriteReference } from '../sprite/particle-sprite';
+import {
+  ParticleCloud,
+  ParticleSprite,
+  ParticleSpriteReference,
+} from '../sprite/particle-sprite';
 import {
   VertexColor,
   VertexColorReference,
@@ -26,6 +30,16 @@ import {
 import { WldFragmentReference } from './wld-fragment';
 
 /* eslint-disable */
+
+export const WldType = {
+  Zone: 0,
+  ZoneObjects: 1,
+  Lights: 2,
+  Objects: 3,
+  Sky: 4,
+  Characters: 5,
+  Equipment: 6,
+};
 
 export class Wld {
   /**
@@ -54,18 +68,54 @@ export class Wld {
   fragments = [];
 
   /**
+   * @type {[Mesh]}
+   */
+  meshes = [];
+  /**
+   * @type {[MaterialList]}
+   */
+  materialList = [];
+  /**
+   * @type {[ActorInstance]}
+   */
+  actors = [];
+  /**
    *
    * @param {Uint8Array} data
    * @param {import('../../model/file-handle').EQFileHandle} fileHandle
    */
-  constructor(data, fileHandle) {
+  constructor(data, fileHandle, name) {
     this.reader = new TypedArrayReader(data.buffer);
     this.fileHandle = fileHandle;
+    this.name = name;
     this.load();
   }
 
   get isNewWldFormat() {
     this.version === 0x1000c800;
+  }
+
+  get type() {
+    const typeMap = {
+      "lights.wld": WldType.Lights,
+      "objects.wld": WldType.ZoneObjects,
+      "sky.wld": WldType.Sky,
+    };
+    if (typeMap[this.name]) {
+      return typeMap[this.name];
+    }
+    if (this.name.endsWith("_obj.wld")) {
+      return WldType.Objects;
+    }
+    if (this.name.endsWith("_chr.wld")) {
+      return WldType.Characters;
+    }
+    if (this.name.startsWith("gequip.wld")) {
+      return WldType.Equipment;
+    }
+
+    // Default return zone
+    return WldType.Zone;
   }
 
   load() {
@@ -82,7 +132,7 @@ export class Wld {
 
   getString(idx) {
     if (idx >= 0) {
-      return '';
+      return "";
     }
     return this.stringTable.substr(
       -idx,
@@ -122,7 +172,7 @@ export class Wld {
         addFragment(Material);
         break;
       case 0x31: // TextureList
-        addFragment(MaterialList);
+        this.materialList.push(addFragment(MaterialList));
         break;
 
       // BSP Tree
@@ -138,7 +188,7 @@ export class Wld {
 
       // Meshes
       case 0x36: // Mesh
-        addFragment(Mesh);
+        this.meshes.push(addFragment(Mesh));
         break;
       case 0x37: // Mesh Animated Vertices
         addFragment(MeshAnimatedVertices);
@@ -169,7 +219,7 @@ export class Wld {
         addFragment(ActorDef);
         break;
       case 0x15: // Actor instance
-        addFragment(ActorInstance);
+        this.actors.push(addFragment(ActorInstance));
         break;
 
       // Lights
@@ -198,13 +248,13 @@ export class Wld {
 
       // Particle Cloud
       case 0x26:
-        addFragment(ParticleSprite)
+        addFragment(ParticleSprite);
         break;
       case 0x27:
-        addFragment(ParticleSpriteReference)
+        addFragment(ParticleSpriteReference);
         break;
       case 0x34:
-        addFragment(ParticleCloud)
+        addFragment(ParticleCloud);
         break;
 
       // Other
@@ -217,12 +267,12 @@ export class Wld {
       case 0x09: // Camera Ref
         addFragment(WldFragmentReference);
         break;
-      
+
       case 0x08: // Camera
       case 0x16: // Zone Unknown
 
       default: {
-        console.warn(`Unknown frag type :: 0x${fragType.toString(16)}`)
+        console.warn(`Unknown frag type :: 0x${fragType.toString(16)}`);
       }
     }
     this.reader.setCursor(originalCursor + fragSize);

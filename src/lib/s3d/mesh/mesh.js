@@ -13,6 +13,9 @@ export class MeshReference extends WldFragmentReference {
 
 export class Mesh extends WldFragment {
   materialListIdx = -1;
+  /**
+   * @type {import('../materials/material-list').MaterialList}
+   */
   get materialList() {
     return this.wld.fragments[this.materialListIdx];
   }
@@ -25,16 +28,37 @@ export class Mesh extends WldFragment {
     super(...args);
     this.initialize();
   }
+  /**
+   * @type {vec3}
+   */
   center = null;
   maxDistance = -1;
   minPosition = null;
   maxPosition = null;
+  /**
+   * @type {Array<vec3>}
+   */
   vertices = [];
+  /**
+   * @type {Array<vec3>}
+   */
   normals = [];
+  /**
+   * @type {Array<color>}
+   */
   colors = [];
+  /**
+   * @type {Array<vec2>}
+   */
   textureUvCoordinates = [];
+  /**
+   * @type {Array<Polygon>}
+   */
   indices = [];
   mobPieces = {};
+  /**
+   * @type {Array<RenderGroup>}
+   */
   materialGroups = [];
 
   initialize() {

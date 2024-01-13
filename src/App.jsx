@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { clear, entries, setMany } from 'idb-keyval';
-
+import { clear, get, set } from 'idb-keyval';
 import {
   Box,
   Button,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   Paper,
   Stack,
@@ -17,29 +17,39 @@ import {
 import './App.scss';
 import { EQFileHandle } from './lib/model/file-handle';
 import { knownZoneShortNames } from './lib/model/constants';
+import Dexie from 'dexie';
+import { BabylonViewer } from './viewer';
 
-async function* getFilesRecursively(entry) {
+const dbVersion = 1;
+
+const db = new Dexie('eqsage');
+db.version(dbVersion).stores({
+  eqdir: '++id,path,handle',
+});
+
+async function* getFilesRecursively(entry, path = '') {
   if (entry.kind === 'file') {
-    const file = await entry.getFile();
+    const file = await entry;
     if (file !== null) {
+      file.relativePath = path;
       yield file;
     }
   } else if (entry.kind === 'directory') {
     for await (const handle of entry.values()) {
-      yield* getFilesRecursively(handle);
+      yield* getFilesRecursively(handle, `${path}/${handle.name}`);
     }
   }
 }
 function App() {
   const [fileHandles, setFileHandles] = useState([]);
-  const eqHandles = useMemo(() => {
+  const eqFiles = useMemo(() => {
     const usedZones = [...knownZoneShortNames];
     return fileHandles.reduce(
       (acc, val) => {
         const idx = usedZones.findIndex((z) =>
           new RegExp(`^${z}[_\\.].*`).test(val.name)
         );
-        if (idx !== -1) {
+        if (idx !== -1 && val.name.includes('qeynos')) {
           const zoneName = usedZones[idx];
           // usedZones.splice(idx, 1);
           if (acc.zones[zoneName]) {
@@ -67,47 +77,71 @@ function App() {
     );
   }, [fileHandles]);
 
-  useEffect(() => {
-    entries().then((entries) => {
-      const handles = [];
+  console.log('EQ files', eqFiles);
 
-      for (const entry of entries) {
-        if (entry[0]?.startsWith?.('eq/')) {
-          handles.push(entry[1]);
-        }
+  const refresh = useCallback(async () => {
+    const eqdir = await get('eqdir');
+    console.log(await eqdir.queryPermission({ mode: 'read' }));
+    if (!(await eqdir.requestPermission({ mode: 'read' })) === 'granted') {
+      console.warn('Permissions not granted');
+      return;
+    }
+    if (!eqdir) {
+      console.warn('No EQ Directory Linked!');
+      return;
+    }
+    const handles = [];
+    try {
+      for await (const fileHandle of getFilesRecursively(eqdir)) {
+        handles.push(fileHandle);
       }
+    } catch (e) {
+      console.warn('Error', e, handles);
+    }
 
-      setFileHandles(handles);
-    });
+    setFileHandles(handles);
   }, []);
 
-  const onDrop = useCallback((e) => {
-    if (e.dataTransfer.items?.length) {
-      const first = e.dataTransfer.items[0];
-      console.log('item 1', first);
-
-      if (first.getAsFileSystemHandle) {
-        first
-          .getAsFileSystemHandle()
-          .then(async (handle) => {
-            if (handle.kind === 'file') {
-            } else if (handle.kind === 'directory') {
-              await clear();
-              const handles = [];
-              for await (const fileHandle of getFilesRecursively(handle)) {
-                handles.push([`eq/${fileHandle.name}`, fileHandle]);
+  const onDrop = useCallback(
+    (e) => {
+      if (e.dataTransfer.items?.length) {
+        const first = e.dataTransfer.items[0];
+        if (first.getAsFileSystemHandle) {
+          first
+            .getAsFileSystemHandle()
+            .then(async (handle) => {
+              console.log('Handle', handle);
+              if (handle.kind === 'file') {
+              } else if (handle.kind === 'directory') {
+                await clear();
+                await set('eqdir', handle);
+                await refresh();
+                console.log('Done set');
               }
-              setMany(handles);
-              setFileHandles(handles.map(([, handle]) => handle));
-            }
-          })
-          .catch((e) => {
-            console.warn('Could not get handle', e);
-          });
+            })
+            .catch((e) => {
+              console.warn('Could not get handle', e);
+            });
+        }
       }
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    [refresh]
+  );
+
+  const getFiles = useCallback(async (fileHandles) => {
+    const eqdir = await get('eqdir');
+    if (!eqdir) {
+      console.log('No eq dir');
+      return;
     }
-    e.preventDefault();
-    e.stopPropagation();
+    const permissionLevel = await eqdir.requestPermission({ mode: 'read' });
+    if (permissionLevel !== 'granted') {
+      console.warn('Permissions not granted');
+      return;
+    }
+    return Promise.all(fileHandles.map((f) => f.getFile()));
   }, []);
   return (
     <ThemeProvider
@@ -140,14 +174,13 @@ function App() {
       >
         <Paper
           sx={{
-            height        : '40%',
-            width         : '40%',
+            height        : '60%',
+            width         : '50%',
             justifyContent: 'center',
             alignContent  : 'center',
           }}
           elevation={3}
         >
-     
           <Stack
             sx={{ height: '100%', width: '100%' }}
             justifyContent="center"
@@ -160,7 +193,7 @@ function App() {
               }}
               variant="h5"
             >
-               Zones
+              Zones
             </Typography>
             <List
               sx={{
@@ -172,44 +205,103 @@ function App() {
               }}
               dense
             >
-              {Object.entries(eqHandles.zones).map(([name, fileHandles]) => (
-                <ListItem
-                  onClick={async () => {
-                    const obj = new EQFileHandle(name, fileHandles);
-                    await obj.initialize();
-                    await obj.process();
-                  }}
-                >
-                  <ListItemText primary={name} />
-                </ListItem>
-              ))}
+              {Object.entries(eqFiles.zones)
+                .sort((a, b) => (a[0] > b[0] ? 1 : -1))
+                .map(([name, fileHandles]) => (
+                  <ListItemButton
+                    sx={{ userSelect: 'none', cursor: 'pointer' }}
+                    onClick={async () => {
+                      const files = await getFiles(fileHandles);
+                      const obj = new EQFileHandle(name, files);
+                      await obj.initialize();
+                      await obj.process();
+                    }}
+                  >
+                    <ListItemText primary={name} />
+                    {fileHandles
+                      .filter((f) => f.name.endsWith('.s3d'))
+                      .map((n) => (
+                        <Button
+                          size="small"
+                          onClick={async (e) => {
+                            const files = await getFiles([n]);
+                            const obj = new EQFileHandle(name, files);
+                            await obj.initialize();
+                            await obj.process();
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
+                        >
+                          {n.name}
+                        </Button>
+                      ))}
+                  </ListItemButton>
+                ))}
             </List>
 
-            
-            <Button onClick={async () => {
-              const obj = new EQFileHandle('gequip', eqHandles.equip);
-              await obj.initialize();
-              await obj.process();
-            }} variant='outlined'>
-              Process Equipment ({eqHandles.equip.length})
-            </Button>
-            <Button onClick={async () => {
-              const obj = new EQFileHandle('global', eqHandles.globalChar);
-              await obj.initialize();
-              await obj.process();
-            }} variant='outlined'>
-              Process Global ({eqHandles.globalChar.length})
-            </Button>
-            <Button onClick={async () => {
-              Object.entries(eqHandles.zones).forEach(async ([name, fileHandles]) => {
-                const obj = new EQFileHandle(name, fileHandles);
+            <Button
+              onClick={async () => {
+                const files = await getFiles(eqFiles.equip);
+                const obj = new EQFileHandle('gequip', files);
                 await obj.initialize();
                 await obj.process();
-              });
-            }} variant='outlined'>
-              Process All Zones ({Object.entries(eqHandles.zones).length})
+              }}
+              variant="outlined"
+            >
+              Process Equipment ({eqFiles.equip.length})
+            </Button>
+            <Button
+              onClick={async () => {
+                const files = await getFiles(eqFiles.globalChar);
+                const obj = new EQFileHandle('global', files);
+                await obj.initialize();
+                await obj.process();
+              }}
+              variant="outlined"
+            >
+              Process Global ({eqFiles.globalChar.length})
+            </Button>
+            <Button
+              onClick={async () => {
+                for (const [name, fileHandles] of Object.entries(
+                  eqFiles.zones
+                )) {
+                  const files = await getFiles(fileHandles);
+                  const obj = new EQFileHandle(name, files);
+                  await obj.initialize();
+                  await obj.process();
+                }
+                // Object.entries(eqFiles.zones).forEach(
+                //   async ([name, fileHandles]) => {
+
+                //   }
+                // );
+              }}
+              variant="outlined"
+            >
+              Process All Zones ({Object.entries(eqFiles.zones).length})
+            </Button>
+            {/**
+             * Refresh needs user interaction
+             */}
+            <Button onClick={refresh} variant="outlined">
+              Refresh EQ Directory Link
             </Button>
           </Stack>
+        </Paper>
+        <Paper
+          id="model-container"
+          sx={{
+            height        : '60%',
+            width         : '50%',
+            justifyContent: 'center',
+            alignContent  : 'center',
+            display       : 'flex',
+            flexGrow      : '1',
+          }}
+          elevation={3}
+        >
+          <BabylonViewer />
         </Paper>
       </Stack>
     </ThemeProvider>

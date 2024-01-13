@@ -1,5 +1,7 @@
 import { FILE_TYPE } from './constants';
 import { S3DDecoder } from '../s3d/s3d-decoder';
+import { GltfDocument } from './gltf-document';
+import { Document } from '@gltf-transform/core';
 
 export class EQFileHandle {
 
@@ -8,8 +10,14 @@ export class EQFileHandle {
      */
   #fileHandles = [];
   #name = '';
-  #type = -1;
   #initialized = false;
+
+
+  // gltf instances
+  #zoneGltf = null;
+  objectGltf = {};
+  textures = [];
+
   /**
      * 
      * @param {FileSystemFileHandle} fileHandles 
@@ -17,6 +25,16 @@ export class EQFileHandle {
   constructor(name, fileHandles) {
     this.#name = name;
     this.#fileHandles = fileHandles;
+  }
+
+  /**
+   * @type {Document}
+   */
+  get zoneGltf() {
+    if (this.#zoneGltf === null) {
+      this.#zoneGltf = new Document(this.#name);
+    }
+    return this.#zoneGltf;
   }
 
   get name() {
@@ -27,15 +45,17 @@ export class EQFileHandle {
     return this.#fileHandles;
   }
 
+  get #type() {
+    if (this.#fileHandles.some(f => f.name.endsWith('eqg'))) {
+      return FILE_TYPE.EQG;
+    } 
+    return FILE_TYPE.S3D;
+  }
+
   async initialize() {
     if (this.#fileHandles.length === 0) {
       console.warn('File handle length was 0!');
       return;
-    }
-    if (this.#fileHandles.some(f => f.name.endsWith('eqg'))) {
-      this.#type = FILE_TYPE.EQG;
-    } else {
-      this.#type = FILE_TYPE.S3D;
     }
     this.#initialized = true;
   }
@@ -50,6 +70,7 @@ export class EQFileHandle {
     } else if (this.#type === FILE_TYPE.S3D) {
       const s3dDecoder = new S3DDecoder(this);
       await s3dDecoder.process();
+      await s3dDecoder.export();
     }
   }
 

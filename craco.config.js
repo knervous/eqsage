@@ -14,8 +14,9 @@ module.exports = {
   ],
   webpack: {
     plugins: {
-      add   : [],
-      remove: []
+      add: [
+      ],
+      remove: [],
     },
     configure: {
       resolve: {
@@ -29,7 +30,9 @@ module.exports = {
           https : false,
           stream: false,
           crypto: false,
+          assert: false,
           buffer: require.resolve('buffer/'),
+          util  : require.resolve('util/'),
         },
       },
     },
