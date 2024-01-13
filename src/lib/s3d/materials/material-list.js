@@ -2,6 +2,9 @@ import { WldFragment } from '../wld/wld-fragment';
 
 export class MaterialList extends WldFragment {
   materialListIndices = [];
+  /**
+   * @type {Array<import('./material').Material>}
+   */
   get materialList() {
     return this.materialListIndices.map((i) => this.wld.fragments[i]);
   }
