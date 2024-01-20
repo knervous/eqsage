@@ -244,7 +244,7 @@ export function convertDDS2Jimp(buf) {
   for (let i = 0; i < buf.length; i++) {
     view[i] = buf[i];
   }
-
+  const FOURCC_UNCOMPRESSED = 0;
   const FOURCC_DXT1 = fourCCToInt32('DXT1');
   const FOURCC_DXT3 = fourCCToInt32('DXT3');
   const FOURCC_DXT5 = fourCCToInt32('DXT5');
@@ -316,7 +316,22 @@ export function convertDDS2Jimp(buf) {
       blockBytes = 8;
       dds.format = RGB_ETC1_Format;
       break;
-
+    case FOURCC_UNCOMPRESSED:
+    //  isRGBAUncompressed = true;
+      switch (header[off_RGBBitCount]) {
+        case 16:
+          dds.format = header[off_ABitMask] === 0 ? 16 : 15;
+          break;
+        case 24:
+          dds.format = 24;
+          break;
+        case 32:
+          dds.format = 32;
+          break;
+        default:
+          throw new Error('Unsupported RGB bit count');
+      }
+      break;
     default:
       if (
         header[off_RGBBitCount] === 32 &&
@@ -333,7 +348,6 @@ export function convertDDS2Jimp(buf) {
           'DDSLoader.parse: Unsupported FourCC code ',
           int32ToFourCC(fourCC)
         );
-        
       }
   }
 
@@ -399,24 +413,4 @@ export function convertDDS2Jimp(buf) {
     fourCC === FOURCC_DXT1 ? dxt.flags.DXT1 : dxt.flags.DXT5
   );
   return [uncompressed, dds];
-  // const bmp = new Jimp(w, h);
-  // bmp.scan(
-  //   0,
-  //   0,
-  //   w,
-  //   h,
-  //   (x, y, idx) => {
-  //     bmp.bitmap.data[idx] = uncompressed[idx];
-  //     bmp.bitmap.data[idx + 1] = uncompressed[idx + 1];
-  //     bmp.bitmap.data[idx + 2] = uncompressed[idx + 2];
-  //     bmp.bitmap.data[idx + 3] = uncompressed[idx + 3];
-  //   },
-  //   (err, newImg) => {
-  //     if (err) {
-  //       reject(new Error(err));
-  //     }
-  //     resolve(newImg);
-  //   }
-  // );
-  return dds;
 }

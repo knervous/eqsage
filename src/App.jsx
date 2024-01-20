@@ -42,6 +42,7 @@ async function* getFilesRecursively(entry, path = '') {
 }
 function App() {
   const [fileHandles, setFileHandles] = useState([]);
+  const [zoneName, setZoneName] = useState('Select zone');
   const eqFiles = useMemo(() => {
     const usedZones = [...knownZoneShortNames];
     return fileHandles.reduce(
@@ -49,7 +50,15 @@ function App() {
         const idx = usedZones.findIndex((z) =>
           new RegExp(`^${z}[_\\.].*`).test(val.name)
         );
-        if (idx !== -1 && val.name.includes('qeynos')) {
+        if (
+          idx !== -1 &&
+          (val.name.includes('qeynos') ||
+            val.name.includes('oceangreen') ||
+            val.name.includes('broodlands') ||
+            val.name.includes('bloodfields') ||
+             val.name.includes('dranik') ||
+            val.name.includes('stillmoon'))
+        ) {
           const zoneName = usedZones[idx];
           // usedZones.splice(idx, 1);
           if (acc.zones[zoneName]) {
@@ -63,7 +72,7 @@ function App() {
           acc.equip.push(val);
         }
 
-        if (/global.*\.s3d/.test(val.name)) {
+        if (/global.*\.s3d/.test(val.name) || val.name === 'sky.s3d') {
           acc.globalChar.push(val);
         }
 
@@ -150,19 +159,7 @@ function App() {
         typography: { fontFamily: 'Montaga' },
       })}
     >
-      <Typography
-        sx={{
-          color    : 'white',
-          position : 'fixed',
-          margin   : '0 auto',
-          top      : '25px',
-          width    : '100vw',
-          textAlign: 'center',
-        }}
-        variant="h5"
-      >
-        Drag an EQ Directory On The Page
-      </Typography>
+
       <Stack
         onDragOver={(e) => {
           e.stopPropagation();
@@ -174,8 +171,8 @@ function App() {
       >
         <Paper
           sx={{
-            height        : '60%',
-            width         : '50%',
+            height        : '100%',
+            width         : '15%',
             justifyContent: 'center',
             alignContent  : 'center',
           }}
@@ -211,6 +208,7 @@ function App() {
                   <ListItemButton
                     sx={{ userSelect: 'none', cursor: 'pointer' }}
                     onClick={async () => {
+                      setZoneName(name);
                       const files = await getFiles(fileHandles);
                       const obj = new EQFileHandle(name, files);
                       await obj.initialize();
@@ -218,8 +216,11 @@ function App() {
                     }}
                   >
                     <ListItemText primary={name} />
-                    {fileHandles
-                      .filter((f) => f.name.endsWith('.s3d'))
+                    {/* {fileHandles
+                      .filter(
+                        (f) =>
+                          f.name.endsWith('.s3d') || f.name.endsWith('.eqg')
+                      )
                       .map((n) => (
                         <Button
                           size="small"
@@ -234,7 +235,7 @@ function App() {
                         >
                           {n.name}
                         </Button>
-                      ))}
+                      ))} */}
                   </ListItemButton>
                 ))}
             </List>
@@ -292,8 +293,8 @@ function App() {
         <Paper
           id="model-container"
           sx={{
-            height        : '60%',
-            width         : '50%',
+            height        : '100%',
+            width         : '85%',
             justifyContent: 'center',
             alignContent  : 'center',
             display       : 'flex',
@@ -301,7 +302,7 @@ function App() {
           }}
           elevation={3}
         >
-          <BabylonViewer />
+          <BabylonViewer zoneName={zoneName} />
         </Paper>
       </Stack>
     </ThemeProvider>

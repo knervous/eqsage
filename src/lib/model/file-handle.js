@@ -2,6 +2,7 @@ import { FILE_TYPE } from './constants';
 import { S3DDecoder } from '../s3d/s3d-decoder';
 import { GltfDocument } from './gltf-document';
 import { Document } from '@gltf-transform/core';
+import { EQGDecoder } from '../eqg/eqg-decoder';
 
 export class EQFileHandle {
 
@@ -66,7 +67,9 @@ export class EQFileHandle {
       return;
     }
     if (this.#type === FILE_TYPE.EQG) {
-      
+      const s3dDecoder = new EQGDecoder(this);
+      await s3dDecoder.process();
+      await s3dDecoder.export();
     } else if (this.#type === FILE_TYPE.S3D) {
       const s3dDecoder = new S3DDecoder(this);
       await s3dDecoder.process();
