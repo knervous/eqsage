@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { gameController } from './controllers/GameController';
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 const params = new Proxy(new URLSearchParams(window.location.search), {
   get: (searchParams, prop) => searchParams.get(prop),
 });
 
-export const BabylonViewer = () => {
+export const BabylonViewer = ({ zoneName = '' }) => {
   const [, forceRender] = useState({});
   const canvasRef = useRef();
 
@@ -26,6 +26,20 @@ export const BabylonViewer = () => {
   }, []);
 
   return (
-    <Box as='canvas' sx={{ flexGrow: '1' }} ref={canvasRef} id="renderCanvas" width="100%" height="100%" />
+    <>
+      <Typography
+        sx={{
+          color    : 'white',
+          position : 'fixed',
+          margin   : '0 auto',
+          top      : '25px',
+          width    : '100vw',
+          textAlign: 'center',
+        }}
+        variant="h5"
+      >
+        {zoneName}
+      </Typography>
+      <Box as='canvas' sx={{ flexGrow: '1' }} ref={canvasRef} id="renderCanvas" width="100%" height="100%" /></>
   );
 };

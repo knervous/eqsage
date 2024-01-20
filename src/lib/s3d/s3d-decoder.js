@@ -4,8 +4,9 @@ import { Wld, WldType } from './wld/wld';
 import { TypedArrayReader } from '../util/typed-array-reader';
 import { imageProcessor } from '../util/image/image-processor';
 import { Accessor, WebIO, Writer } from '@gltf-transform/core';
+import {} from '@gltf-transform/functions';
 import { gameController } from '../../viewer/controllers/GameController';
-import { vec3 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import { ShaderType } from './materials/material';
 // import { KHRTextureTransform } from '@gltf-transform/extensions';
 
@@ -121,6 +122,8 @@ export class S3DDecoder {
         const gltfMaterial = document
           .createMaterial(eqMaterial.name)
           .setDoubleSided(false)
+          .setExtension('KHR_materials_unlit')
+          .setRoughnessFactor(0)
           .setMetallicFactor(0);
         const texture = document
           .createTexture(eqMaterial.name)
@@ -156,8 +159,14 @@ export class S3DDecoder {
         materials[eqMaterial.name] = gltfMaterial;
       });
     }
-
+    const flipMatrix = mat4.create();
+    mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
     for (const mesh of wld.meshes) {
+      const gltfMesh = document.createMesh(mesh.name);
+
+      if (mesh.exportSeparateCollision) {
+        // continue;
+      }
       const meshVertices = new Float32Array(
         mesh.vertices.flatMap((v) => [
           v[0] + mesh.center[0],
@@ -169,7 +178,7 @@ export class S3DDecoder {
         mesh.indices.flatMap((i) => [i.v1, i.v2, i.v3])
       );
       const meshNormals = new Float32Array(
-        mesh.normals.flatMap((v) => [v[0], v[2], v[1]])
+        mesh.normals.flatMap((v) => [v[0] * -1, v[2], v[1]])
       );
       const meshUvMap = new Float32Array(
         mesh.textureUvCoordinates.flatMap((v) => [v[0], v[1]])
@@ -204,18 +213,26 @@ export class S3DDecoder {
         }
       }
 
-      const gltfMesh = document.createMesh(mesh.name).addPrimitive(prim);
+      gltfMesh.addPrimitive(prim);
       const node = document
         .createNode(`node-${mesh.name}`)
         .setMesh(gltfMesh)
-        .setTranslation([0, 0, 0]);
+        .setTranslation([0, 0, 0])
+        .setMatrix(flipMatrix);
       scene.addChild(node);
+
     }
+
+
+         
+
+    // .setScale([-1, 1, 1])
+    
+    
     console.log('Doc', document);
 
     const io = new WebIO();
     const bytes = await io.writeBinary(document);
-    console.log('bytes 123', bytes);
     window.bytes = bytes.buffer; // await new Blob([bytes], { type: 'application/octet-stream' }).arrayBuffer();// bytes;
     await gameController.loadModel(bytes);
   }
@@ -275,7 +292,3 @@ export class S3DDecoder {
     }
   }
 }
-
-window.thisFn = (wld) => {
-  console.log('Hi wld 123', wld);
-};

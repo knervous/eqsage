@@ -89,6 +89,18 @@ export class TypedArrayReader {
     return Array.from({ length: count }, this.readFloat64.bind(this));
   }
 
+  previewString(length) {
+    const charStr = [];
+    for (let i = 0; i < length; i++) {
+      const byte = this.readUint8();
+      if (byte !== 0) {
+        charStr.push(byte);
+      }
+    }
+    this.setCursor(this.getCursor() - length);
+    return new TextDecoder().decode(new Uint8Array(charStr).buffer);
+  }
+
   readString(length) {
     const charStr = [];
     for (let i = 0; i < length; i++) {
@@ -98,6 +110,28 @@ export class TypedArrayReader {
       }
     }
     return new TextDecoder().decode(new Uint8Array(charStr).buffer);
+  }
+
+  readCString() {
+    const charStr = [];
+    let notTerminated = false;
+    do {
+      const byte = this.readUint8();
+      if (byte !== 0) {
+        charStr.push(byte);
+      } else {
+        notTerminated = true;
+      }
+    } while (notTerminated === false);
+    return new TextDecoder().decode(new Uint8Array(charStr).buffer);
+  }
+
+  readCStringFromIdx(idx) {
+    const currIdx = this.getCursor();
+    this.setCursor(idx);
+    const val = this.readCString();
+    this.setCursor(currIdx);
+    return val;
   }
 
   readByteArray(length) {

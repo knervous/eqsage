@@ -58,7 +58,9 @@ export class GameController {
 
   loading = false;
 
-  addToast() {}
+  addToast(message) {
+    console.log(message);
+  }
 
   showUi = params.ui === 'true';
   dev = process.env.REACT_APP_DEV === 'true';
@@ -206,7 +208,6 @@ export class GameController {
     this.#scene.onPointerDown = this.sceneMouseDown;
     this.#scene.onPointerUp = this.sceneMouseUp;
     cameraController.createCamera(new Vector3(0, 0, 0));
-   
     
     this.ambientLight = new HemisphericLight('__ambient_light__', new Vector3(0, -0, 0), this.#scene);
 
@@ -263,6 +264,15 @@ export class GameController {
         Object.values(gameController.SpawnController.spawns).forEach(spawn => {
           spawn.rootNode.showBoundingBox = !spawn.rootNode.showBoundingBox; 
           spawn.rootNode.getChildMeshes().forEach(m => m.showBoundingBox = !m.showBoundingBox);
+        });
+        break;
+      }
+      case 'f': {
+        this.#scene.meshes.forEach(m => {
+          if (m.material) {
+            m.material.wireframe = !m.material.wireframe;
+          }
+          
         });
         break;
       }
