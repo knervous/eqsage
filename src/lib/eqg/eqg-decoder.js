@@ -181,7 +181,7 @@ export class EQGDecoder {
           if (prop.name.includes('Normal')) {
             gltfMaterial.setNormalTexture(texture);
           }
-          if (prop.name.includes('Diffuse')) {
+          if (prop.name.includes('Diffuse') || (prop.name.includes('Detail') && !gltfMaterial.getBaseColorTexture())) {
             gltfMaterial.setBaseColorTexture(texture);
           }
         }
@@ -193,10 +193,7 @@ export class EQGDecoder {
         matIndices[mat.name] = {};
       }
     }
-    // const grayMaterial = document
-    //   .createMaterial('GrayMaterial')
-    //   .setBaseColorFactor([0.5, 0.5, 0.5, 1]); // RGB color values with alpha
-    const grayMaterial = Object.values(materials)[0];
+
     const flipMatrix = mat4.create();
     mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
     const terrain = this.zone.terrain;
@@ -212,203 +209,6 @@ export class EQGDecoder {
         if (mod) {
           const gltfMesh = document.createMesh(mod.name);
 
-          /**
-           *
-           * @param {[Polygon]} polys
-           * @param {*} idx
-           */
-          const createMeshSlice = (polys, idx) => {
-            const gltfMesh = document.createMesh(mod.name);
-            const gltfMeshNonColl = document.createMesh(`${mod.name}-non-coll`);
-            const collVerts = [];
-            const collNormals = [];
-            const collUvs = [];
-            const collIndices = [];
-            const collIdxMap = {};
-            let currentCollIdx = 0;
-
-            const nonCollVerts = [];
-            const nonCollNormals = [];
-            const nonCollUvs = [];
-            const nonCollIndices = [];
-            const nonCollIdxMap = {};
-            let currentNonCollIdx = 0;
-
-            for (const p of polys) {
-              if (p.material === -1) {
-                continue;
-              }
-
-              const v1 = mod.geometry.verts[p.verts[0]];
-              const v2 = mod.geometry.verts[p.verts[1]];
-              const v3 = mod.geometry.verts[p.verts[2]];
-
-              const v1Str = `${v1.pos[0]},${v1.pos[1]},${v1.pos[2]}`;
-              const v2Str = `${v2.pos[0]},${v2.pos[1]},${v2.pos[2]}`;
-              const v3Str = `${v3.pos[0]},${v3.pos[1]},${v3.pos[2]}`;
-              if (p.flags & 0x01) {
-                // Not collidable
-
-                if (!nonCollIdxMap.hasOwnProperty(v1Str)) {
-                  nonCollIdxMap[v1Str] = currentNonCollIdx;
-                  nonCollVerts.push(v1.pos);
-                  nonCollNormals.push(v1.nor);
-                  nonCollUvs.push(v1.tex);
-                  nonCollIndices.push(currentNonCollIdx);
-                  ++currentNonCollIdx;
-                } else {
-                  nonCollIndices.push(nonCollIdxMap[v1Str]);
-                }
-                if (!nonCollIdxMap.hasOwnProperty(v2Str)) {
-                  nonCollIdxMap[v2Str] = currentNonCollIdx;
-                  nonCollVerts.push(v2.pos);
-                  nonCollNormals.push(v2.nor);
-                  nonCollUvs.push(v2.tex);
-                  nonCollIndices.push(currentNonCollIdx);
-                  ++currentNonCollIdx;
-                } else {
-                  nonCollIndices.push(nonCollIdxMap[v2Str]);
-                }
-                if (!nonCollIdxMap.hasOwnProperty(v3Str)) {
-                  nonCollIdxMap[v3Str] = currentNonCollIdx;
-                  nonCollVerts.push(v3.pos);
-                  nonCollNormals.push(v3.nor);
-                  nonCollUvs.push(v3.tex);
-                  nonCollIndices.push(currentNonCollIdx);
-                  ++currentNonCollIdx;
-                } else {
-                  nonCollIndices.push(nonCollIdxMap[v3Str]);
-                }
-              } else {
-                // Collidable
-                if (!collIdxMap.hasOwnProperty(v1Str)) {
-                  collIdxMap[v1Str] = currentCollIdx;
-                  collVerts.push(v1.pos);
-                  collNormals.push(v1.nor);
-                  collUvs.push(v1.tex);
-                  collIndices.push(currentCollIdx);
-                  ++currentCollIdx;
-                } else {
-                  collIndices.push(collIdxMap[v1Str]);
-                }
-
-                if (!collIdxMap.hasOwnProperty(v2Str)) {
-                  collIdxMap[v2Str] = currentCollIdx;
-                  collVerts.push(v2.pos);
-                  collNormals.push(v2.nor);
-                  collUvs.push(v2.tex);
-                  collIndices.push(currentCollIdx);
-                  ++currentCollIdx;
-                } else {
-                  collIndices.push(collIdxMap[v2Str]);
-                }
-
-                if (!collIdxMap.hasOwnProperty(v3Str)) {
-                  collIdxMap[v3Str] = currentCollIdx;
-                  collVerts.push(v3.pos);
-                  collNormals.push(v3.nor);
-                  collUvs.push(v3.tex);
-                  collIndices.push(currentCollIdx);
-                  ++currentCollIdx;
-                } else {
-                  collIndices.push(collIdxMap[v3Str]);
-                }
-              }
-            }
-
-            const position = document
-              .createAccessor()
-              .setType(Accessor.Type.VEC3)
-              .setArray(
-                new Float32Array(collVerts.flatMap((v) => [v[0], v[2], v[1]]))
-              )
-              .setBuffer(buffer);
-            const idc = new Uint16Array(collIndices);
-            for (let i = 0; i < collIndices.length; i += 3) {
-              idc[i] = collIndices[i];
-              idc[i + 1] = collIndices[i + 2];
-              idc[i + 2] = collIndices[i + 1];
-            }
-
-            const indices = document
-              .createAccessor()
-              .setType(Accessor.Type.SCALAR)
-              .setArray(idc)
-              .setBuffer(buffer);
-            const normals = document
-              .createAccessor()
-              .setArray(
-                new Float32Array(
-                  collNormals.flatMap((v) => [v[0] * 1, v[2], v[1]])
-                )
-              )
-              .setType(Accessor.Type.VEC3);
-
-            const uv = document
-              .createAccessor()
-              .setType(Accessor.Type.VEC2)
-              .setArray(new Float32Array(collUvs.flatMap((v) => [v[0], v[1]])));
-
-            const prim = document
-              .createPrimitive()
-              .setName('coll')
-              .setIndices(indices)
-              .setAttribute('POSITION', position)
-              .setAttribute('NORMAL', normals)
-              .setAttribute('TEXCOORD_0', uv);
-
-            const nonCollPosition = document
-              .createAccessor()
-              .setType(Accessor.Type.VEC3)
-              .setArray(
-                new Float32Array(
-                  nonCollVerts.flatMap((v) => [v[0], v[2], v[1]])
-                )
-              )
-              .setBuffer(buffer);
-
-            const nonCollIndicesAccessor = document
-              .createAccessor()
-              .setType(Accessor.Type.SCALAR)
-              .setArray(new Uint16Array(nonCollIndices))
-              .setBuffer(buffer);
-
-            const nonCollPrim = document
-              .createPrimitive()
-              .setIndices(nonCollIndicesAccessor)
-              .setName('non-coll')
-              .setAttribute('POSITION', nonCollPosition);
-
-            nonCollPrim.setMaterial(grayMaterial);
-            // gltfMesh.addPrimitive(nonCollPrim);
-
-            prim.setMaterial(grayMaterial);
-            gltfMesh.addPrimitive(prim);
-
-            gltfMeshNonColl.addPrimitive(nonCollPrim);
-
-            const node = document
-              .createNode(`node-${mod.name}-${idx}`)
-              .setMesh(gltfMesh)
-              .setTranslation([0, 0, 0])
-              .setMatrix(flipMatrix);
-            scene.addChild(node);
-
-            // const nodeNonColl = document
-            //   .createNode(`node-${mod.name}-non-coll-${idx}`)
-            //   .setMesh(gltfMeshNonColl)
-            //   .setTranslation([0, 0, 0]);
-
-            // scene.addChild(nodeNonColl);
-          };
-
-          // const polyChunks = chunkArray(mod.geometry.polys, 50000);
-          // let idx = 0;
-          // for (const polys of polyChunks) {
-          //   createMeshSlice(polys, idx++);
-          // }
-
-          // Try with mats
           const primitiveMap = {};
           for (const p of mod.geometry.polys) {
             if (p.material === -1) {
