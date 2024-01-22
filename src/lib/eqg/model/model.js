@@ -1,7 +1,7 @@
 import { vec2, vec3 } from 'gl-matrix';
 import { TypedArrayReader } from '../../util/typed-array-reader';
 
-class Vertex {
+export class Vertex {
   /**
    * @type {vec3}
    */
@@ -19,7 +19,7 @@ class Vertex {
   col = 0;
 }
 
-class Polygon {
+export class Polygon {
   flags = 0;
   material = 0;
 
@@ -29,14 +29,14 @@ class Polygon {
   verts = [];
 }
 
-class MaterialProperty {
+export class MaterialProperty {
   name = '';
   type = 0;
   valueI = 0;
   valueF = 0.0;
   valueS = '';
 }
-class Material {
+export class Material {
   name = '';
   shader = '';
   /**

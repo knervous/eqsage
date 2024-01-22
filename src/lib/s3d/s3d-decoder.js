@@ -116,19 +116,22 @@ export class S3DDecoder {
     const materials = {};
     for (const material of wld.materialList) {
       material.materialList.forEach((eqMaterial) => {
+     
         if (materials[eqMaterial.name]) {
           return;
         }
+        const [name] = eqMaterial.name.toLowerCase().split('_');
+
         const gltfMaterial = document
-          .createMaterial(eqMaterial.name)
+          .createMaterial(name)
           .setDoubleSided(false)
           .setExtension('KHR_materials_unlit')
           .setRoughnessFactor(0)
           .setMetallicFactor(0);
         const texture = document
-          .createTexture(eqMaterial.name)
-          .setURI(`/eq/textures/${eqMaterial.name}`).setExtras({
-            name: eqMaterial.name
+          .createTexture(name)
+          .setURI(`/eq/textures/${name}`).setExtras({
+            name
           }).setMimeType();
         gltfMaterial.setBaseColorTexture(texture);
         switch (eqMaterial.shaderType) {
