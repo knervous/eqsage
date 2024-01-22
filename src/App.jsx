@@ -56,6 +56,8 @@ function App() {
             val.name.includes('oceangreen') ||
             val.name.includes('broodlands') ||
             val.name.includes('bloodfields') ||
+            val.name.includes('pow') ||
+            val.name.includes('potime') ||
              val.name.includes('dranik') ||
             val.name.includes('stillmoon'))
         ) {
@@ -173,6 +175,7 @@ function App() {
           sx={{
             height        : '100%',
             width         : '15%',
+            minWidth      : '220px',
             justifyContent: 'center',
             alignContent  : 'center',
           }}
@@ -185,7 +188,7 @@ function App() {
           >
             <Typography
               sx={{
-                margin   : '0 auto',
+                margin   : '10px auto',
                 textAlign: 'center',
               }}
               variant="h5"
@@ -194,11 +197,11 @@ function App() {
             </Typography>
             <List
               sx={{
-                maxHeight: '200px',
-                height   : '200px',
-                overflow : 'auto',
-                padding  : '5px',
-                margin   : '15px',
+                // maxHeight: '200px',a
+                // height  : '200px',
+                overflow: 'auto',
+                padding : '5px',
+                margin  : '5px',
               }}
               dense
             >

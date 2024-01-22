@@ -28,7 +28,7 @@ const keys = new Promise(resolve => {
 
 /** @param {string} name */
 async function parseTexture(name, data) {
-  name = name.replace(/\.\w+$/, '');
+  name = name.toLowerCase().replace(/\.\w+$/, '');
   const val = await db.textureData.get(name);
   if (val) {
     return;
