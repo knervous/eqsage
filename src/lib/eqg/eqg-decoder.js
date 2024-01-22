@@ -112,7 +112,6 @@ export class EQGDecoder {
       }
 
       if (fileName.endsWith('.bmp') || fileName.endsWith('.dds')) {
-        console.log('Img', fileName);
         this.#imageProcessingPromises.push(
           imageProcessor.parseTexture(fileName, f.data.buffer)
         );
@@ -145,7 +144,6 @@ export class EQGDecoder {
     console.log(`Processed :: ${file.name}`);
     await Promise.all(this.#imageProcessingPromises);
     console.log('Done processing images');
-    console.log(this);
   }
 
   async export() {
@@ -300,7 +298,6 @@ export class EQGDecoder {
       }
     }
 
-    console.log('Doc', document);
 
     const io = new WebIO();
 

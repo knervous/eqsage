@@ -261,12 +261,12 @@ export class GameController {
       undefined,
       '.glb'
     );
-    console.log('tex', texture);
-    texture.meshes.forEach((m) => {
-      if (m.material) {
-        m.material.wireframe = true;
-      }
-    });
+    // console.log('tex', texture);
+    // texture.meshes.forEach((m) => {
+    //   if (m.material) {
+    //     m.material.wireframe = true;
+    //   }
+    // });
   }
 
   keyDown(e) {
