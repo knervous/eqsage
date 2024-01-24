@@ -1,25 +1,12 @@
 import zlib from 'pako';
 import { Buffer } from 'buffer';
-import { Wld, WldType } from '../s3d/wld/wld';
 import { TypedArrayReader } from '../util/typed-array-reader';
 import { imageProcessor } from '../util/image/image-processor';
-import { Accessor, WebIO, Writer } from '@gltf-transform/core';
-import { weld } from '@gltf-transform/functions';
+import { Accessor, WebIO } from '@gltf-transform/core';
 import { gameController } from '../../viewer/controllers/GameController';
-import { mat4, vec3 } from 'gl-matrix';
-import { ShaderType } from '../s3d/materials/material';
+import { mat4 } from 'gl-matrix';
 import { Zone, ZoneData } from './zone/zone';
-import { Geometry, Model, Polygon } from './model/model';
-// import { KHRTextureTransform } from '@gltf-transform/extensions';
-
-function chunkArray(array, chunkSize) {
-  const chunks = [];
-  for (let i = 0; i < array.length; i += chunkSize) {
-    chunks.push(array.slice(i, i + chunkSize));
-  }
-  return chunks;
-}
-
+import { Model } from './model/model';
 export class EQGDecoder {
   /** @type {import('../model/file-handle').EQFileHandle} */
   #fileHandle = null;
@@ -38,8 +25,6 @@ export class EQGDecoder {
    * @type {ZoneData}
    */
   zoneData = null;
-
-  #imageProcessingPromises = [];
 
   constructor(fileHandle) {
     this.#fileHandle = fileHandle;
@@ -97,6 +82,7 @@ export class EQGDecoder {
     const _dirlen = dirBufferReader.readUint32();
 
     this.files = {};
+    const images = [];
     // Preprocess
     for (const f of fileList) {
       const fileName = dirBufferReader.readString(dirBufferReader.readUint32());
@@ -112,9 +98,7 @@ export class EQGDecoder {
       }
 
       if (fileName.endsWith('.bmp') || fileName.endsWith('.dds')) {
-        this.#imageProcessingPromises.push(
-          imageProcessor.parseTexture(fileName, f.data.buffer)
-        );
+        images.push({ name: fileName, data: f.data.buffer });
         continue;
       }
     }
@@ -142,7 +126,7 @@ export class EQGDecoder {
       }
     }
     console.log(`Processed :: ${file.name}`);
-    await Promise.all(this.#imageProcessingPromises);
+    await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
     console.log('Done processing images');
   }
 
@@ -179,7 +163,11 @@ export class EQGDecoder {
           if (prop.name.includes('Normal')) {
             gltfMaterial.setNormalTexture(texture);
           }
-          if (prop.name.includes('Diffuse') || (prop.name.includes('Detail') && !gltfMaterial.getBaseColorTexture())) {
+          if (
+            prop.name.includes('Diffuse') ||
+            (prop.name.includes('Detail') &&
+              !gltfMaterial.getBaseColorTexture())
+          ) {
             gltfMaterial.setBaseColorTexture(texture);
           }
         }
@@ -298,19 +286,19 @@ export class EQGDecoder {
       }
     }
 
-
     const io = new WebIO();
 
     const bytes = await io.writeBinary(document);
-    window.bytes = bytes.buffer; // await new Blob([bytes], { type: 'application/octet-stream' }).arrayBuffer();// bytes;
-    await gameController.loadModel(bytes);
+    await gameController.loadModel(this.zone.name, bytes.buffer);
   }
 
   async process() {
     console.log('process', this.#fileHandle.name);
+    imageProcessor.initializeWorkers();
+    const micro = performance.now();
+
     for (const file of this.#fileHandle.fileHandles) {
       const extension = file.name.split('.').pop();
-
       switch (extension) {
         case 'eqg':
           await this.processEQG(file);
@@ -330,5 +318,7 @@ export class EQGDecoder {
           );
       }
     }
+    console.log(`Took ${((performance.now() - micro) / 1000).toFixed(4)} seconds.`);
+    imageProcessor.clearWorkers();
   }
 }

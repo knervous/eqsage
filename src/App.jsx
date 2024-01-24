@@ -19,6 +19,7 @@ import { EQFileHandle } from './lib/model/file-handle';
 import { knownZoneShortNames } from './lib/model/constants';
 import Dexie from 'dexie';
 import { BabylonViewer } from './viewer';
+import { gameController } from './viewer/controllers/GameController';
 
 const dbVersion = 1;
 
@@ -43,6 +44,7 @@ async function* getFilesRecursively(entry, path = '') {
 function App() {
   const [fileHandles, setFileHandles] = useState([]);
   const [zoneName, setZoneName] = useState('Select zone');
+  const [rootFileSystemHandle, setRootFileSystemHandle] = useState(null);
   const eqFiles = useMemo(() => {
     const usedZones = [...knownZoneShortNames];
     return fileHandles.reduce(
@@ -53,12 +55,13 @@ function App() {
         if (
           idx !== -1 &&
           (val.name.includes('qeynos') ||
+            val.name.includes('freport') ||
+            val.name.includes('kith') ||
             val.name.includes('oceangreen') ||
             val.name.includes('broodlands') ||
             val.name.includes('bloodfields') ||
             val.name.includes('pow') ||
             val.name.includes('potime') ||
-             val.name.includes('dranik') ||
             val.name.includes('stillmoon'))
         ) {
           const zoneName = usedZones[idx];
@@ -90,10 +93,10 @@ function App() {
 
   console.log('EQ files', eqFiles);
 
-  const refresh = useCallback(async () => {
-    const eqdir = await get('eqdir');
-    console.log(await eqdir.queryPermission({ mode: 'read' }));
-    if (!(await eqdir.requestPermission({ mode: 'read' })) === 'granted') {
+  const refresh = useCallback(async (infHandle) => {
+    const eqdir = infHandle ?? (await get('eqdir'));
+    console.log(await eqdir.queryPermission({ mode: 'readwrite' }));
+    if (!(await eqdir.requestPermission({ mode: 'readwrite' })) === 'granted') {
       console.warn('Permissions not granted');
       return;
     }
@@ -101,6 +104,7 @@ function App() {
       console.warn('No EQ Directory Linked!');
       return;
     }
+    setRootFileSystemHandle(eqdir);
     const handles = [];
     try {
       for await (const fileHandle of getFilesRecursively(eqdir)) {
@@ -126,7 +130,7 @@ function App() {
               } else if (handle.kind === 'directory') {
                 await clear();
                 await set('eqdir', handle);
-                await refresh();
+                await refresh(handle);
                 console.log('Done set');
               }
             })
@@ -141,17 +145,28 @@ function App() {
     [refresh]
   );
 
+  useEffect(() => {
+    gameController.rootFileSystemHandle = rootFileSystemHandle;
+  }, [rootFileSystemHandle]);
+
   const getFiles = useCallback(async (fileHandles) => {
+    /**
+     * @type {FileSystemHandle}
+     */
     const eqdir = await get('eqdir');
     if (!eqdir) {
       console.log('No eq dir');
       return;
     }
-    const permissionLevel = await eqdir.requestPermission({ mode: 'read' });
+    const permissionLevel = await eqdir.requestPermission({
+      mode: 'readwrite',
+    });
     if (permissionLevel !== 'granted') {
       console.warn('Permissions not granted');
       return;
     }
+    setRootFileSystemHandle(eqdir);
+
     return Promise.all(fileHandles.map((f) => f.getFile()));
   }, []);
   return (
@@ -161,7 +176,6 @@ function App() {
         typography: { fontFamily: 'Montaga' },
       })}
     >
-
       <Stack
         onDragOver={(e) => {
           e.stopPropagation();
@@ -213,7 +227,12 @@ function App() {
                     onClick={async () => {
                       setZoneName(name);
                       const files = await getFiles(fileHandles);
-                      const obj = new EQFileHandle(name, files);
+                      console.log('Roo', rootFileSystemHandle);
+                      const obj = new EQFileHandle(
+                        name,
+                        files,
+                        rootFileSystemHandle
+                      );
                       await obj.initialize();
                       await obj.process();
                     }}
@@ -288,7 +307,7 @@ function App() {
             {/**
              * Refresh needs user interaction
              */}
-            <Button onClick={refresh} variant="outlined">
+            <Button onClick={() => refresh()} variant="outlined">
               Refresh EQ Directory Link
             </Button>
           </Stack>
