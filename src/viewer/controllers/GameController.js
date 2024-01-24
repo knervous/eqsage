@@ -23,6 +23,7 @@ import { Inspector } from '@babylonjs/inspector';
 import { GlobalStore } from '../../state';
 import { HemisphericLight } from 'babylonjs';
 import { GLTFLoader } from '@babylonjs/loaders/glTF/2.0';
+import { getTexture, getTextureDir } from '../../lib/util/image/fileHandler';
 Database.IDBStorageEnabled = true;
 SceneLoader.ShowLoadingScreen = false;
 
@@ -49,9 +50,10 @@ class EQDatabase extends Database {
     useArrayBuffer
   ) {
     console.log('Load file', url);
-    if (window.bytes) {
-      await sceneLoaded(window.bytes);
+    if (gameController.bytes) {
+      await sceneLoaded(gameController.bytes);
     } else {
+      console.log('No bytes', url);
       errorCallback();
     }
   }
@@ -66,6 +68,11 @@ export class GameController {
   canvas = null;
 
   loading = false;
+
+  /**
+   * @type {FileSystemDirectoryHandle}
+   */
+  rootFileSystemHandle = null;
 
   addToast(message) {
     console.log(message);
@@ -136,13 +143,16 @@ export class GameController {
 
     GLTFLoader.prototype.loadImageAsync = async function (context, image) {
       if (!image._data) {
-        const entry = await db.textureData.get(image.name);
-        if (entry?.data) {
-          image._data = entry.data.buffer;
+        const textureDir = await getTextureDir(
+          gameController.rootFileSystemHandle
+        );
+        const data = await getTexture(textureDir, `${image.name}.png`);
+
+        if (data) {
+          image._data = data; // entry.data.buffer;
         } else {
           image._data =
-            (await db.textureData.get('citywal4'))?.data?.buffer ??
-            new ArrayBuffer();
+            (await getTexture(textureDir, 'citywal4.png')) ?? new ArrayBuffer();
         }
       }
 
@@ -251,12 +261,13 @@ export class GameController {
     // this.ambientLight.groundColor = Color3.FromHexString('#E69339');
   }
 
-  async loadModel() {
+  async loadModel(name, bytes) {
+    this.bytes = bytes;
     this.loadViewerScene();
     const texture = await SceneLoader.ImportMeshAsync(
       '',
       '/eq/',
-      'test',
+      name,
       this.#scene,
       undefined,
       '.glb'

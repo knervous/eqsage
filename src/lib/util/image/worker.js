@@ -1,54 +1,66 @@
-import Dexie from 'dexie';
 import * as Comlink from 'comlink';
-import imageCompression from 'browser-image-compression';
 import { convertDDS2Jimp } from '../image-processing';
 import 'jimp/browser/lib/jimp';
+
 
 /**
  * @type {import('jimp/browser/lib/jimp')}
  */
 const Jimp = global.Jimp;
-const dbVersion = 1;
 
-const db = new Dexie('eq_textures');
-db.version(dbVersion).stores({
-  textureData: 'name,data',
-});
+/**
+ * @typedef QueueItem
+ * @property {string} name
+ * @property {ArrayBuffer} data
+ */
 
+/**
+ *
+ * @param {[QueueItem]} entries
+ * @param {FileSystemDirectoryHandle} eqFileHandle
+ */
+async function parseTextures(entries, eqFileHandle) {
+  const requiemDir = await eqFileHandle.getDirectoryHandle('requiem', {
+    create: true,
+  });
+  const dirHandle = await requiemDir.getDirectoryHandle('textures', {
+    create: true,
+  });
 
-let res;
-const keys = new Promise(resolve => {
-  res = resolve;
-}); 
-
-(async () => {
-  await db.open();
-  res(await db.textureData.toCollection().keys());
-})();
+  await Promise.all(
+    entries.map(async ({ name, data }) => {
+      name = name.toLowerCase().replace(/\.\w+$/, '.png');
+      let textureHandle = await dirHandle.getFileHandle(name).catch(() => undefined);
+      if (!textureHandle) {
+        textureHandle = await dirHandle.getFileHandle(name, { create: true });
+      } else {
+        return;
+      }
+      const writable = await textureHandle.createWritable();
+      if (writable.locked) {
+        return;
+      }
+      const imgData = await parseTexture(name, data);
+      await writable.write(imgData);
+      await writable.getWriter().releaseLock();
+      await writable.close();
+    })
+  );
+  // await db.textureData.bulkAdd(imgEntries);
+}
 
 /** @param {string} name */
 async function parseTexture(name, data) {
   name = name.toLowerCase().replace(/\.\w+$/, '');
-  const val = await db.textureData.get(name);
-  if (val) {
-    return;
-  }
-  const options = {
-    maxSizeMB       : 1,
-    maxWidthOrHeight: 1920,
-    useWebWorker    : false,
-  };
-  if (new DataView(data).getUint16(0, true) === 0x4D42) {
+  if (new DataView(data).getUint16(0, true) === 0x4d42) {
     try {
       const img = await Jimp.read(data);
-      const png = await img.getBufferAsync(Jimp.MIME_PNG);
-      // const blob = new Blob([png.buffer], { type: 'image/png' });
-      await db.textureData.add({ name, data: png });
+      return await img.getBufferAsync(Jimp.MIME_PNG);
     } catch (e) {
       console.warn('err', e, name);
     }
-    return;
-  } 
+    return null;
+  }
   const [decompressed, dds] = convertDDS2Jimp(new Uint8Array(data));
   const w = dds.mipmaps[0].width;
   const h = dds.mipmaps[0].height;
@@ -73,13 +85,11 @@ async function parseTexture(name, data) {
       }
     )
   );
-  await img.flip(false, true);
-  const png = await img.getBufferAsync(Jimp.MIME_PNG);
-  // const blob = new Blob([png.buffer], { type: 'image/png' });
-  await db.textureData.add({ name, data: png });
+
+  return await img.getBufferAsync(Jimp.MIME_PNG);
 }
 const exports = {
-  parseTexture,
+  parseTextures,
 };
 
 /** @type {typeof exports} */

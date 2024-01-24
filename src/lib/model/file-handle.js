@@ -12,6 +12,10 @@ export class EQFileHandle {
   #fileHandles = [];
   #name = '';
   #initialized = false;
+  /**
+   * @type {FileSystemDirectoryHandle}
+   */
+  #rootFileHandle = null;
 
 
   // gltf instances
@@ -23,9 +27,10 @@ export class EQFileHandle {
      * 
      * @param {FileSystemFileHandle} fileHandles 
      */
-  constructor(name, fileHandles) {
+  constructor(name, fileHandles, rootFileHandle) {
     this.#name = name;
     this.#fileHandles = fileHandles;
+    this.#rootFileHandle = rootFileHandle;
   }
 
   /**
@@ -44,6 +49,10 @@ export class EQFileHandle {
 
   get fileHandles() {
     return this.#fileHandles;
+  }
+
+  get rootFileHandle() {
+    return this.#rootFileHandle;
   }
 
   get #type() {
@@ -67,9 +76,9 @@ export class EQFileHandle {
       return;
     }
     if (this.#type === FILE_TYPE.EQG) {
-      const s3dDecoder = new EQGDecoder(this);
-      await s3dDecoder.process();
-      await s3dDecoder.export();
+      const eqgDecoder = new EQGDecoder(this);
+      await eqgDecoder.process();
+      await eqgDecoder.export();
     } else if (this.#type === FILE_TYPE.S3D) {
       const s3dDecoder = new S3DDecoder(this);
       await s3dDecoder.process();
