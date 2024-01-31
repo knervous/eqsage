@@ -588,7 +588,7 @@ export class S3DDecoder {
           sharedPrimitive.indices.push(...newIndices);
 
           // TODO check this case out
-          if (!Array.isArray(mesh.center) || [v1, v2, v3].some(a => a === undefined)) {
+          if ([v1, v2, v3].some(a => a === undefined)) {
             continue;
           }
           vecs.push(
