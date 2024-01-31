@@ -1,0 +1,30 @@
+.main {
+    background: center no-repeat url('../../../public/eqsage1.png');
+    background-size: cover;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .MuiDialog-paper[role=dialog]  {
+    border-radius: 5px;
+    background-image: url('../../../public/ui/border2.jpg');
+    background-repeat: repeat;
+    background-size: 100% 100%;
+    background-position: center;
+    color: white !important;go
+    p {
+      color: white;
+    }
+    opacity: 1;
+    & > * {
+      opacity: 1;
+    }
+    //border: 1px solid #b2b2b2;
+    padding: 10px;
+  }
+  
