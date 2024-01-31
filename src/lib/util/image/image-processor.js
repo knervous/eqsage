@@ -1,5 +1,4 @@
 import * as Comlink from 'comlink';
-import { getFiles, getTextureDir } from './fileHandler.js';
 
 function chunkArray(array, numChunks) {
   if (numChunks < 1) {
@@ -32,12 +31,7 @@ class ImageProcessor {
   fileHandles = [];
 
   workerIdx = 0;
-  
 
-  async initializeHandle(fileHandle) {
-    const requiemDir = await getTextureDir(fileHandle);
-    this.fileHandles = await getFiles(requiemDir);
-  }
 
   /**
    * @typedef QueueItem

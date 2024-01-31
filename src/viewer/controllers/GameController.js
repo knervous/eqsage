@@ -1,5 +1,5 @@
 import '@babylonjs/loaders/glTF';
-import Dexie from 'dexie';
+
 import { cameraController } from './CameraController';
 import { lightController } from './LightController';
 import { skyController } from './SkyController';
@@ -17,30 +17,41 @@ import {
   ThinEngine,
   Vector3,
   Color3,
+  Texture,
+  MeshBuilder,
+  StandardMaterial,
+  CubeTexture,
+  Color3Gradient,
+  Tools,
+  Mesh,
 } from '@babylonjs/core';
 
 import { Inspector } from '@babylonjs/inspector';
 import { GlobalStore } from '../../state';
 import { HemisphericLight } from 'babylonjs';
 import { GLTFLoader } from '@babylonjs/loaders/glTF/2.0';
-import { getTexture, getTextureDir } from '../../lib/util/image/fileHandler';
+import { getEQFile } from '../../lib/util/fileHandler';
 Database.IDBStorageEnabled = true;
 SceneLoader.ShowLoadingScreen = false;
-
-const dbVersion = 1;
-
-const db = new Dexie('eq_textures');
-db.version(dbVersion).stores({
-  textureData: 'name,data',
-});
 
 const params = new Proxy(new URLSearchParams(window.location.search), {
   get: (searchParams, prop) => searchParams.get(prop),
 });
 
 class EQDatabase extends Database {
-  loadImage(url, image) {
-    console.log('Load image');
+  async loadImage(url, image) {
+    if (url.startsWith('https://')) {
+      console.log('spec');
+      const res = await fetch(url).then((a) => a.arrayBuffer());
+      image.src = URL.createObjectURL(
+        new Blob([res], { type: 'image/png' } /* (1) */)
+      );
+      return;
+    }
+    const data = await getEQFile('textures', `${url}.png`);
+    image.src = URL.createObjectURL(
+      new Blob([data], { type: 'image/png' } /* (1) */)
+    );
   }
   async loadFile(
     url,
@@ -49,16 +60,21 @@ class EQDatabase extends Database {
     errorCallback,
     useArrayBuffer
   ) {
-    console.log('Load file', url);
-    if (gameController.bytes) {
-      await sceneLoaded(gameController.bytes);
-    } else {
-      console.log('No bytes', url);
-      errorCallback();
+    const [, eq, folder, file] = url.split('/');
+    if (eq === 'eq') {
+      const fileBuffer = await getEQFile(folder, file);
+      if (!fileBuffer) {
+        console.log('No bytes', url);
+        errorCallback();
+        return;
+      }
+      await sceneLoaded(fileBuffer);
+      return;
     }
+    console.log('No bytes', url);
+    errorCallback();
   }
 }
-
 export class GameController {
   /** @type {Engine & WebGPUEngine} */
   engine = null;
@@ -143,16 +159,14 @@ export class GameController {
 
     GLTFLoader.prototype.loadImageAsync = async function (context, image) {
       if (!image._data) {
-        const textureDir = await getTextureDir(
-          gameController.rootFileSystemHandle
-        );
-        const data = await getTexture(textureDir, `${image.name}.png`);
+        const data = await getEQFile('textures', `${image.name}.png`);
 
         if (data) {
           image._data = data; // entry.data.buffer;
         } else {
+          console.warn(`Unhandled image ${image.name}`);
           image._data =
-            (await getTexture(textureDir, 'citywal4.png')) ?? new ArrayBuffer();
+            (await getEQFile('textures', 'citywal4.png')) ?? new ArrayBuffer();
         }
       }
 
@@ -245,7 +259,8 @@ export class GameController {
     this.#scene = new Scene(this.engine);
     this.#scene.onPointerDown = this.sceneMouseDown;
     this.#scene.onPointerUp = this.sceneMouseUp;
-    cameraController.createCamera(new Vector3(0, 0, 0));
+    cameraController.createCamera(new Vector3(0, 250, 0));
+    cameraController.camera.rotation = new Vector3(1.57, 1.548, 0);
 
     this.ambientLight = new HemisphericLight(
       '__ambient_light__',
@@ -255,29 +270,189 @@ export class GameController {
 
     // Default intensity is 1. Let's dim the light a small amount
     this.ambientLight.intensity = 1.5;
-
-    // This will be part of time of day
-    // this.ambientLight.diffuse = Color3.FromHexString('#FF792F');
-    // this.ambientLight.groundColor = Color3.FromHexString('#E69339');
   }
 
-  async loadModel(name, bytes) {
-    this.bytes = bytes;
+  async loadModel(name) {
     this.loadViewerScene();
-    const texture = await SceneLoader.ImportMeshAsync(
+
+    // Skybox
+    const skybox = MeshBuilder.CreateBox(
+      'skyBox',
+      { size: 10000.0 },
+      this.#scene
+    );
+    const skyboxMaterial = new StandardMaterial('skyBox', this.#scene);
+    skyboxMaterial.backFaceCulling = false;
+
+    const png_array = [];
+    const map = ['px', 'py', 'pz', 'nx', 'ny', 'nz'];
+    for (let i = 0; i < 6; i++) {
+      png_array.push(
+        `https://playground.babylonjs.com/textures/skybox_${map[i]}.jpg`
+      );
+    }
+    skyboxMaterial.reflectionTexture = new CubeTexture(
+      'https://playground.babylonjs.com/textures/',
+      this.#scene,
+      [],
+      false,
+      png_array,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      '.jpg'
+    );
+    skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
+    skyboxMaterial.diffuseColor = new Color3Gradient(0, 0, 0);
+    skyboxMaterial.specularColor = new Color3(0, 0, 0);
+    skybox.material = skyboxMaterial;
+
+    const zone = await SceneLoader.ImportMeshAsync(
       '',
-      '/eq/',
-      name,
+      '/eq/zones/',
+      `${name}.glb`,
       this.#scene,
       undefined,
       '.glb'
     );
-    // console.log('tex', texture);
-    // texture.meshes.forEach((m) => {
-    //   if (m.material) {
-    //     m.material.wireframe = true;
-    //   }
-    // });
+    const metadata = await getEQFile('zones', `${name}.json`, 'json');
+    if (metadata) {
+      for (const [key, value] of Object.entries(metadata.objects)) {
+        await this.instantiateObjects(key, value);
+      }
+    }
+    await this.addTextureAnimations();
+
+  }
+
+  async instantiateObjects(modelName, model, forEditing = false) {
+    const animatedMeshes = [];
+    const container = await SceneLoader.LoadAssetContainerAsync(
+      '/eq/objects/',
+      `${modelName}.glb`,
+      this.#scene,
+      undefined,
+      '.glb'
+    );
+    const meshes = [];
+    const rn = [];
+    for (const [idx, v] of Object.entries(model)) {
+      const { x, y, z, rotateX, rotateY, rotateZ, scale } = v;
+      const instanceContainer = container.instantiateModelsToScene(
+        () => `${modelName}_${idx}`,
+        undefined,
+        { doNotInstantiate: forEditing ? false : true }
+      );
+      instanceContainer.animationGroups?.forEach((ag) =>
+        this.#scene.removeAnimationGroup(ag)
+      );
+
+      const hasAnimations = instanceContainer.animationGroups.length > 0;
+      rn.push(instanceContainer);
+      for (const mesh of instanceContainer.rootNodes[0].getChildMeshes()) {
+        
+        mesh.position = new Vector3(x, y, z);
+
+        mesh.rotation = new Vector3(Tools.ToRadians(rotateX), Tools.ToRadians(180) + Tools.ToRadians(-1 * rotateY), Tools.ToRadians(rotateZ));
+
+        mesh.checkCollisions = true;
+        mesh.scaling.z = mesh.scaling.y = mesh.scaling.x = scale;
+        mesh.metadata = {
+          animated  : hasAnimations,
+          zoneObject: true,
+        };
+        if (forEditing) {
+          mesh.addLODLevel(1000, null);
+        }
+        mesh.id = `${modelName}_${idx}`;
+        if (!hasAnimations) {
+          mesh.freezeWorldMatrix();
+        }
+        if (mesh.getTotalVertices() > 0) {
+          meshes.push(mesh);
+        }
+      }
+    }
+    if (!forEditing) {
+      Mesh.MergeMeshes(meshes, true, true, undefined, true, true);
+      rn.forEach(r => r.dispose());
+    }
+    return animatedMeshes;
+  }
+
+  async addTextureAnimations() {
+    const addTextureAnimation = (material, textureAnimation) => {
+      const [baseTexture] = material.getActiveTextures();
+      return textureAnimation.frames.map((f) => {
+        return new Texture(
+          f,
+          this.#scene,
+          baseTexture.noMipMap,
+          baseTexture.invertY,
+          baseTexture.samplingMode
+        );
+      });
+    };
+
+    let animationTimerMap = {};
+    const animationTexturesCache = {};
+
+    for (const material of this.#scene.materials) {
+      if (!material.metadata?.gltf?.extras) {
+        continue;
+      }
+
+      const textureAnimation = material.metadata?.gltf?.extras;
+      if (textureAnimation) {
+        let allTextures;
+        if (animationTexturesCache[material.id]) {
+          allTextures = animationTexturesCache[material.id];
+        } else {
+          allTextures = await addTextureAnimation(material, textureAnimation);
+          animationTexturesCache[material.id] = allTextures;
+        }
+        animationTimerMap = {
+          ...animationTimerMap,
+          [textureAnimation.animationDelay]: {
+            ...(animationTimerMap[textureAnimation.animationDelay] ?? {}),
+            materials: [
+              ...(animationTimerMap[textureAnimation.animationDelay]
+                ?.materials ?? []),
+              {
+                frames      : textureAnimation.frames,
+                currentFrame: 1,
+                allTextures,
+                material,
+              },
+            ],
+          },
+        };
+      }
+    }
+
+    for (const [time, value] of Object.entries(animationTimerMap)) {
+      const interval = setInterval(() => {
+        for (const material of value.materials) {
+          material.currentFrame =
+            material.currentFrame + 1 > material.frames.length
+              ? 1
+              : material.currentFrame + 1;
+          for (const texture of material.material.getActiveTextures()) {
+            if (material.allTextures[material.currentFrame - 1]) {
+              texture._texture =
+                material.allTextures[material.currentFrame - 1]._texture;
+            }
+          }
+        }
+      }, +time * 2);
+
+      for (const material of value.materials) {
+        material.material.onDisposeObservable.add(() => {
+          clearInterval(interval);
+        });
+      }
+    }
   }
 
   keyDown(e) {
@@ -396,6 +571,23 @@ export class GameController {
     this.SoundController.dispose();
     this.SpawnController.dispose();
     this.ItemController.dispose();
+  }
+
+  /**
+   * @typedef Spire
+   * @property {any} SpireApi
+   * @property {any} SpireApiTypes
+   * @property {any} SpireQueryBuilder
+   * @property {import ('../../tsdef/zones').Zones} Zones
+   * @property {import ('../../tsdef/spawn').Spawn} Spawn
+   * @property {import ('../../tsdef/npcs').Npcs} Npcs
+   */
+
+  /**
+   * @type {Spire | null}
+   */
+  get Spire() {
+    return window.Spire;
   }
 }
 

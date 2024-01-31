@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { clear, get, set } from 'idb-keyval';
 import {
+  Autocomplete,
   Box,
   Button,
   List,
@@ -9,6 +10,7 @@ import {
   ListItemText,
   Paper,
   Stack,
+  TextField,
   ThemeProvider,
   Typography,
   createTheme,
@@ -17,16 +19,8 @@ import {
 import './App.scss';
 import { EQFileHandle } from './lib/model/file-handle';
 import { knownZoneShortNames } from './lib/model/constants';
-import Dexie from 'dexie';
 import { BabylonViewer } from './viewer';
 import { gameController } from './viewer/controllers/GameController';
-
-const dbVersion = 1;
-
-const db = new Dexie('eqsage');
-db.version(dbVersion).stores({
-  eqdir: '++id,path,handle',
-});
 
 async function* getFilesRecursively(entry, path = '') {
   if (entry.kind === 'file') {
@@ -45,6 +39,23 @@ function App() {
   const [fileHandles, setFileHandles] = useState([]);
   const [zoneName, setZoneName] = useState('Select zone');
   const [rootFileSystemHandle, setRootFileSystemHandle] = useState(null);
+  const [zoneNames, setZoneNames] = useState(knownZoneShortNames);
+
+  useEffect(() => {
+
+    // Give this a second to inject
+    setTimeout(() => {
+      console.log('Spire', gameController.Spire, window.Spire);
+      if (gameController.Spire) {
+        console.log('Fetching');
+        gameController.Spire.Zones.getZones().then(zones => {
+          console.log('Zones', zones);
+        });
+      }
+    }, 100);
+    
+  }, []);
+
   const eqFiles = useMemo(() => {
     const usedZones = [...knownZoneShortNames];
     return fileHandles.reduce(
@@ -71,27 +82,19 @@ function App() {
           } else {
             acc.zones[zoneName] = [val];
           }
-        }
-
-        if (val.name.startsWith('gequip')) {
-          acc.equip.push(val);
-        }
-
-        if (/global.*\.s3d/.test(val.name) || val.name === 'sky.s3d') {
-          acc.globalChar.push(val);
+        } else if (val.name.endsWith('s3d') || val.name.endsWith('eqg')) {
+          acc.rest.push(val);
         }
 
         return acc;
       },
       {
-        zones     : {},
-        equip     : [],
-        globalChar: [],
+        zones: {},
+        rest : [],
       }
     );
   }, [fileHandles]);
 
-  console.log('EQ files', eqFiles);
 
   const refresh = useCallback(async (infHandle) => {
     const eqdir = infHandle ?? (await get('eqdir'));
@@ -227,7 +230,6 @@ function App() {
                     onClick={async () => {
                       setZoneName(name);
                       const files = await getFiles(fileHandles);
-                      console.log('Roo', rootFileSystemHandle);
                       const obj = new EQFileHandle(
                         name,
                         files,
@@ -238,76 +240,40 @@ function App() {
                     }}
                   >
                     <ListItemText primary={name} />
-                    {/* {fileHandles
-                      .filter(
-                        (f) =>
-                          f.name.endsWith('.s3d') || f.name.endsWith('.eqg')
-                      )
-                      .map((n) => (
-                        <Button
-                          size="small"
-                          onClick={async (e) => {
-                            const files = await getFiles([n]);
-                            const obj = new EQFileHandle(name, files);
-                            await obj.initialize();
-                            await obj.process();
-                            e.stopPropagation();
-                            e.preventDefault();
-                          }}
-                        >
-                          {n.name}
-                        </Button>
-                      ))} */}
                   </ListItemButton>
                 ))}
             </List>
-
-            <Button
-              onClick={async () => {
-                const files = await getFiles(eqFiles.equip);
-                const obj = new EQFileHandle('gequip', files);
-                await obj.initialize();
-                await obj.process();
-              }}
-              variant="outlined"
-            >
-              Process Equipment ({eqFiles.equip.length})
-            </Button>
-            <Button
-              onClick={async () => {
-                const files = await getFiles(eqFiles.globalChar);
-                const obj = new EQFileHandle('global', files);
-                await obj.initialize();
-                await obj.process();
-              }}
-              variant="outlined"
-            >
-              Process Global ({eqFiles.globalChar.length})
-            </Button>
-            <Button
-              onClick={async () => {
-                for (const [name, fileHandles] of Object.entries(
-                  eqFiles.zones
-                )) {
-                  const files = await getFiles(fileHandles);
-                  const obj = new EQFileHandle(name, files);
-                  await obj.initialize();
-                  await obj.process();
+            <Autocomplete
+              disablePortal
+              sx={{ width: '80%', margin: '5px auto' }}
+              id="combo-box-demo"
+              onChange={async (e, values) => {
+                if (!values) {
+                  return;
                 }
-                // Object.entries(eqFiles.zones).forEach(
-                //   async ([name, fileHandles]) => {
-
-                //   }
-                // );
+                const files = await getFiles([eqFiles.rest[values.id]]);
+                const obj = new EQFileHandle(
+                  values.label,
+                  files,
+                  rootFileSystemHandle
+                );
+                await obj.initialize();
+                await obj.process(false);
               }}
-              variant="outlined"
-            >
-              Process All Zones ({Object.entries(eqFiles.zones).length})
-            </Button>
+
+              options={eqFiles.rest.map((fh, idx) => {
+                return {
+                  label: fh.name,
+                  id   : idx
+                };
+              })}
+              //  sx={{ width: 300 }}
+              renderInput={(params) => <TextField {...params} label="S3D / EQG Files" />}
+            />
             {/**
              * Refresh needs user interaction
              */}
-            <Button onClick={() => refresh()} variant="outlined">
+            <Button sx={{ width: '80%', margin: '5px auto' }} onClick={() => refresh()} variant="outlined">
               Refresh EQ Directory Link
             </Button>
           </Stack>

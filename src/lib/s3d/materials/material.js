@@ -55,6 +55,9 @@ export class Material extends WldFragment {
   bitmapInfoReferenceIdx = -1;
   shaderType = -1;
   isHandled = false;
+  /**
+   * @type {{reference: import('./bitmap-info').BitmapInfo}}
+   */
   get bitmapInfo() {
     return this.wld.fragments[this.bitmapInfoReferenceIdx];
   }

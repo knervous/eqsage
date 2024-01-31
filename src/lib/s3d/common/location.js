@@ -10,8 +10,9 @@ export class Location {
     this.x = x;
     this.y = y;
     this.z = z;
-    this.rotateX = rotateX;
-    this.rotateY = rotateY;
-    this.rotateZ = rotateZ;
+    const modifier = 1.0 / 512.0 * 360.0;
+    this.rotateX = 0;
+    this.rotateZ = rotateY * modifier;
+    this.rotateY = rotateX * modifier * -1;
   }
 }

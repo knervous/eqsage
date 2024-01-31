@@ -79,6 +79,11 @@ export class Wld {
    * @type {[ActorInstance]}
    */
   actors = [];
+
+  /**
+   * @type {[ActorDef]}
+   */
+  objects = [];
   /**
    *
    * @param {Uint8Array} data
@@ -216,7 +221,7 @@ export class Wld {
         addFragment(TrackFragment);
         break;
       case 0x14: // Static or Animated Model Ref/Player Info
-        addFragment(ActorDef);
+        this.objects.push(addFragment(ActorDef));
         break;
       case 0x15: // Actor instance
         this.actors.push(addFragment(ActorInstance));

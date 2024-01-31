@@ -33,6 +33,9 @@ export class WldFragmentReference extends WldFragment {
     super(...args);
     this.initialize();
   }
+  valueOf() {
+    return this.reference;
+  }
   initialize() {
     this.#refIdx = this.reader.readUint32() - 1;
   }

@@ -1,6 +1,7 @@
 import * as Comlink from 'comlink';
 import { convertDDS2Jimp } from '../image-processing';
 import 'jimp/browser/lib/jimp';
+import { ShaderType } from '../../s3d/materials/material';
 
 
 /**
@@ -14,13 +15,22 @@ const Jimp = global.Jimp;
  * @property {ArrayBuffer} data
  */
 
+const fullAlphaToDoubleAlphaThreshold = 64;
+const alphaShaderMap = {
+  [ShaderType.Transparent25]      : 64,
+  [ShaderType.Transparent50]      : 128,
+  [ShaderType.TransparentSkydome] : 128,
+  [ShaderType.Transparent75]      : 192,
+  [ShaderType.TransparentAdditive]: 192
+};
+
 /**
  *
  * @param {[QueueItem]} entries
  * @param {FileSystemDirectoryHandle} eqFileHandle
  */
 async function parseTextures(entries, eqFileHandle) {
-  const requiemDir = await eqFileHandle.getDirectoryHandle('requiem', {
+  const requiemDir = await eqFileHandle.getDirectoryHandle('eqsage', {
     create: true,
   });
   const dirHandle = await requiemDir.getDirectoryHandle('textures', {
@@ -28,7 +38,7 @@ async function parseTextures(entries, eqFileHandle) {
   });
 
   await Promise.all(
-    entries.map(async ({ name, data }) => {
+    entries.map(async ({ name, data, shaderType }) => {
       name = name.toLowerCase().replace(/\.\w+$/, '.png');
       let textureHandle = await dirHandle.getFileHandle(name).catch(() => undefined);
       if (!textureHandle) {
@@ -40,7 +50,7 @@ async function parseTextures(entries, eqFileHandle) {
       if (writable.locked) {
         return;
       }
-      const imgData = await parseTexture(name, data);
+      const imgData = await parseTexture(name, shaderType, data);
       await writable.write(imgData);
       await writable.getWriter().releaseLock();
       await writable.close();
@@ -50,11 +60,34 @@ async function parseTextures(entries, eqFileHandle) {
 }
 
 /** @param {string} name */
-async function parseTexture(name, data) {
+async function parseTexture(name, shaderType, data) {
   name = name.toLowerCase().replace(/\.\w+$/, '');
   if (new DataView(data).getUint16(0, true) === 0x4d42) {
     try {
       const img = await Jimp.read(data);
+      await img.scan(0, 0, img.bitmap.width, img.bitmap.height, (x, y, idx) => {
+        const thisColor = {
+          r: img.bitmap.data[idx + 0],
+          g: img.bitmap.data[idx + 1],
+          b: img.bitmap.data[idx + 2],
+          a: img.bitmap.data[idx + 3]
+        };
+
+        let alpha = thisColor.a; // a
+        if (alphaShaderMap[shaderType]) {
+          alpha = alphaShaderMap[shaderType];
+        } else {
+          const maxRgb = [thisColor.r, thisColor.g, thisColor.b].reduce((acc, val) => val > acc ? val : acc, 0);
+          alpha = maxRgb <= fullAlphaToDoubleAlphaThreshold ? maxRgb :
+            Math.min(maxRgb + ((maxRgb - fullAlphaToDoubleAlphaThreshold) * 2), 255);
+        }
+      
+        img.bitmap.data[idx + 0] = thisColor.r;
+        img.bitmap.data[idx + 1] = thisColor.g;
+        img.bitmap.data[idx + 2] = thisColor.b;
+        img.bitmap.data[idx + 3] = alpha;
+      
+      });
       return await img.getBufferAsync(Jimp.MIME_PNG);
     } catch (e) {
       console.warn('err', e, name);
@@ -72,10 +105,22 @@ async function parseTexture(name, data) {
       w,
       h,
       (x, y, idx) => {
-        bmp.bitmap.data[idx] = decompressed[idx];
-        bmp.bitmap.data[idx + 1] = decompressed[idx + 1];
-        bmp.bitmap.data[idx + 2] = decompressed[idx + 2];
-        bmp.bitmap.data[idx + 3] = decompressed[idx + 3];
+        bmp.bitmap.data[idx] = decompressed[idx]; // r
+        bmp.bitmap.data[idx + 1] = decompressed[idx + 1]; // g
+        bmp.bitmap.data[idx + 2] = decompressed[idx + 2]; // b
+
+        let alpha = decompressed[idx + 3]; // a
+        if (alphaShaderMap[shaderType]) {
+          alpha = alphaShaderMap[shaderType];
+        } else {
+          // const maxRgb = [decompressed[idx], decompressed[idx + 1], decompressed[idx + 2]].reduce((acc, val) => val > acc ? val : acc, 0);
+          // alpha = maxRgb <= fullAlphaToDoubleAlphaThreshold ? 0 : alpha;
+          // fullAlphaToDoubleAlphaThreshold ? 0 :
+          // Math.min(maxRgb + ((maxRgb - fullAlphaToDoubleAlphaThreshold) * 2), 255);
+        }
+        bmp.bitmap.data[idx + 3] = alpha;
+
+
       },
       (err, newImg) => {
         if (err) {

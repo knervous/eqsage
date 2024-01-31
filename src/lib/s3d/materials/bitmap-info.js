@@ -32,6 +32,11 @@ export class BitmapInfo extends WldFragment {
   animationDelayMs = 0;
   bitmapNameIndices = [];
 
+  /**
+   * @type {BitMapInfoFlags}
+   */
+  flags = null;
+
   constructor(...args) {
     super(...args);
     this.initialize();

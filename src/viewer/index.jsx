@@ -1,14 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { gameController } from './controllers/GameController';
 import { Box, Typography } from '@mui/material';
 
-const params = new Proxy(new URLSearchParams(window.location.search), {
-  get: (searchParams, prop) => searchParams.get(prop),
-});
-
 export const BabylonViewer = ({ zoneName = '' }) => {
-  const [, forceRender] = useState({});
   const canvasRef = useRef();
 
   useEffect(() => {

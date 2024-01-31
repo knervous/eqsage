@@ -5,10 +5,9 @@ import { Document } from '@gltf-transform/core';
 import { EQGDecoder } from '../eqg/eqg-decoder';
 
 export class EQFileHandle {
-
   /**
-     * @type {Array<FileSystemFileHandle>}
-     */
+   * @type {Array<FileSystemFileHandle>}
+   */
   #fileHandles = [];
   #name = '';
   #initialized = false;
@@ -17,16 +16,15 @@ export class EQFileHandle {
    */
   #rootFileHandle = null;
 
-
   // gltf instances
   #zoneGltf = null;
   objectGltf = {};
   textures = [];
 
   /**
-     * 
-     * @param {FileSystemFileHandle} fileHandles 
-     */
+   *
+   * @param {FileSystemFileHandle} fileHandles
+   */
   constructor(name, fileHandles, rootFileHandle) {
     this.#name = name;
     this.#fileHandles = fileHandles;
@@ -56,9 +54,9 @@ export class EQFileHandle {
   }
 
   get #type() {
-    if (this.#fileHandles.some(f => f.name.endsWith('eqg'))) {
+    if (this.#fileHandles.some((f) => f.name.endsWith('eqg'))) {
       return FILE_TYPE.EQG;
-    } 
+    }
     return FILE_TYPE.S3D;
   }
 
@@ -70,7 +68,7 @@ export class EQFileHandle {
     this.#initialized = true;
   }
 
-  async process() {
+  async process(doExport = true) {
     if (!this.#initialized) {
       console.warn('Was not initialized, cannot process');
       return;
@@ -78,12 +76,15 @@ export class EQFileHandle {
     if (this.#type === FILE_TYPE.EQG) {
       const eqgDecoder = new EQGDecoder(this);
       await eqgDecoder.process();
-      await eqgDecoder.export();
+      if (doExport) {
+        await eqgDecoder.export();
+      }
     } else if (this.#type === FILE_TYPE.S3D) {
       const s3dDecoder = new S3DDecoder(this);
       await s3dDecoder.process();
-      await s3dDecoder.export();
+      if (doExport) {
+        await s3dDecoder.export();
+      }
     }
   }
-
 }
