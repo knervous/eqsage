@@ -102,6 +102,10 @@ export class EQGDecoder {
         images.push({ name: fileName, data: f.data.buffer });
         continue;
       }
+      if (fileName.endsWith('.eco')) {
+        await writeEQFile('files', fileName, f.data.buffer);
+      }
+       
     }
 
     // Post process
@@ -132,7 +136,178 @@ export class EQGDecoder {
   }
 
   async exportv4() {
+    const io = new WebIO();
+    const document = new Document();
+    const buffer = document.createBuffer();
+    if (!this.zone) {
+      console.warn('No zone', this);
+      return;
+    }
+    const scene = document.createScene(this.zone.name);
+    const flipMatrix = mat4.create();
+    mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
+    const node = document
+      .createNode(`zone-${this.zone.name.replace('.zon', '')}`)
+      .setTranslation([0, 0, 0])
+      .setMatrix(flipMatrix);
+    scene.addChild(node);
+    const zoneMetadata = {
+      objects: {},
+      lights : [],
+      music  : [],
+      sound2d: [],
+      sound3d: [],
+      regions: [],
+    };
 
+    const verts = [];
+    const indices = [];
+    const quadsPerTile = this.zone.header.quadsPerTile;
+    const unitsPerVertex = this.zone.header.unitsPerVert;
+    const ter_quad_count =
+    quadsPerTile * quadsPerTile;
+    const ter_vert_count =
+      (quadsPerTile + 1) *
+      (quadsPerTile + 1);
+
+    // Base terrain
+    for (const tile of this.zone.terrain.tiles) {
+      if (tile.allFloatsSame) {
+        const x = tile.x;
+        const y = tile.y;
+        const z = tile.baseWaterLevel;
+
+        const QuadVertex1X = x;
+        const QuadVertex1Z = y;
+        const QuadVertex1Y = z;
+
+        const QuadVertex2X =
+          QuadVertex1X +
+          quadsPerTile * unitsPerVertex;
+        const QuadVertex2Y = QuadVertex1Y;
+        const QuadVertex2Z = QuadVertex1Z;
+
+        const QuadVertex3X = QuadVertex2X;
+        const QuadVertex3Y =
+          QuadVertex1Y +
+          quadsPerTile * unitsPerVertex;
+        const QuadVertex3Z = QuadVertex1Z;
+
+        const QuadVertex4X = QuadVertex1X;
+        const QuadVertex4Y = QuadVertex3Y;
+        const QuadVertex4Z = QuadVertex1Z;
+
+        const size = verts.length + 3;
+        verts.push(QuadVertex1X, QuadVertex1Y, QuadVertex1Z);
+        verts.push(QuadVertex2X, QuadVertex2Y, QuadVertex2Z);
+        verts.push(QuadVertex3X, QuadVertex3Y, QuadVertex3Z);
+        verts.push(QuadVertex4X, QuadVertex4Y, QuadVertex4Z);
+
+        indices.push(size, size - 2, size - 1, size, size - 3, size - 2);
+      } else {
+        let row_number = -1;
+        const cur_verts = {};
+        for (let quad = 0; quad < ter_quad_count; ++quad) {
+          if (quad % quadsPerTile === 0) {
+            ++row_number;
+          }
+
+          if (tile.flags[quad] & 0x01) {
+            // continue;
+          }
+
+          const QuadVertex1X = tile.x + row_number * unitsPerVertex;
+          const QuadVertex1Z = tile.y + (quad % quadsPerTile) * unitsPerVertex;
+          const QuadVertex1Y = tile.floats[quad + row_number];
+
+          const QuadVertex2X = QuadVertex1X + unitsPerVertex;
+          const QuadVertex2Z = QuadVertex1Y;
+          const QuadVertex2Y = tile.floats[quad + row_number + quadsPerTile + 1];
+
+          const QuadVertex3X = QuadVertex1X + unitsPerVertex;
+          const QuadVertex3Z = QuadVertex1Y + unitsPerVertex;
+          const QuadVertex3Y = tile.floats[quad + row_number + quadsPerTile + 2];
+
+          const QuadVertex4X = QuadVertex1X;
+          const QuadVertex4Z = QuadVertex1Y + unitsPerVertex;
+          const QuadVertex4Y = tile.floats[quad + row_number + 1];
+
+          let i1, i2, i3, i4;
+          let t = `${QuadVertex1X}${QuadVertex1Y}${QuadVertex1Z}`;
+          if (cur_verts[t] !== undefined) {
+            i1 = cur_verts[t];
+          } else {
+            i1 = verts.length;
+            verts.push(QuadVertex1X, QuadVertex1Y, QuadVertex1Z);
+            cur_verts[t] = i1;
+          }
+          t = `${QuadVertex2X}${QuadVertex2Y}${QuadVertex2Z}`;
+          if (cur_verts[t] !== undefined) {
+            i2 = cur_verts[t];
+          } else {
+            i2 = verts.length;
+            verts.push(QuadVertex2X, QuadVertex2Y, QuadVertex2Z);
+            cur_verts[t] = i2;
+          }
+          t = `${QuadVertex3X}${QuadVertex3Y}${QuadVertex3Z}`;
+          if (cur_verts[t] !== undefined) {
+            i3 = cur_verts[t];
+          } else {
+            i3 = verts.length;
+            verts.push(QuadVertex3X, QuadVertex3Y, QuadVertex3Z);
+            cur_verts[t] = i3;
+          }
+
+          t = `${QuadVertex4X}${QuadVertex4Y}${QuadVertex4Z}`;
+          if (cur_verts[t] !== undefined) {
+            i4 = cur_verts[t];
+          } else {
+            i4 = verts.length;
+            verts.push(QuadVertex4X, QuadVertex4Y, QuadVertex4Z);
+            cur_verts[t] = i4;
+          }
+          indices.push(i4, i3, i2, i2, i1, i4);
+        }
+      }
+    }
+
+    const mesh = document.createMesh('terrain');
+    const materialNode = document.createNode('terrain').setMesh(mesh);
+    node.addChild(materialNode);
+    const gltfPrim = document.createPrimitive().setName('terrain');
+    mesh.addPrimitive(gltfPrim);
+    const idc = new Uint16Array(indices);
+    for (let i = 0; i < indices.length; i += 3) {
+      idc[i] = indices[i];
+      idc[i + 1] = indices[i + 2];
+      idc[i + 2] = indices[i + 1];
+    }
+    const primIndices = document
+      .createAccessor()
+      .setType(Accessor.Type.SCALAR)
+      .setArray(idc)
+      .setBuffer(buffer);
+    const primPositions = document
+      .createAccessor()
+      .setType(Accessor.Type.VEC3)
+      .setArray(new Float32Array(verts))
+      .setBuffer(buffer);
+
+    gltfPrim.setIndices(primIndices).setAttribute('POSITION', primPositions);
+
+    const materials = {};
+    const matIndices = {};
+
+    // Object instances
+    const zoneName = `${this.#fileHandle.name}`;
+
+    await writeEQFile(
+      'zones',
+      `${zoneName}.json`,
+      JSON.stringify(zoneMetadata)
+    );
+    const bytes = await io.writeBinary(document);
+    await writeEQFile('zones', `${zoneName}.glb`, bytes.buffer);
   }
 
   async export() {
@@ -163,28 +338,6 @@ export class EQGDecoder {
       sound3d: [],
       regions: [],
     };
-    // Object Instances
-    // const objWld = this.wldFiles.find((f) => f.type === WldType.ZoneObjects);
-    // if (objWld) {
-    //   const actorInstances = objWld.actors;
-    //   for (const actor of actorInstances) {
-    //     const entry = {
-    //       y      : actor.location.z,
-    //       z      : actor.location.y,
-    //       x      : actor.location.x,
-    //       rotateX: actor.location.rotateX,
-    //       rotateY: actor.location.rotateY,
-    //       rotateZ: actor.location.rotateZ,
-    //       scale  : actor.scaleFactor,
-    //     };
-    //     if (!zoneMetadata.objects[actor.objectName]) {
-    //       zoneMetadata.objects[actor.objectName] = [entry];
-    //     } else {
-    //       zoneMetadata.objects[actor.objectName].push(entry);
-    //     }
-    //   }
-    // }
-
 
     const materials = {};
     const matIndices = {};
@@ -235,9 +388,7 @@ export class EQGDecoder {
       const writtenModels = {};
       for (const p of pg.placeables) {
         let modelFile = p.modelFile.toLowerCase();
-        const mod =
-          this.models[modelFile] ||
-          this.models[`${modelFile}.mod`];
+        const mod = this.models[modelFile] || this.models[`${modelFile}.mod`];
         modelFile = modelFile.replace('.mod', '');
         if (!mod) {
           continue;
@@ -278,14 +429,14 @@ export class EQGDecoder {
             if (materials[mat.name]) {
               continue;
             }
-    
+
             const gltfMaterial = document
               .createMaterial(mat.name)
               .setDoubleSided(false)
               .setExtension('KHR_materials_unlit')
               .setRoughnessFactor(0)
               .setMetallicFactor(0);
-    
+
             for (const prop of mat.properties) {
               const [name] = prop.valueS.toLowerCase().split('.');
               const texture = document
@@ -306,9 +457,9 @@ export class EQGDecoder {
                 gltfMaterial.setBaseColorTexture(texture);
               }
             }
-    
+
             gltfMaterial.setAlphaMode('OPAQUE');
-    
+
             // Check shaders
             materials[mat.name] = gltfMaterial;
             matIndices[mat.name] = {};
@@ -481,7 +632,6 @@ export class EQGDecoder {
               .setAttribute('NORMAL', primNormals)
               .setAttribute('TEXCOORD_0', primUv);
           }
-
         } else {
           console.warn('Did not find model for placeable', p);
         }
@@ -491,11 +641,11 @@ export class EQGDecoder {
     // Object instances
     await writeEQFile(
       'zones',
-          `${this.zone.name.replace('.zon', '.json')}`,
-          JSON.stringify(zoneMetadata)
+      `${this.zone.name.replace('.zon', '.json')}`,
+      JSON.stringify(zoneMetadata)
     );
     const bytes = await io.writeBinary(document);
-    const zoneName = `${this.zone.name.replace('.zon', '.glb')}`;
+    const zoneName = `${this.#fileHandle.name}.glb`;
     await writeEQFile('zones', zoneName, bytes.buffer);
   }
 
@@ -516,11 +666,16 @@ export class EQGDecoder {
           break;
         case 'xmi':
           break;
-
+          break;
         case 'emt':
           break;
         case 'zon':
-          this.zone = new Zone(new Uint8Array(await file.arrayBuffer()), this.#fileHandle, file.name, []);
+          this.zone = new Zone(
+            new Uint8Array(await file.arrayBuffer()),
+            this.#fileHandle,
+            file.name,
+            []
+          );
           break;
         default:
           console.warn(
@@ -528,7 +683,9 @@ export class EQGDecoder {
           );
       }
     }
-    console.log(`Took ${((performance.now() - micro) / 1000).toFixed(4)} seconds.`);
+    console.log(
+      `Took ${((performance.now() - micro) / 1000).toFixed(4)} seconds.`
+    );
     imageProcessor.clearWorkers();
   }
 }
