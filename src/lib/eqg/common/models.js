@@ -1,5 +1,32 @@
 
-export class TerrainTile {}
+export class TerrainTile {
+  x = 0;
+  y = 0;
+  allFloatsSame = true;
+  /**
+   * @type {Boolean}
+   */
+  get flat() {
+    return this.allFloatsSame;
+  }
+  baseWaterLevel = 0;
+  /**
+   * @type {[Number]}
+   */
+  colors = [];
+  /**
+   * @type {[Number]}
+   */
+  colors2 = [];
+  /**
+   * @type {[Number]}
+   */
+  flags = [];
+  /**
+   * @type {[Number]}
+   */
+  floats = [];
+}
 
 export class WaterSheet {}
 

@@ -226,24 +226,42 @@ export class ZoneData {
 
     for (let i = 0; i < tileCount; i++) {
       const tile = {
-        floats  : [],
-        colors  : [],
-        colors32: [],
-        flags   : [],
+        floats : [],
+        colors : [],
+        colors2: [],
+        flags  : [],
       };
       const [tileLng, tileLat, _tileUnk] = reader.readManyUint32(3);
       const tileStartY =
         zoneMinY + (tileLng - 100000 - minLng) * unitsPerVert * quadsPerTile;
       const tileStartX =
         zoneMinX + (tileLat - 100000 - minLat) * unitsPerVert * quadsPerTile;
-      const allFloatsSame = true;
+      let allFloatsSame = true;
 
       const currentAvg = 0;
       tile.floats = reader.readManyFloat32(vertCount);
+      if (tile.floats.length) {
+        const lastKnownFloat = tile.floats[0];
+        for (const f of tile.floats) {
+          if (f !== lastKnownFloat) {
+            allFloatsSame = false;
+            break;
+          }
+        }
+      }
+      
       tile.colors = reader.readManyUint32(vertCount);
       tile.colors2 = reader.readManyUint32(vertCount);
       tile.flags = reader.readManyUint8(quadCount);
+      for (const flag of tile.flags) {
+        if (flag & 0x01) {
+          // allFloatsSame = false;
+        }
+      }
+      tile.allFloatsSame = allFloatsSame;
       tile.baseWaterLevel = reader.readFloat32();
+      tile.x = tileStartX;
+      tile.y = tileStartY;
       const unk1 = reader.readInt32();
 
       if (unk1 > 0) {
@@ -260,6 +278,8 @@ export class ZoneData {
       let overlayCount = 0;
       for (let layer = 1; layer < layerCount; layer++) {
         const material = reader.readCString();
+        tile.material = material;
+        tile.baseMaterial = baseMaterial;
         const detailMaskDim = reader.readUint32();
         const size = Math.pow(detailMaskDim, 2);
         for (let b = 0; b < size; b++) {

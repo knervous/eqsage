@@ -1,25 +1,29 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Autocomplete,
   Button,
   Checkbox,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
   InputLabel,
-  Link,
   ListItemText,
   MenuItem,
   OutlinedInput,
   Select,
   Stack,
   TextField,
-  Typography,
 } from '@mui/material';
 import { gameController } from '../../viewer/controllers/GameController';
-import { PermissionStatusTypes } from '../../hooks/permissions';
 import { useMainContext } from '../main/main';
 
 const ITEM_HEIGHT = 48;
@@ -73,6 +77,11 @@ export const ZoneChooserDialog = ({ open }) => {
   const [zoneList, setZoneList] = useState([]);
   const [expansionFilter, setExpansionFilter] = useState([]);
   const [zone, setZone] = useState(null);
+  const [recentList, setRecentList] = useState(() =>
+    localStorage.getItem('recent-zones')
+      ? JSON.parse(localStorage.getItem('recent-zones'))
+      : []
+  );
   const autocompleteRef = useRef(null);
   const filteredZoneList = useMemo(() => {
     if (expansionFilter.length === 0) {
@@ -93,18 +102,22 @@ export const ZoneChooserDialog = ({ open }) => {
     );
   };
 
-  const selectAndExit = useCallback((zone) => {
-    setSelectedZone(zone);
-    setZoneDialogOpen(false);
-  }, [setZoneDialogOpen, setSelectedZone]);
+  const selectAndExit = useCallback(
+    (zone) => {
+      if (!recentList.some((a) => a.short_name === zone.short_name)) {
+        recentList.push(zone);
+        localStorage.setItem('recent-zones', JSON.stringify(recentList));
+      }
+      setSelectedZone(zone);
+      setZoneDialogOpen(false);
+    },
+    [setZoneDialogOpen, setSelectedZone, recentList]
+  );
 
   useEffect(() => {
-    console.log('autocompleteRef.current', autocompleteRef.current);
     if (open) {
       setTimeout(() => {
-        console.log('autocompleteRef.current', autocompleteRef.current);
         autocompleteRef.current?.querySelector('input')?.focus();
-
       }, 0);
       if (gameController.Spire) {
         gameController.Spire.Zones.getZones().then(setZoneList);
@@ -116,12 +129,16 @@ export const ZoneChooserDialog = ({ open }) => {
     }
   }, [open]);
 
+  useEffect(() => {
+    localStorage.setItem('recent-zones', JSON.stringify(recentList));
+  }, [recentList]);
+
   return (
     <Dialog
-      onKeyDown={e => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
       maxWidth="md"
       open={open}
-      onClose={() => selectedZone ? setZoneDialogOpen(false) : null}
+      onClose={() => (selectedZone ? setZoneDialogOpen(false) : null)}
       aria-labelledby="draggable-dialog-title"
     >
       <DialogTitle
@@ -199,6 +216,20 @@ export const ZoneChooserDialog = ({ open }) => {
               //  sx={{ width: 300 }}
               renderInput={(params) => <TextField {...params} label="Zone" />}
             />
+          </FormControl>
+          <FormControl sx={{ maxWidth: '400px' }}>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              {recentList.map((zone) => (
+                <Chip
+                  label={zone.long_name}
+                  variant="outlined"
+                  onClick={() => selectAndExit(zone)}
+                  onDelete={() => {
+                    setRecentList((l) => l.filter((z) => z.id !== zone.id));
+                  }}
+                />
+              ))}
+            </Stack>
           </FormControl>
         </Stack>
       </DialogContent>
