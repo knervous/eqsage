@@ -24,6 +24,8 @@ import {
   Color3Gradient,
   Tools,
   Mesh,
+  Color4,
+  TransformNode,
 } from '@babylonjs/core';
 
 import { Inspector } from '@babylonjs/inspector';
@@ -56,9 +58,9 @@ class EQDatabase extends Database {
   async loadFile(
     url,
     sceneLoaded,
-    progressCallBack,
+    _progressCallBack,
     errorCallback,
-    useArrayBuffer
+    _useArrayBuffer
   ) {
     const [, eq, folder, file] = url.split('/');
     if (eq === 'eq') {
@@ -75,6 +77,110 @@ class EQDatabase extends Database {
     errorCallback();
   }
 }
+
+class AABBNode {
+  min = [];
+  max = [];
+  constructor(min, max, data) {
+    this.min = min;
+    this.max = max;
+    if (data) {
+      this.data = data;
+    }
+  }
+}
+
+function buildAABBTree(nodes) {
+  // Helper function to recursively build the tree
+  function buildTree(nodeList) {
+    // Check if nodeList is empty
+    if (nodeList.length === 0) {
+      return null;
+    }
+    if (nodeList.length === 1) {
+      return nodeList[0];
+    }
+
+    // Find the bounding box that encloses all the nodes
+    const min = nodeList[0].min.slice(); // clone the array
+    const max = nodeList[0].max.slice();
+
+    for (let i = 1; i < nodeList.length; i++) {
+      for (let j = 0; j < 3; j++) {
+        min[j] = Math.min(min[j], nodeList[i].min[j]);
+        max[j] = Math.max(max[j], nodeList[i].max[j]);
+      }
+    }
+
+    const currentNode = new AABBNode(min, max);
+
+    // Divide the nodes into two groups based on the longest axis of the bounding box
+    const axis = max
+      .map((val, i) => val - min[i])
+      .indexOf(Math.max(...max.map((val, i) => val - min[i])));
+
+    const sortedNodes = nodeList
+      .slice()
+      .sort((a, b) => a.min[axis] - b.min[axis]);
+
+    const midpoint = Math.floor(sortedNodes.length / 2);
+    const leftNodes = sortedNodes.slice(0, midpoint);
+    const rightNodes = sortedNodes.slice(midpoint);
+
+    // Recursively build left and right subtrees
+    currentNode.left = buildTree(leftNodes);
+    currentNode.right = buildTree(rightNodes);
+
+    // Assign parent for recursion to traverse tree upwards
+    // and remember last nodes
+    if (currentNode.left) {
+      currentNode.left.parent = currentNode;
+    }
+    if (currentNode.right) {
+      currentNode.right.parent = currentNode;
+    }
+
+    return currentNode;
+  }
+
+  // Start building the tree with the input nodes
+  return buildTree(nodes);
+}
+
+const testNode = (node, point) => {
+  if (!node?.min || !node?.max) {
+    return false;
+  }
+  const { min, max } = node;
+  return (
+    point.x >= min[0] &&
+    point.y >= min[1] &&
+    point.z >= min[2] &&
+    point.x <= max[0] &&
+    point.y <= max[1] &&
+    point.z <= max[2]
+  );
+};
+
+const recurseNodeForRegion = (node, position) => {
+  if (testNode(node, position)) {
+    if (testNode(node.left, position)) {
+      return recurseNodeForRegion(node.left, position);
+    } else if (testNode(node.right, position)) {
+      return recurseNodeForRegion(node.right, position);
+    }
+    return node;
+  }
+  return null;
+};
+
+const recurseTreeFromKnownNode = (node, position) => {
+  while (node && !testNode(node, position)) {
+    node = node.parent;
+  }
+  return recurseNodeForRegion(node, position);
+};
+
 export class GameController {
   /** @type {Engine & WebGPUEngine} */
   engine = null;
@@ -272,9 +378,40 @@ export class GameController {
     this.ambientLight.intensity = 1.5;
   }
 
+  renderHook() {
+    if (window.aabbPerf === undefined) {
+      window.aabbPerf = 0;
+    }
+    if (window.aabbs === undefined) {
+      window.aabbs = [];
+    }
+    const aabbPerf = performance.now();
+    const aabbRegion = recurseTreeFromKnownNode(
+      this.lastAabbNode || this.aabbTree,
+      this.CameraController.camera.globalPosition
+    );
+
+    if (aabbRegion) {
+      this.lastAabbNode = aabbRegion;
+      if (aabbRegion?.data) {
+        console.log(
+          `Hit region: ${JSON.stringify(aabbRegion.data ?? {}, null, 4)}`
+        );
+      }
+    }
+    const timeTaken = performance.now() - aabbPerf;
+    window.aabbs.push(timeTaken);
+    if (window.aabbs.length > 100) {
+      window.aabbs.shift();
+    }
+    window.aabbAvg =
+      window.aabbs.reduce((acc, val) => acc + val, 0) / window.aabbs.length;
+    window.aabbPerf += timeTaken;
+  }
+
   async loadModel(name) {
     this.loadViewerScene();
-
+    this.#scene.onBeforeRenderObservable.add(this.renderHook.bind(this));
     // Skybox
     const skybox = MeshBuilder.CreateBox(
       'skyBox',
@@ -316,18 +453,91 @@ export class GameController {
       undefined,
       '.glb'
     );
+    const zoneMesh = Mesh.MergeMeshes(
+      zone.meshes.filter((m) => m.getTotalVertices() > 0),
+      true,
+      true,
+      undefined,
+      true,
+      true
+    );
+    zoneMesh.name = 'zone';
     const metadata = await getEQFile('zones', `${name}.json`, 'json');
     if (metadata) {
+      const meshes = [];
       for (const [key, value] of Object.entries(metadata.objects)) {
-        await this.instantiateObjects(key, value);
+        meshes.push(...(await this.instantiateObjects(key, value)));
+      }
+      const mergedMesh = Mesh.MergeMeshes(
+        meshes.filter((m) => m.getTotalVertices() > 0),
+        true,
+        true,
+        undefined,
+        true,
+        true
+      );
+      mergedMesh.name = 'static-objects';
+      const regionNode = new TransformNode('regions', this.#scene);
+
+      let idx = 0;
+      console.log('metadata regions', metadata.regions);
+      this.aabbTree = buildAABBTree(
+        metadata.regions.map(
+          (r) => new AABBNode(r.minVertex, r.maxVertex, r.region)
+        )
+      );
+      console.log('AABB tree', this.aabbTree);
+
+      // Build out geometry, will have an option to toggle this on or off in the gui
+      for (const region of metadata.regions) {
+        const minVertex = new Vector3(
+          region.minVertex[0],
+          region.minVertex[1],
+          region.minVertex[2]
+        );
+        const maxVertex = new Vector3(
+          region.maxVertex[0],
+          region.maxVertex[1],
+          region.maxVertex[2]
+        );
+
+        // Calculate the dimensions of the box
+        const width = maxVertex.x - minVertex.x;
+        const height = maxVertex.y - minVertex.y;
+        const depth = maxVertex.z - minVertex.z;
+
+        // Create the box mesh
+        const box = MeshBuilder.CreateBox(
+          'box',
+          {
+            width : width,
+            height: height,
+            depth : depth,
+          },
+          this.#scene
+        );
+        box.metadata = region.region;
+        box.name = `Region-${idx++}`;
+        // Set the position of the box to the center
+        box.position = new Vector3(
+          region.center[0],
+          region.center[1],
+          region.center[2]
+        );
+
+        // Optionally, you can set material and color to the box
+        const material = new StandardMaterial('material', this.#scene);
+        material.alpha = 0.3;
+        material.diffuseColor = new Color3(127, 127, 0); // Red color
+        box.material = material;
+        box.showBoundingBox = true;
+        box.parent = regionNode;
       }
     }
     await this.addTextureAnimations();
-
   }
 
   async instantiateObjects(modelName, model, forEditing = false) {
-    const animatedMeshes = [];
     const container = await SceneLoader.LoadAssetContainerAsync(
       '/eq/objects/',
       `${modelName}.glb`,
@@ -335,6 +545,8 @@ export class GameController {
       undefined,
       '.glb'
     );
+    const mergedMeshes = [];
+
     const meshes = [];
     const rn = [];
     for (const [idx, v] of Object.entries(model)) {
@@ -351,10 +563,13 @@ export class GameController {
       const hasAnimations = instanceContainer.animationGroups.length > 0;
       rn.push(instanceContainer);
       for (const mesh of instanceContainer.rootNodes[0].getChildMeshes()) {
-        
         mesh.position = new Vector3(x, y, z);
 
-        mesh.rotation = new Vector3(Tools.ToRadians(rotateX), Tools.ToRadians(180) + Tools.ToRadians(-1 * rotateY), Tools.ToRadians(rotateZ));
+        mesh.rotation = new Vector3(
+          Tools.ToRadians(rotateX),
+          Tools.ToRadians(180) + Tools.ToRadians(-1 * rotateY),
+          Tools.ToRadians(rotateZ)
+        );
 
         mesh.checkCollisions = true;
         mesh.scaling.z = mesh.scaling.y = mesh.scaling.x = scale;
@@ -375,10 +590,12 @@ export class GameController {
       }
     }
     if (!forEditing) {
-      Mesh.MergeMeshes(meshes, true, true, undefined, true, true);
-      rn.forEach(r => r.dispose());
+      mergedMeshes.push(
+        Mesh.MergeMeshes(meshes, true, true, undefined, true, true)
+      );
+      rn.forEach((r) => r.dispose());
     }
-    return animatedMeshes;
+    return mergedMeshes;
   }
 
   async addTextureAnimations() {
@@ -563,6 +780,11 @@ export class GameController {
   }
 
   dispose() {
+    if (this.#scene) {
+      this.#scene.onBeforeRenderObservable.remove(this.renderHook.bind(this));
+      this.#scene.dispose();
+    }
+    this.aabbTree = null;
     this.ZoneController.dispose();
     this.CameraController.dispose();
     this.LightController.dispose();

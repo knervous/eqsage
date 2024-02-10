@@ -2,6 +2,8 @@
 export class TerrainTile {
   x = 0;
   y = 0;
+  material = '';
+  baseMaterial = '';
   allFloatsSame = true;
   /**
    * @type {Boolean}

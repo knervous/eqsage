@@ -41,7 +41,7 @@ export class Tog {
         case 'POSITION':
           const [x, y, z] = rest.map((a) => +a);
           placeable.x = x;
-          placeable.y = y;
+          placeable.y = y * -1;
           placeable.z = z;
           break;
         case 'ROTATION':

@@ -1,7 +1,7 @@
 import { vec3 } from 'gl-matrix';
 import { TypedArrayReader } from '../../util/typed-array-reader';
 import { heightWithinQuad } from '../common/util';
-import { Placeable, PlaceableGroup, Region, Terrain } from '../common/models';
+import { Placeable, PlaceableGroup, Region, Terrain, TerrainTile } from '../common/models';
 import { Tog } from '../tog/tog';
 
 /**
@@ -197,7 +197,7 @@ export class ZoneData {
   /**
    * @type {Zone}
    */
-  #zone = null;
+  zone = null;
   /**
    *
    * @param {Uint8Array} data
@@ -208,7 +208,7 @@ export class ZoneData {
     this.reader = new TypedArrayReader(data.buffer);
     this.fileHandle = fileHandle;
     this.name = name;
-    this.#zone = zone;
+    this.zone = zone;
     this.load();
   }
 
@@ -217,7 +217,7 @@ export class ZoneData {
     const [unk000, unk004, unk008] = reader.readManyUint32(3);
     const baseTileTexture = reader.readCString();
     const tileCount = reader.readUint32();
-    const { unitsPerVert, quadsPerTile, minLat, minLng } = this.#zone.header;
+    const { unitsPerVert, quadsPerTile, minLat, minLng } = this.zone.header;
 
     const zoneMinX = minLat * quadsPerTile * unitsPerVert;
     const zoneMinY = minLng * quadsPerTile * unitsPerVert;
@@ -225,12 +225,7 @@ export class ZoneData {
     const vertCount = (quadsPerTile + 1) * (quadsPerTile + 1);
 
     for (let i = 0; i < tileCount; i++) {
-      const tile = {
-        floats : [],
-        colors : [],
-        colors2: [],
-        flags  : [],
-      };
+      const tile = new TerrainTile();
       const [tileLng, tileLat, _tileUnk] = reader.readManyUint32(3);
       const tileStartY =
         zoneMinY + (tileLng - 100000 - minLng) * unitsPerVert * quadsPerTile;
@@ -273,7 +268,7 @@ export class ZoneData {
       }
 
       const layerCount = reader.readUint32();
-
+      tile.layerCount = layerCount;
       const baseMaterial = reader.readCString();
       let overlayCount = 0;
       for (let layer = 1; layer < layerCount; layer++) {
@@ -364,7 +359,7 @@ export class ZoneData {
         pg.tileZ = terrainHeight;
 
         pg.placeables.push(p);
-        this.#zone.terrain.placeableGroups.push(pg);
+        this.zone.terrain.placeableGroups.push(pg);
       }
 
       const areasCount = reader.readUint32();
@@ -445,7 +440,7 @@ export class ZoneData {
         region.extY = sizeY / 2;
         region.extZ = sizeZ / 2;
         region.flags = [type, 0];
-        this.#zone.terrain.regions.push(region);
+        this.zone.terrain.regions.push(region);
       }
 
       const lightFxCount = reader.readUint32();
@@ -470,7 +465,7 @@ export class ZoneData {
             reader.readManyFloat32(10);
 
         let togBuffer;
-        for (const [key, buffer] of Object.entries(this.#zone.files)) {
+        for (const [key, buffer] of Object.entries(this.zone.files)) {
           if (key.toLowerCase().startsWith(togName.toLowerCase())) {
             togBuffer = buffer;
             break;
@@ -497,10 +492,10 @@ export class ZoneData {
         pg.tileZ = 0;
 
         const tog = new Tog(togBuffer, pg);
-        this.#zone.terrain.placeableGroups.push(tog.pg);
+        this.zone.terrain.placeableGroups.push(tog.pg);
       }
 
-      this.#zone.terrain.tiles.push(tile);
+      this.zone.terrain.tiles.push(tile);
     }
   }
 }

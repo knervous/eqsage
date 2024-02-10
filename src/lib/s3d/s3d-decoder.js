@@ -4,26 +4,38 @@ import { Wld, WldType } from './wld/wld';
 import { TypedArrayReader } from '../util/typed-array-reader';
 import { imageProcessor } from '../util/image/image-processor';
 import { Accessor, WebIO } from '@gltf-transform/core';
-import { mat4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
-
+import {
+  resample,
+  draco,
+  textureCompress,
+  DRACO_DEFAULTS,
+} from '@gltf-transform/functions';
+import draco3d from 'draco3dgltf';
 import { ShaderType } from './materials/material';
 import { getEQFile, writeEQFile } from '../util/fileHandler';
-// import { KHRTextureTransform } from '@gltf-transform/extensions';
+import { optimizeBoundingBoxes } from './bsp/region-utils';
+
+const io = new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
+  'draco3d.decoder': await draco3d.createDecoderModule(),
+  'draco3d.encoder': await draco3d.createEncoderModule(),
+});
 
 /**
-     * 
-     * @param {[import('./materials/material-list').MaterialList]}
-     * @param {Document} document
-     */
-const getMaterials = (materialList, document) => {
+ *
+ * @param {[import('./materials/material-list').MaterialList]}
+ * @param {Document} document
+ */
+const getMaterials = async (materialList, document) => {
   const materials = {};
   for (const eqMaterial of materialList) {
     if (materials[eqMaterial.name]) {
       return;
     }
     let [name] = eqMaterial.name.toLowerCase().split('_');
-      
+
     if (/m\d+/.test(name) && eqMaterial.bitmapInfo?.reference) {
       name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
     }
@@ -46,7 +58,7 @@ const getMaterials = (materialList, document) => {
 
     const texture = document
       .createTexture(name)
-      // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+      .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
       .setURI(`/eq/textures/${name}`)
       .setExtras({
         name,
@@ -77,17 +89,15 @@ const getMaterials = (materialList, document) => {
 
     if (
       eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlit ||
-        eqMaterial.ShaderType === ShaderType.DiffuseSkydome ||
-        eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlitSkydome
+      eqMaterial.ShaderType === ShaderType.DiffuseSkydome ||
+      eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlitSkydome
     ) {
       // gltfMaterial.WithUnlitShader();
     }
     materials[eqMaterial.name] = gltfMaterial;
-    
   }
   return materials;
 };
-
 
 export class S3DDecoder {
   /** @type {import('../model/file-handle').EQFileHandle} */
@@ -164,8 +174,9 @@ export class S3DDecoder {
       if (fileName.endsWith('.wld')) {
         console.log(`Processing WLD file :: ${fileName}`);
         const wld = new Wld(f.data, this.#fileHandle, fileName);
-        for (const mat of wld.materialList.flatMap(ml => ml.materialList)) {
-          for (const bitmapName of mat.bitmapInfo?.reference?.bitmapNames ?? []) {
+        for (const mat of wld.materialList.flatMap((ml) => ml.materialList)) {
+          for (const bitmapName of mat.bitmapInfo?.reference?.bitmapNames ??
+            []) {
             if (shaderMap[bitmapName.fileName.toLowerCase()]) {
               continue;
             }
@@ -194,7 +205,6 @@ export class S3DDecoder {
    * @param {Wld} wld
    */
   async exportModels(wld) {
-
     for (let i = 0; i < wld.meshes.length; i++) {
       const mesh = wld.meshes[i];
       const material = mesh.materialList;
@@ -209,13 +219,13 @@ export class S3DDecoder {
         .createNode(scrubbedName)
         .setTranslation([0, 0, 0])
         .setMatrix(flipMatrix);
-  
+
       scene.addChild(node);
-  
-      const materials = getMaterials(material.materialList, document);
-  
+
+      const materials = await getMaterials(material.materialList, document);
+
       const primitiveMap = {};
-  
+
       let polygonIndex = 0;
       for (const mat of mesh.materialGroups) {
         let name = mesh.materialList.materialList[mat.materialIndex].name;
@@ -256,22 +266,22 @@ export class S3DDecoder {
         if (hasNotSolid) {
           sharedPrimitive.gltfNode.setExtras({ solid: false });
         }
-  
+
         for (let i = 0; i < mat.polygonCount; i++) {
           const idc = mesh.indices[polygonIndex];
-  
+
           const idxArr = [idc.v1, idc.v2, idc.v3];
           const [v1, v2, v3] = idxArr.map((idx) => mesh.vertices[idx]);
           const [n1, n2, n3] = idxArr.map((idx) => mesh.normals[idx]);
           const [u1, u2, u3] = idxArr.map(
             (idx) => mesh.textureUvCoordinates[idx]
           );
-  
+
           const { vecs, normals, uv } = sharedPrimitive;
           const ln = sharedPrimitive.indices.length;
           const newIndices = [ln + 0, ln + 1, ln + 2];
           sharedPrimitive.indices.push(...newIndices);
-  
+
           vecs.push(
             ...[v1, v2, v3].flatMap((v) => [
               v[0] + mesh.center[0],
@@ -284,7 +294,7 @@ export class S3DDecoder {
           polygonIndex++;
         }
       }
-  
+
       for (const [
         name,
         { gltfPrim, indices, vecs, normals, uv },
@@ -303,12 +313,12 @@ export class S3DDecoder {
           .createAccessor()
           .setArray(new Float32Array(normals))
           .setType(Accessor.Type.VEC3);
-  
+
         const primUv = document
           .createAccessor()
           .setType(Accessor.Type.VEC2)
           .setArray(new Float32Array(uv));
-  
+
         gltfPrim
           .setName(name)
           .setIndices(primIndices)
@@ -316,13 +326,16 @@ export class S3DDecoder {
           .setAttribute('NORMAL', primNormals)
           .setAttribute('TEXCOORD_0', primUv);
       }
-  
-      const io = new WebIO();
+
+      await document.transform(
+        // Compress mesh geometry with Draco.
+        draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+      );
       const bytes = await io.writeBinary(document);
+     
       await writeEQFile('models', `${scrubbedName}.glb`, bytes);
     }
   }
-  
 
   /**
    *
@@ -346,7 +359,7 @@ export class S3DDecoder {
 
       scene.addChild(node);
 
-      const materials = getMaterials(material.materialList, document);
+      const materials = await getMaterials(material.materialList, document);
 
       const primitiveMap = {};
 
@@ -454,8 +467,12 @@ export class S3DDecoder {
           .setAttribute('TEXCOORD_0', primUv);
       }
 
-      const io = new WebIO();
+      await document.transform(
+        // Compress mesh geometry with Draco.
+        draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+      );
       const bytes = await io.writeBinary(document);
+
       await writeEQFile('objects', `${scrubbedName}.glb`, bytes);
     }
   }
@@ -485,6 +502,21 @@ export class S3DDecoder {
       sound3d: [],
       regions: [],
     };
+
+    wld.bspTree?.constructRegions(wld);
+
+    // BSP regions
+    const regions = [];
+    for (const leafNode of wld.bspTree?.leafNodes ?? []) {
+      regions.push({
+        region   : leafNode.region.regionType,
+        minVertex: [leafNode.boundingBoxMin[0], leafNode.boundingBoxMin[2], leafNode.boundingBoxMin[1]],
+        maxVertex: [leafNode.boundingBoxMax[0], leafNode.boundingBoxMax[2], leafNode.boundingBoxMax[1]],
+        center   : [leafNode.center[0], leafNode.center[2], leafNode.center[1]],
+      });
+    }
+    zoneMetadata.regions = optimizeBoundingBoxes(regions);
+
     // Object Instances
     const objWld = this.wldFiles.find((f) => f.type === WldType.ZoneObjects);
     if (objWld) {
@@ -506,18 +538,23 @@ export class S3DDecoder {
         }
       }
     }
-
+    await document.transform(
+      // Compress mesh geometry with Draco.
+      draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+    );
     // Object instances
     await writeEQFile(
       'zones',
       `${wld.name.replace('.wld', '.json')}`,
       JSON.stringify(zoneMetadata)
     );
-    
+
     const primitiveMap = {};
-    const materials = getMaterials(wld.materialList.flatMap(a => a.materialList), document);
+    const materials = await getMaterials(
+      wld.materialList.flatMap((a) => a.materialList),
+      document
+    );
     for (const mesh of wld.meshes) {
-    
       let polygonIndex = 0;
       for (const mat of mesh.materialGroups) {
         if (!mesh.materialList.materialList[mat.materialIndex]) {
@@ -588,7 +625,7 @@ export class S3DDecoder {
           sharedPrimitive.indices.push(...newIndices);
 
           // TODO check this case out
-          if ([v1, v2, v3].some(a => a === undefined)) {
+          if ([v1, v2, v3].some((a) => a === undefined)) {
             continue;
           }
           vecs.push(
@@ -635,10 +672,13 @@ export class S3DDecoder {
         .setAttribute('NORMAL', primNormals)
         .setAttribute('TEXCOORD_0', primUv);
     }
-
-    const io = new WebIO();
+    await document.transform(
+      // Compress mesh geometry with Draco.
+      draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+    );
     const bytes = await io.writeBinary(document);
     const zoneName = `${wld.name.replace('wld', 'glb')}`;
+
     await writeEQFile('zones', zoneName, bytes.buffer);
   }
 

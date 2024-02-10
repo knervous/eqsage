@@ -1,9 +1,20 @@
 import { decodeString } from '../../util/util';
 import { WldFragment } from '../wld/wld-fragment';
+import { vec3 } from 'gl-matrix';
 
 export class BspTree extends WldFragment {
   nodeCount = 0;
+  /**
+   * @type {[BspNode]}
+   */
   nodes = [];
+  /**
+   * @type {[BspNode]}
+   */
+  leafNodes = [];
+  /**
+   * @type {[BspRegion]}
+   */
   regions = [];
   regionTypes = [];
   constructor(...args) {
@@ -24,6 +35,133 @@ export class BspTree extends WldFragment {
   addRegionType(name) {
     this.regionTypes.push(new BspRegionType(this, name));
   }
+
+  /**
+   * 
+   * @param {import('../wld/wld').Wld} wld 
+   */
+  constructRegions(wld) {
+    const polygons = [];
+    for (const mesh of wld.meshes) {
+      const polyCount = mesh.materialGroups.reduce((acc, val) => acc + val.polygonCount, 0);
+      for (let i = 0; i < polyCount; i++) {
+        const idc = mesh.indices[i];
+        const idxArr = [idc.v1, idc.v2, idc.v3];
+        const [v1, v2, v3] = idxArr.map((idx) => mesh.vertices[idx]);
+        polygons.push(...[v1, v2, v3].map((v) => [
+          v[0] + mesh.center[0],
+          v[1] + mesh.center[1],
+          v[2] + mesh.center[2],
+        ]));
+      }
+    }
+
+    const firstMinMax = this.getMinMax(polygons);
+    const rootNode = this.nodes[0];
+    rootNode.boundingBoxMin = firstMinMax[0];
+    rootNode.boundingBoxMax = firstMinMax[1];
+    this.populateWithSubset(rootNode, polygons);
+  }
+
+  /**
+   * 
+   * @param {BspNode} node 
+   * @param {vec3} point 
+   * @returns 
+   */
+  nodeSplitLeft(node, point) {
+    return ((point[0] * node.normalX) + 0.01 + (point[1] * node.normalY) + 0.01 + (point[2] * node.normalZ) + 0.01 + node.splitDistance) > 0;
+  }
+
+  /**
+   * 
+   * @param {[BspNode]} nodes 
+   * @param {BspNode} node 
+   * @param {[vec3]} polygons 
+   */
+  populateWithSubset(node, polygons) {
+    const leftPolygons = [];
+    const rightPolygons = [];
+
+    for (let i = 0; i < polygons.length; i += 3) {
+      const v1 = polygons[i];
+      const v2 = polygons[i + 1];
+      const v3 = polygons[i + 2];
+      if (this.nodeSplitLeft(node, v1) && this.nodeSplitLeft(node, v2) && this.nodeSplitLeft(node, v3)) {
+        leftPolygons.push(v1, v2, v3);
+      } else {
+        rightPolygons.push(v1, v2, v3);
+      }
+    }
+    if (node.region?.regionType?.regionTypes?.length > 0) {
+      this.leafNodes.push(node);
+    }
+    node.polygons = polygons;
+
+    if (node.left !== -1) {
+      const leftNode = this.nodes[node.left];
+      leftNode.parent = node;
+      leftNode.isLeftChild = true;
+      node.leftChild = leftNode;
+      const [min, max] = this.getMinMax(leftPolygons);
+      leftNode.boundingBoxMin = min;
+      leftNode.boundingBoxMax = max;
+      const center = vec3.create();
+      vec3.add(center, min, max);
+      vec3.scale(center, center, 0.5);
+      leftNode.center = center;
+      this.populateWithSubset(leftNode, leftPolygons);
+    }
+
+    if (node.right !== -1) {
+      const rightNode = this.nodes[node.right];
+      rightNode.parent = node;
+      rightNode.isRightChild = true;
+      node.rightChild = rightNode;
+      const [min, max] = this.getMinMax(rightPolygons);
+      rightNode.boundingBoxMin = min;
+      rightNode.boundingBoxMax = max;
+      const center = vec3.create();
+      vec3.add(center, min, max);
+      vec3.scale(center, center, 0.5);
+      rightNode.center = center;
+      this.populateWithSubset(rightNode, rightPolygons); 
+    }
+  }
+
+
+  /**
+ * 
+ * @param {[vec3]} points 
+ * @returns {[vec3]}
+ */
+  getMinMax(points) {
+    if (points.length === 0) {
+      return [vec3.fromValues(0, 0, 0), vec3.fromValues(0, 0, 0)];
+    }
+    const firstVal = points[0];
+    return points.reduce(
+      (acc, point) => {
+        const [min, max] = acc;
+        if (point[0] < min[0]) {
+          min[0] = point[0];
+        } else if (point[0] > max[0]) {
+          max[0] = point[0];
+        }
+        if (point[1] < min[1]) {
+          min[1] = point[1];
+        } else if (point[1] > max[1]) {
+          max[1] = point[1];
+        }
+        if (point[2] < min[2]) {
+          min[2] = point[2];
+        } else if (point[2] > max[2]) {
+          max[2] = point[2];
+        }
+        return [min, max];
+      }, [vec3.clone(firstVal), vec3.clone(firstVal)]);
+  }
+
 }
 
 export const RegionType = {
@@ -149,6 +287,9 @@ class BspRegion {
   #bspTree = null;
   meshReference = -1;
   containsPolygons = false;
+  /**
+   * @type {BspRegionType}
+   */
   regionType = null;
 
   constructor(bspTree) {
@@ -210,21 +351,39 @@ class BspNode {
    */
   #bspTree = null;
 
-  x = 0;
-  y = 0;
-  z = 0;
-  split = 0;
+  /**
+   * @type {BspNode | null}
+   */
+  parent = null;
+  /**
+   * @type {BspNode | null}
+   */
+  leftChild = null;
+  /**
+   * @type {BspNode | null}
+   */
+  rightChild = null;
+
+  isLeftChild = false;
+  isRightChild = false;
+  normalX = 0;
+  normalY = 0;
+  normalZ = 0;
+  splitDistance = 0;
   regionId = 0;
   left = 0;
   right = 0;
+  boundingBoxMin = vec3.fromValues(0, 0, 0);
+  boundingBoxMax = vec3.fromValues(0, 0, 0);
+  center = vec3.fromValues(0, 0, 0);
 
   constructor(bspTree) {
     this.#bspTree = bspTree;
     const reader = this.#bspTree.reader;
-    this.x = reader.readFloat32();
-    this.y = reader.readFloat32();
-    this.z = reader.readFloat32();
-    this.split = reader.readInt32();
+    this.normalX = reader.readFloat32();
+    this.normalY = reader.readFloat32();
+    this.normalZ = reader.readFloat32();
+    this.splitDistance = reader.readFloat32();
     this.regionId = reader.readInt32();
     this.left = reader.readInt32() - 1;
     this.right = reader.readInt32() - 1;
