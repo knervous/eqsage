@@ -221,6 +221,7 @@ export const ZoneChooserDialog = ({ open }) => {
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               {recentList.map((zone) => (
                 <Chip
+                  key={`chip-${zone.id}`}
                   label={zone.long_name}
                   variant="outlined"
                   onClick={() => selectAndExit(zone)}
