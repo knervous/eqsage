@@ -21,12 +21,12 @@ module.exports = {
           config.resolve.plugins = config.resolve.plugins.filter(
             plugin => !(plugin instanceof ModuleScopePlugin)
           );
-
-          const terserPlugin = config.optimization.minimizer.find(m => m instanceof TerserPlugin);
-          if (terserPlugin) {
-            terserPlugin.options.minimizer.implementation = TerserPlugin.swcMinify;
-            delete terserPlugin.options.minimizer.options.warnings;
-          }
+          // Just make this local
+          // const terserPlugin = config.optimization.minimizer.find(m => m instanceof TerserPlugin);
+          // if (terserPlugin) {
+          //   terserPlugin.options.minimizer.implementation = TerserPlugin.swcMinify;
+          //   delete terserPlugin.options.minimizer.options.warnings;
+          // }
           config.plugins.push(
             new CopyPlugin({
               patterns: [
