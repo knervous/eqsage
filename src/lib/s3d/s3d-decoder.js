@@ -346,6 +346,9 @@ export class S3DDecoder {
       const mesh = wld.meshes[i];
       const material = mesh.materialList;
       const scrubbedName = material.name.split('_')[0].toLowerCase();
+      if (await getEQFileExists('objects', `${scrubbedName}.glb`)) {
+        continue;
+      }
       const document = new Document(scrubbedName);
       const buffer = document.createBuffer();
       const scene = document.createScene(scrubbedName);
@@ -439,9 +442,7 @@ export class S3DDecoder {
         name,
         { gltfPrim, indices, vecs, normals, uv },
       ] of Object.entries(primitiveMap)) {
-        if (await getEQFileExists('objects', `${scrubbedName}.glb`)) {
-          // continue;
-        }
+
         const primIndices = document
           .createAccessor()
           .setType(Accessor.Type.SCALAR)
