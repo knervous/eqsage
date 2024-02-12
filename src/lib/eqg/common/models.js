@@ -1,3 +1,4 @@
+import { RegionType, ZoneLineType } from '../../s3d/bsp/bsp-tree';
 
 export class TerrainTile {
   x = 0;
@@ -87,6 +88,43 @@ export class Region {
   flags = [];
   name = '';
   altName = '';
+
+  translateToMinMaxVertex(box) {
+    const { x, y, z, extX, extY, extZ } = box;
+
+    return {
+      minVertex: [x - extX, z - extZ, y - extY],
+      maxVertex: [x + extX, z + extZ, y + extY],
+      center   : [x, z, y],
+    };
+  }
+
+  regionTypeMap = {
+    AWT: RegionType.Water,
+    ALV: RegionType.Lava,
+    APK: RegionType.Pvp,
+    ATP: RegionType.Zoneline,
+    ASL: RegionType.Slippery,
+    APV: RegionType.Normal,
+  };
+
+  parseRegion() {
+    const eqRegion = this.translateToMinMaxVertex(this);
+    const type = this.regionTypeMap[this.name.slice(0, 3)];
+    eqRegion.region = {
+      regionTypes: [type].filter((a) => a !== undefined),
+    };
+    if (type === RegionType.Zoneline) {
+      eqRegion.region.zoneLineInfo = {};
+      eqRegion.region.zoneLineInfo.type = ZoneLineType.Reference;
+      const [zoneIdRef] = /ATP_(\d+)/.exec(this.name) ?? [];
+      if (zoneIdRef !== undefined) {
+        const id = +zoneIdRef.split('').reverse('').join('');
+        eqRegion.region.zoneLineInfo.index = id;
+      }
+    }
+    return eqRegion;
+  }
 }
 
 // //

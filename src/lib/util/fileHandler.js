@@ -24,7 +24,7 @@ export async function getFiles(entry) {
 /**
  *
  * @param {string} name
- * @returns {FileSystemDirectoryHandle}
+ * @returns {Promise<FileSystemDirectoryHandle>}
  */
 export const getEQDir = async (name) => {
   if (!gameController.rootFileSystemHandle) {
@@ -43,7 +43,7 @@ export const getEQDir = async (name) => {
  *
  * @param {FileSystemDirectoryHandle} directory
  * @param {string} name
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
 export const writeEQFile = async (directory, name, buffer) => {
   const fileHandle = await getEQDir(directory).then((dir) =>
@@ -66,7 +66,7 @@ export const writeEQFile = async (directory, name, buffer) => {
  *
  * @param {string} directory
  * @param {string} name
- * @returns {ArrayBuffer}
+ * @returns {Promise<ArrayBuffer> | Promise<object>}
  */
 export const getEQFile = async (directory, name, type = 'arrayBuffer') => {
   const contents = await getEQDir(directory).then((dir) =>
@@ -82,6 +82,23 @@ export const getEQFile = async (directory, name, type = 'arrayBuffer') => {
     case 'arrayBuffer':
       return contents;
     case 'json':
-      return JSON.parse(new TextDecoder('utf-8').decode(new Uint8Array(contents)));
+      return JSON.parse(
+        new TextDecoder('utf-8').decode(new Uint8Array(contents))
+      );
   }
+};
+
+/**
+ *
+ * @param {string} directory
+ * @param {string} name
+ * @returns {Promise<ArrayBuffer>}
+ */
+export const getEQFileExists = async (directory, name) => {
+  return await getEQDir(directory).then((dir) =>
+    dir
+      .getFileHandle(name)
+      .catch(() => false)
+      .then(() => true)
+  );
 };
