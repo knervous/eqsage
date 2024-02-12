@@ -180,14 +180,10 @@ export class EQGDecoder {
       regions: [],
     };
 
-
     const quadsPerTile = this.zone.header.quadsPerTile;
     const unitsPerVertex = this.zone.header.unitsPerVert;
     const ter_quad_count =
     quadsPerTile * quadsPerTile;
-    
-
-
 
     const materials = {};
     for (const [key, eco] of Object.entries(this.eco)) {
@@ -261,9 +257,7 @@ export class EQGDecoder {
 
     const primitiveMap = {};
 
-
     for (const tile of this.zone.terrain.tiles) {
-
       const baseMat = tile.baseMaterial || lastKnownBaseMaterial || this.zone.terrain.tiles.find(a => a.baseMaterial)?.baseMaterial || 'obmain';
       lastKnownBaseMaterial = baseMat.toLowerCase();
       const linkedMat = materials[lastKnownBaseMaterial];
@@ -363,7 +357,7 @@ export class EQGDecoder {
 
     // Regions
     for (const region of this.zone.terrain.regions) {
-      zoneMetadata.regions.push(region.parseRegion());
+      zoneMetadata.regions.push(region.parseRegion(true));
     }
 
     // Models
@@ -434,7 +428,7 @@ export class EQGDecoder {
     }
     writtenModels[p.modelFile.toLowerCase()] = true;
     if (await getEQFileExists('objects', `${modelFile}.glb`)) {
-      // return;
+      return;
     }
     const document = new Document();
     const objectName = mod.name.replace('.mod', '');

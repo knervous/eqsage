@@ -15,7 +15,7 @@ import {
 } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 import { ShaderType } from './materials/material';
-import { getEQFile, writeEQFile } from '../util/fileHandler';
+import { getEQFile, getEQFileExists, writeEQFile } from '../util/fileHandler';
 import { optimizeBoundingBoxes } from './bsp/region-utils';
 
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
@@ -439,6 +439,9 @@ export class S3DDecoder {
         name,
         { gltfPrim, indices, vecs, normals, uv },
       ] of Object.entries(primitiveMap)) {
+        if (await getEQFileExists('objects', `${scrubbedName}.glb`)) {
+          // continue;
+        }
         const primIndices = document
           .createAccessor()
           .setType(Accessor.Type.SCALAR)

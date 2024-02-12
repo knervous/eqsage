@@ -98,7 +98,8 @@ export const getEQFileExists = async (directory, name) => {
   return await getEQDir(directory).then((dir) =>
     dir
       .getFileHandle(name)
+      .then(f => f?.getFile())
+      .then(f => !!f.name)
       .catch(() => false)
-      .then(() => true)
   );
 };
