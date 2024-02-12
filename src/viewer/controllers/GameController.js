@@ -469,7 +469,7 @@ export class GameController {
         meshes.push(...(await this.instantiateObjects(key, value)));
       }
       const mergedMesh = Mesh.MergeMeshes(
-        meshes.filter((m) => m.getTotalVertices() > 0),
+        meshes.filter((m) => m?.getTotalVertices() > 0),
         true,
         true,
         undefined,

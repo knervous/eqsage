@@ -117,7 +117,7 @@ export class Region {
     if (type === RegionType.Zoneline) {
       eqRegion.region.zoneLineInfo = {};
       eqRegion.region.zoneLineInfo.type = ZoneLineType.Reference;
-      const [zoneIdRef] = /ATP_(\d+)/.exec(this.name) ?? [];
+      const [, zoneIdRef] = /ATP_(\d+)/.exec(this.name) ?? [];
       if (zoneIdRef !== undefined) {
         const id = +zoneIdRef.split('').reverse('').join('');
         eqRegion.region.zoneLineInfo.index = id;
