@@ -11,6 +11,9 @@ async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
       }
     }
   } else if (entry.kind === 'directory') {
+    if (entry.name === 'eqsage') {
+      return;
+    }
     for await (const handle of entry.values()) {
       yield* getFilesRecursively(handle, `${path}/${handle.name}`, nameCheck);
     }
