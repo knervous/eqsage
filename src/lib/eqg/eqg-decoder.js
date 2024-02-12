@@ -166,13 +166,10 @@ export class EQGDecoder {
       return;
     }
     const scene = document.createScene(this.zone.name);
-    const flipMatrix = mat4.create();
-    mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
     const node = document
       .createNode(`zone-${this.zone.name.replace('.zon', '')}`)
       .setExtras({ uvMap: true })
-      .setTranslation([0, 0, 0])
-      .setMatrix(flipMatrix);
+      .setTranslation([0, 0, 0]);
     scene.addChild(node);
     const zoneMetadata = {
       objects: {},
@@ -437,18 +434,15 @@ export class EQGDecoder {
     }
     writtenModels[p.modelFile.toLowerCase()] = true;
     if (await getEQFileExists('objects', `${modelFile}.glb`)) {
-      return;
+      // return;
     }
     const document = new Document();
     const objectName = mod.name.replace('.mod', '');
     const buffer = document.createBuffer();
     const scene = document.createScene(objectName);
-    const flipMatrix = mat4.create();
-    mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
     const node = document
       .createNode(objectName)
-      .setTranslation([0, 0, 0])
-      .setMatrix(flipMatrix);
+      .setTranslation([0, 0, 0]);
     scene.addChild(node);
     const materials = {};
     for (const mat of mod.geometry.mats) {
@@ -590,12 +584,9 @@ export class EQGDecoder {
       return;
     }
     const scene = document.createScene(this.zone.name);
-    const flipMatrix = mat4.create();
-    mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
     const node = document
       .createNode(`zone-${this.zone.name.replace('.zon', '')}`)
-      .setTranslation([0, 0, 0])
-      .setMatrix(flipMatrix);
+      .setTranslation([0, 0, 0]);
     scene.addChild(node);
 
     const zoneMetadata = {
