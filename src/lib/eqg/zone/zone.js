@@ -47,6 +47,11 @@ export class Zone {
   terrain = new Terrain();
 
   /**
+   * @type {[Region]}
+   */
+  regions = [];
+
+  /**
    *
    * @param {Uint8Array} data
    * @param {import('../../model/file-handle').EQFileHandle} fileHandle
@@ -187,9 +192,7 @@ export class Zone {
     // const [version, strings_len, model_count, object_count, region_count, light_count] = reader.readManyUint32(6);
 
     console.log('Load eqg', magic);
-    // console.log('Version', reader.readUint32());
-    // console.log('Strin len', reader.readUint32());
-    //  console.log(magic, 'version, strings_len, model_count, object_count, region_count, light_count', version, strings_len, model_count, object_count, region_count, light_count);
+   
   }
 }
 

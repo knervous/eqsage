@@ -15,7 +15,7 @@ import { gameController } from '../../viewer/controllers/GameController';
 import { mat4 } from 'gl-matrix';
 import { Zone, ZoneData } from './zone/zone';
 import { Model } from './model/model';
-import { getEQFile, writeEQFile } from '../util/fileHandler';
+import { getEQFile, getEQFileExists, writeEQFile } from '../util/fileHandler';
 import { Eco } from './eco/eco';
 
 const io = new WebIO()
@@ -24,6 +24,7 @@ const io = new WebIO()
     'draco3d.decoder': await draco3d.createDecoderModule(),
     'draco3d.encoder': await draco3d.createEncoderModule()
   });
+
 export class EQGDecoder {
   /** @type {import('../model/file-handle').EQFileHandle} */
   #fileHandle = null;
@@ -109,7 +110,7 @@ export class EQGDecoder {
     for (const f of fileList) {
       const fileName = dirBufferReader.readString(dirBufferReader.readUint32());
       this.files[fileName] = f.data;
-      await writeEQFile('files', fileName, f.data);
+      // await writeEQFile('files', fileName, f.data);
       if (fileName.endsWith('.zon')) {
         this.zone = new Zone(f.data, this.#fileHandle, fileName, this.files);
       }
@@ -187,6 +188,9 @@ export class EQGDecoder {
     const unitsPerVertex = this.zone.header.unitsPerVert;
     const ter_quad_count =
     quadsPerTile * quadsPerTile;
+    
+
+
 
     const materials = {};
     for (const [key, eco] of Object.entries(this.eco)) {
@@ -360,6 +364,11 @@ export class EQGDecoder {
         .setAttribute('TEXCOORD_0', primUv);
     }
 
+    // Regions
+    for (const region of this.zone.terrain.regions) {
+      zoneMetadata.regions.push(region.parseRegion());
+    }
+
     // Models
     const writtenModels = {};
     for (const pg of this.zone.terrain.placeableGroups) {
@@ -427,6 +436,9 @@ export class EQGDecoder {
       return;
     }
     writtenModels[p.modelFile.toLowerCase()] = true;
+    if (await getEQFileExists('objects', `${modelFile}.glb`)) {
+      return;
+    }
     const document = new Document();
     const objectName = mod.name.replace('.mod', '');
     const buffer = document.createBuffer();
@@ -597,6 +609,12 @@ export class EQGDecoder {
 
     const materials = {};
 
+
+    // Regions
+    for (const region of this.zone.terrain.regions) {
+      zoneMetadata.regions.push(region.parseRegion());
+    }
+
     for (const [key, mod] of Object.entries(this.models)) {
       for (const mat of mod.geometry.mats) {
         if (materials[mat.name]) {
@@ -640,6 +658,7 @@ export class EQGDecoder {
     const terrain = this.zone.terrain;
     const writtenModels = {};
 
+
     for (const pg of terrain.placeableGroups) {
       for (const p of pg.placeables) {
         let modelFile = p.modelFile.toLowerCase();
@@ -668,16 +687,26 @@ export class EQGDecoder {
             const v2 = mod.geometry.verts[p.verts[1]];
             const v3 = mod.geometry.verts[p.verts[2]];
 
-            let sharedPrimitive = primitiveMap[mat.name];
+            let name = mat.name;
+            const endDigitRegex = /-(\d+)$/;
+            while (primitiveMap[name]?.vecs?.length > 20000) {
+              if (endDigitRegex.test(name)) {
+                const [, n] = endDigitRegex.exec(name);
+                name = name.replace(endDigitRegex, `-${+n + 1}`);
+              } else {
+                name += '-0';
+              }
+            }
+            let sharedPrimitive = primitiveMap[name];
             if (!sharedPrimitive) {
-              const mesh = document.createMesh(mat.name);
-              const materialNode = document.createNode(mat.name).setMesh(mesh);
+              const mesh = document.createMesh(name);
+              const materialNode = document.createNode(name).setMesh(mesh);
               node.addChild(materialNode);
-              sharedPrimitive = primitiveMap[mat.name] = {
+              sharedPrimitive = primitiveMap[name] = {
                 gltfPrim: document
                   .createPrimitive()
                   .setMaterial(linkedMat)
-                  .setName(mat.name),
+                  .setName(name),
                 indices: [],
                 vecs   : [],
                 normals: [],
@@ -771,7 +800,6 @@ export class EQGDecoder {
         case 'eff':
           break;
         case 'xmi':
-          break;
           break;
         case 'emt':
           break;
