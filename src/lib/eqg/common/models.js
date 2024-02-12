@@ -89,13 +89,28 @@ export class Region {
   name = '';
   altName = '';
 
-  translateToMinMaxVertex(box) {
+  translateToMinMaxVertex(box, rotate90) {
     const { x, y, z, extX, extY, extZ } = box;
+    const minVertex = [x - extX, z - extZ, y - extY];
+    const maxVertex = [x + extX, z + extZ, y + extY];
 
+    if (rotate90) {
+      const minVertexClone = [...minVertex];
+      const maxVertexClone = [...maxVertex];
+      minVertex[0] = minVertexClone[2] * -1;
+      minVertex[2] = minVertexClone[0];
+      maxVertex[0] = maxVertexClone[2] * -1;
+      maxVertex[2] = maxVertexClone[0];
+    }
+    const center = rotate90 ? [
+      (minVertex[0] + maxVertex[0]) / 2,
+      (minVertex[1] + maxVertex[1]) / 2,
+      (minVertex[2] + maxVertex[2]) / 2,
+    ] : [-x, z, y];
     return {
-      minVertex: [x - extX, z - extZ, y - extY],
-      maxVertex: [x + extX, z + extZ, y + extY],
-      center   : [x, z, y],
+      minVertex,
+      maxVertex,
+      center,
     };
   }
 
@@ -108,8 +123,8 @@ export class Region {
     APV: RegionType.Normal,
   };
 
-  parseRegion() {
-    const eqRegion = this.translateToMinMaxVertex(this);
+  parseRegion(rotate90 = false) {
+    const eqRegion = this.translateToMinMaxVertex(this, rotate90);
     const type = this.regionTypeMap[this.name.slice(0, 3)];
     eqRegion.region = {
       regionTypes: [type].filter((a) => a !== undefined),
