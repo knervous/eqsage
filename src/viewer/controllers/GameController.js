@@ -462,30 +462,33 @@ export class GameController {
       undefined,
       '.glb'
     );
-    const zoneMesh = Mesh.MergeMeshes(
-      zone.meshes.filter((m) => m.getTotalVertices() > 0),
-      true,
-      true,
-      undefined,
-      true,
-      true
-    );
-    zoneMesh.name = 'zone';
+    // const zoneMesh = Mesh.MergeMeshes(
+    //   zone.meshes.filter((m) => m.getTotalVertices() > 0),
+    //   true,
+    //   true,
+    //   undefined,
+    //   true,
+    //   true
+    // );
+    // zoneMesh.name = 'zone';
     const metadata = await getEQFile('zones', `${name}.json`, 'json');
     if (metadata) {
       const meshes = [];
       for (const [key, value] of Object.entries(metadata.objects)) {
         meshes.push(...(await this.instantiateObjects(key, value)));
       }
-      const mergedMesh = Mesh.MergeMeshes(
-        meshes.filter((m) => m?.getTotalVertices() > 0),
-        true,
-        true,
-        undefined,
-        true,
-        true
-      );
-      mergedMesh.name = 'static-objects';
+      // const mergedMesh = Mesh.MergeMeshes(
+      //   meshes.filter((m) => m?.getTotalVertices() > 0),
+      //   true,
+      //   true,
+      //   undefined,
+      //   true,
+      //   true
+      // );
+      // if (mergedMesh) {
+      //   mergedMesh.name = 'static-objects';
+      // }
+      
       const regionNode = new TransformNode('regions', this.#scene);
 
       let idx = 0;
@@ -598,12 +601,12 @@ export class GameController {
         }
       }
     }
-    if (!forEditing) {
-      mergedMeshes.push(
-        Mesh.MergeMeshes(meshes, true, true, undefined, true, true)
-      );
-      rn.forEach((r) => r.dispose());
-    }
+    // if (!forEditing) {
+    //   mergedMeshes.push(
+    //     Mesh.MergeMeshes(meshes, true, true, undefined, true, true)
+    //   );
+    //   rn.forEach((r) => r.dispose());
+    // }
     return mergedMeshes;
   }
 

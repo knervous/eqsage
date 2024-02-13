@@ -4,6 +4,7 @@ import { Box } from '@mui/material';
 import { useMainContext } from '../main/main';
 import { processZone } from './processZone';
 import { gameController } from '../../viewer/controllers/GameController';
+import { SpireOverlay } from '../spire/overlay';
 
 export const BabylonZone = () => {
   const canvasRef = useRef();
@@ -39,6 +40,10 @@ export const BabylonZone = () => {
   }, [selectedZone]);
 
   return selectedZone ? (
-    <Box as='canvas' sx={{ flexGrow: '1', position: 'fixed' }} ref={canvasRef} id="renderCanvas" width="100vw" height="100vh" />
+    <>
+      {/* {gameController.Spire && <SpireOverlay />} */}
+      <Box as='canvas' sx={{ flexGrow: '1', position: 'fixed' }} ref={canvasRef} id="renderCanvas" width="100vw" height="100vh" />
+
+    </>
   ) : null;
 };

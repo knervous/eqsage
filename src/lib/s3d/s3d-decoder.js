@@ -58,7 +58,7 @@ const getMaterials = async (materialList, document) => {
 
     const texture = document
       .createTexture(name)
-      .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+      // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
       .setURI(`/eq/textures/${name}`)
       .setExtras({
         name,

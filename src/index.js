@@ -12,3 +12,9 @@ root.render(
     <Main />
   </GlobalStoreProvider>
 );
+
+// Hot Module Replacement API
+if (module.hot) {
+  console.log('Module hot', module);
+  // module.hot.accept('./App', render);
+}
