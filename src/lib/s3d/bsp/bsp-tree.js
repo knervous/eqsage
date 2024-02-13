@@ -46,8 +46,16 @@ export class BspTree extends WldFragment {
       const polyCount = mesh.materialGroups.reduce((acc, val) => acc + val.polygonCount, 0);
       for (let i = 0; i < polyCount; i++) {
         const idc = mesh.indices[i];
+        if (!idc) {
+          console.warn('Index not matched', mesh);
+          continue;
+        }
         const idxArr = [idc.v1, idc.v2, idc.v3];
         const [v1, v2, v3] = idxArr.map((idx) => mesh.vertices[idx]);
+        if ([v1, v2, v3].some(v => v === undefined)) {
+          console.warn('Verts not aligned', mesh);
+          continue;
+        }
         polygons.push(...[v1, v2, v3].map((v) => [
           v[0] + mesh.center[0],
           v[1] + mesh.center[1],
