@@ -5,6 +5,8 @@ import { useMainContext } from '../main/main';
 import { processZone } from './processZone';
 import { gameController } from '../../viewer/controllers/GameController';
 import { SpireOverlay } from '../spire/overlay';
+import { OverlayProvider } from '../spire/provider';
+import { SettingsProvider } from '../../context/settings';
 
 export const BabylonZone = () => {
   const canvasRef = useRef();
@@ -36,14 +38,22 @@ export const BabylonZone = () => {
       }
       gameController.loadModel(selectedZone.short_name);
     })();
-    return () => current = false;
+    return () => (current = false);
   }, [selectedZone]);
 
   return selectedZone ? (
-    <>
-      {/* {gameController.Spire && <SpireOverlay />} */}
-      <Box as='canvas' sx={{ flexGrow: '1', position: 'fixed' }} ref={canvasRef} id="renderCanvas" width="100vw" height="100vh" />
-
-    </>
+    <OverlayProvider>
+      <SettingsProvider>
+        <SpireOverlay />
+        <Box
+          as="canvas"
+          sx={{ flexGrow: '1', position: 'fixed' }}
+          ref={canvasRef}
+          id="renderCanvas"
+          width="100vw"
+          height="100vh"
+        />
+      </SettingsProvider>
+    </OverlayProvider>
   ) : null;
 };
