@@ -418,8 +418,24 @@ export class GameController {
     window.aabbPerf += timeTaken;
   }
 
+  showRegions(value) {
+    this.regionsShown = value;
+    this.#scene?.getNodeById('regions')?.setEnabled(value);
+  }
+
+  setFlySpeed(value) {
+    this.cameraFlySpeed = value;
+    if (!this.CameraController?.camera) {
+      return;
+    }
+    this.CameraController.camera.speed = value;
+  }
+
   async loadModel(name) {
     this.loadViewerScene();
+    if (this.cameraFlySpeed !== undefined && this.CameraController?.camera) {
+      this.CameraController.camera.speed = this.cameraFlySpeed;
+    }
     this.#scene.onBeforeRenderObservable.add(this.renderHook.bind(this));
     // Skybox
     const skybox = MeshBuilder.CreateBox(
@@ -490,6 +506,7 @@ export class GameController {
       }
       
       const regionNode = new TransformNode('regions', this.#scene);
+      regionNode.setEnabled(!!this.regionsShown);
 
       let idx = 0;
       console.log('metadata regions', metadata.regions);

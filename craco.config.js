@@ -4,6 +4,26 @@ const TerserPlugin = require('terser-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
+  devServer: (devServerConfig) => {
+    // Enable CORS to allow the app to be loaded from different origins
+    devServerConfig.headers = {
+      'Access-Control-Allow-Origin': '*',
+    };
+    // devServerConfig.client.webSocketURL.port = 8082;
+    // devServerConfig.client.webSocketURL.pathname = '/eqsage';
+
+    // devServerConfig.client.webSocketURL = {
+    //   // Adjust these options according to your setup
+    //   hostname: 'localhost',
+    //   pathname: '/ws', // Custom WebSocket path
+    //   port    : 8082, // Vue app's port that proxies to the CRA app
+    //   protocol: 'ws',
+    // };
+
+    // Other devServer customizations can go here
+
+    return devServerConfig;
+  },
   plugins: [
     {
       plugin : CracoSwcPlugin,
@@ -22,11 +42,17 @@ module.exports = {
             plugin => !(plugin instanceof ModuleScopePlugin)
           );
           // Just make this local
-          // const terserPlugin = config.optimization.minimizer.find(m => m instanceof TerserPlugin);
-          // if (terserPlugin) {
-          //   terserPlugin.options.minimizer.implementation = TerserPlugin.swcMinify;
-          //   delete terserPlugin.options.minimizer.options.warnings;
-          // }
+          if (process.env.LOCAL_DEV === 'true') {
+            const terserPlugin = config.optimization.minimizer.find(m => m instanceof TerserPlugin);
+            if (terserPlugin) {
+              terserPlugin.options.minimizer.implementation = TerserPlugin.swcMinify;
+              delete terserPlugin.options.minimizer.options.warnings;
+            }
+          }
+
+          config.output.chunkFilename = 'static/js/eqsage-[name].[contenthash:8].chunk.js';
+          config.output.filename = 'static/js/eqsage-[name].[contenthash:8].js';
+          
           config.plugins.push(
             new CopyPlugin({
               patterns: [

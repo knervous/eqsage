@@ -1,0 +1,50 @@
+.spire-left-nav {
+    svg {
+        fill: #ddd !important;
+        color: #ddd !important;
+    }
+
+    .spire-left-nav-button {
+        border: 1px solid gold !important;
+        border-radius: 20px;
+        width: 75px;
+        opacity: 0.6;
+        transition: opacity 0.2s ease-out; // Transition effect for opacity change
+
+        background-image: url('https://eqrequiem.com/ui/wnd_bg_light_rock.png');
+
+        &:hover {
+            opacity: 1.0;
+        }
+    }
+
+    .spire-left-nav-button-open {
+        opacity: 1.0;
+    }
+}
+
+.text-outline {
+    color: white !important; /* Text color */
+    text-shadow:
+      -1px -1px 0 #000,  
+       1px -1px 0 #000,
+      -1px  1px 0 #000,
+       1px  1px 0 #000; /* Outline effect */
+}
+
+.outline-text-strong {
+    color: white; /* Text color */
+    text-shadow:
+      -2px -2px 0 #000,  
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000,
+      -1px -2px 0 #000,
+       1px -2px 0 #000,
+      -2px -1px 0 #000,
+       2px -1px 0 #000,
+      -2px  1px 0 #000,
+       2px  1px 0 #000,
+      -1px  2px 0 #000,
+       1px  2px 0 #000; /* More detailed outline effect */
+  }
