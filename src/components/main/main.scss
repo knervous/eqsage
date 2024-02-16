@@ -1,4 +1,11 @@
+@font-face {
+  font-family: 'Menuetto';
+  src:  url('../eq-ui/styles/Menuetto.ttf') format('truetype'); /* Chrome 4+, Firefox 3.5, Opera 10+, Safari 3—5 */
+}  
+
+
 .main {
+  font-family: Arial, Helvetica, sans-serif !important;
     background: center no-repeat url('../../../public/eqsage1.png');
     background-size: cover;
     width: 100vw;
@@ -9,13 +16,35 @@
     align-items: center;
     text-align: center;
   }
-  
+
   .MuiDialog-paper[role=dialog]  {
+    &::before {
+    pointer-events: none;
+
+      position: absolute;
+      width: calc(100% + 22px);
+      height: calc(100% + 16px);
+      z-index: -1;
+      left: -12px;
+      top: -5px;
+      content: ' ';
+      background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+      background-position-x: left, right, left, right;
+      background-position-y: top, top, bottom, bottom;
+      background-clip:border-box;
+      background-image: url(../images/simple_window_corner_tl.png), url(../images/simple_window_corner_tr.png), url(../images/simple_window_corner_bl.png), url(../images/simple_window_corner_br.png);
+
+    }
+    overflow: visible;
     border-radius: 5px;
-    background-image: url('../../../public/ui/border2.jpg');
+    background-image: url('../images/super_fancy_bg.png');
+//    background-image: url('../../../public/ui/border2.jpg');
     background-repeat: repeat;
     background-size: 100% 100%;
     background-position: center;
+    border-width: 2px;
+    border-style: solid;
+    border-color: rgb(180, 173, 134) rgb(142, 134, 107) rgb(61, 58, 48) rgb(177, 170, 142);
     color: white !important;go
     p {
       color: white;
