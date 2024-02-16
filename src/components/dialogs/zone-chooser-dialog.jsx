@@ -145,7 +145,7 @@ export const ZoneChooserDialog = ({ open }) => {
         style={{ cursor: 'move', margin: '0 auto' }}
         id="draggable-dialog-title"
       >
-        Select a Zone updated
+        Select a Zone
       </DialogTitle>
       <DialogContent
         onDropCapture={(e) => {
