@@ -135,6 +135,7 @@ export const ZoneChooserDialog = ({ open }) => {
 
   return (
     <Dialog
+      className='ui-dialog'
       onKeyDown={(e) => e.stopPropagation()}
       maxWidth="md"
       open={open}
@@ -144,6 +145,7 @@ export const ZoneChooserDialog = ({ open }) => {
       <DialogTitle
         style={{ cursor: 'move', margin: '0 auto' }}
         id="draggable-dialog-title"
+        className='ui-dialog-title'
       >
         Select a Zone
       </DialogTitle>
