@@ -1,0 +1,45 @@
+.ui-dialog {
+    .ui-dialog-title {
+        width: 100%;
+        text-align: center;
+        position: relative;
+        padding: 0px;
+        padding-bottom: 10px;
+        font-size: 23px !important;
+        color: rgb(255, 251, 230);
+        text-shadow:
+        -1.5px -1.5px 0 rgba(0,0,0,0.7),  
+        1.5px -1.5px 0 rgba(0,0,0,0.7),  
+        -1.5px  1.5px 0 rgba(0,0,0,0.7), 
+        1.5px  1.5px 0 rgba(0,0,0,0.7),   /* Outline effect */
+    }
+    .ui-dialog-title-bg {
+        position: absolute;
+        width: 165px;
+        height: 45px;
+        top: -0px;
+        left: calc(50% - 80px);
+        z-index: -1;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 256px 256px;
+        background-position: -5px -162px;
+    }
+
+    .ui-dialog-btn {
+        width: 100px;
+        height: 45px;
+        color: rgb(255, 251, 230);
+        &:hover {
+            background-position: -0px 0px;
+        }
+        &:active {
+            background-position: -0px -94px;
+        }
+        background-image: url('../../../../public/ui/window_pieces03.png');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 256px 512px;
+        background-position: -0px -47px;
+    }
+}
