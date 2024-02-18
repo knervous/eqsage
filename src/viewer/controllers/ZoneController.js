@@ -173,14 +173,17 @@ class ZoneController extends GameControllerChild {
       sphere.parent = zoneSpawnsNode;
       sphere.name = 'npc-sphere';
       let offset = 0;
-      for (const entry of spawn.spawnentries) {
-        if (!entry.npc_type) {
-          continue;
+      if (Array.isArray(spawn.spawnentries)) {
+        for (const entry of spawn.spawnentries) {
+          if (!entry.npc_type) {
+            continue;
+          }
+          const text = `${entry.npc_type.name} :: Level ${entry.npc_type.level} :: ${entry.chance}% Chance`;
+          addTextOverMesh(sphere, text, this.scene, offset);
+          offset += 1;
         }
-        const text = `${entry.npc_type.name} :: Level ${entry.npc_type.level} :: ${entry.chance}% Chance`;
-        addTextOverMesh(sphere, text, this.scene, offset);
-        offset += 1;
       }
+      
  
     }
 
