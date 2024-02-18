@@ -15,7 +15,7 @@ export const BabylonZone = () => {
   useEffect(() => {
     (async () => {
       await gameController.loadEngine(canvasRef.current);
-      await gameController.loadViewerScene();
+      await gameController.ZoneController.loadViewerScene();
       window.addEventListener('resize', gameController.resize);
       window.addEventListener('keydown', gameController.keyDown);
     })();
@@ -36,7 +36,7 @@ export const BabylonZone = () => {
       if (!current) {
         return;
       }
-      gameController.loadModel(selectedZone.short_name);
+      gameController.ZoneController.loadModel(selectedZone.short_name);
     })();
     return () => (current = false);
   }, [selectedZone]);

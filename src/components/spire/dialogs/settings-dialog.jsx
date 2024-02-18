@@ -10,7 +10,7 @@ import { CommonDialog } from './common';
 import { useSettingsContext } from '../../../context/settings';
 
 export const SettingsDialog = ({ onClose }) => {
-  const { setOption, showRegions, flySpeed } = useSettingsContext();
+  const { setOption, showRegions, flySpeed, glow } = useSettingsContext();
   return (
     <CommonDialog onClose={onClose} title={'Settings'}>
       <FormControl sx={{ marginTop: 1, marginBottom: 2 }} fullWidth>
@@ -40,6 +40,17 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Show Regions"
+      />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={glow}
+            onChange={({ target: { checked } }) =>
+              setOption('glow', checked)
+            }
+          />
+        }
+        label="NPC Glow"
       />
    
     </CommonDialog>

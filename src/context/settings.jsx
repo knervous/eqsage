@@ -6,6 +6,7 @@ export const useSettingsContext = () => useContext(SettingsContext);
 const defaultOptions = {
   flySpeed   : 2,
   showRegions: true,
+  glow       : true,
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(

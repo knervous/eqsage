@@ -35,7 +35,7 @@ export class GameControllerChild {
   }
 
   zone(zoneName, location) {
-    return this.#gc.loadZoneScene(zoneName, false, location);
+    return this.#gc.loadModel(zoneName, false, location);
   }
   setLoading(val) {
     this.#gc.setLoading(val);
