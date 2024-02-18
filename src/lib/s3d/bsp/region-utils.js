@@ -108,3 +108,107 @@ export function optimizeBoundingBoxes(boxes) {
   return deduplicateBoxes(boxes);
 }
   
+
+
+export class AABBNode {
+  min = [];
+  max = [];
+  constructor(min, max, data) {
+    this.min = min;
+    this.max = max;
+    if (data) {
+      this.data = data;
+    }
+  }
+}
+
+export function buildAABBTree(nodes) {
+  // Helper function to recursively build the tree
+  function buildTree(nodeList) {
+    // Check if nodeList is empty
+    if (nodeList.length === 0) {
+      return null;
+    }
+    if (nodeList.length === 1) {
+      return nodeList[0];
+    }
+
+    // Find the bounding box that encloses all the nodes
+    const min = nodeList[0].min.slice(); // clone the array
+    const max = nodeList[0].max.slice();
+
+    for (let i = 1; i < nodeList.length; i++) {
+      for (let j = 0; j < 3; j++) {
+        min[j] = Math.min(min[j], nodeList[i].min[j]);
+        max[j] = Math.max(max[j], nodeList[i].max[j]);
+      }
+    }
+
+    const currentNode = new AABBNode(min, max);
+
+    // Divide the nodes into two groups based on the longest axis of the bounding box
+    const axis = max
+      .map((val, i) => val - min[i])
+      .indexOf(Math.max(...max.map((val, i) => val - min[i])));
+
+    const sortedNodes = nodeList
+      .slice()
+      .sort((a, b) => a.min[axis] - b.min[axis]);
+
+    const midpoint = Math.floor(sortedNodes.length / 2);
+    const leftNodes = sortedNodes.slice(0, midpoint);
+    const rightNodes = sortedNodes.slice(midpoint);
+
+    // Recursively build left and right subtrees
+    currentNode.left = buildTree(leftNodes);
+    currentNode.right = buildTree(rightNodes);
+
+    // Assign parent for recursion to traverse tree upwards
+    // and remember last nodes
+    if (currentNode.left) {
+      currentNode.left.parent = currentNode;
+    }
+    if (currentNode.right) {
+      currentNode.right.parent = currentNode;
+    }
+
+    return currentNode;
+  }
+
+  // Start building the tree with the input nodes
+  return buildTree(nodes);
+}
+
+const testNode = (node, point) => {
+  if (!node?.min || !node?.max) {
+    return false;
+  }
+  const { min, max } = node;
+  return (
+    point.x >= min[0] &&
+    point.y >= min[1] &&
+    point.z >= min[2] &&
+    point.x <= max[0] &&
+    point.y <= max[1] &&
+    point.z <= max[2]
+  );
+};
+
+const recurseNodeForRegion = (node, position) => {
+  if (testNode(node, position)) {
+    if (testNode(node.left, position)) {
+      return recurseNodeForRegion(node.left, position);
+    } else if (testNode(node.right, position)) {
+      return recurseNodeForRegion(node.right, position);
+    }
+    return node;
+  }
+  return null;
+};
+
+export const recurseTreeFromKnownNode = (node, position) => {
+  while (node && !testNode(node, position)) {
+    node = node.parent;
+  }
+  return recurseNodeForRegion(node, position);
+};

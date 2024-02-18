@@ -16,36 +16,8 @@ const columns = [
   },
 ];
 
-export const NpcDialog = ({ onClose }) => {
-  const [npcs, setNpcs] = useState([]);
-  const [spawns, setSpawns] = useState([]);
-  const { selectedZone } = useMainContext();
-  useEffect(() => {
-    if (!gameController.Spire || !selectedZone) {
-      return;
-    }
-    gameController.Spire.Npcs.getNpcsByZone(selectedZone.short_name, selectedZone.version, {
-      relations: [
-        'all'
-      ],
-      uniqueEntries: true,
-    }).then(npcs => {
-      console.log('npcs', npcs);
-      setNpcs(npcs);
-    });
-
-    gameController.Spire.Spawn.getByZone(selectedZone.short_name, selectedZone.version, {
-      relations: [
-        'all'
-      ],
-      uniqueEntries: true,
-    }).then(npcs => {
-      console.log('spawns', npcs);
-      setSpawns(npcs);
-    });
-
-
-  }, [selectedZone]);
+export const NpcDialog = ({ onClose, npcs }) => {
+ 
 
   return (
     <CommonDialog fullWidth onClose={onClose} title={'Spawns'}>
