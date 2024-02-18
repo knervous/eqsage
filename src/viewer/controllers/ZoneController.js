@@ -1,6 +1,6 @@
 
 import { SceneLoader, Vector3,
-  Tools, Texture, Scene, HemisphericLight, PointLight, Light, MeshBuilder, StandardMaterial, CubeTexture, Color3Gradient, Color3, Mesh, TransformNode, GlowLayer, DynamicTexture, CreatePlane, ParticleSystem } from '@babylonjs/core';
+  Tools, Texture, Scene, HemisphericLight, PointLight, Light, MeshBuilder, StandardMaterial, CubeTexture, Color3Gradient, Color3, Mesh, TransformNode, GlowLayer, DynamicTexture, CreatePlane, ParticleSystem, Color4, PointerEventTypes, PointerInfo } from '@babylonjs/core';
 
 import { GameControllerChild } from './GameControllerChild';
 import { AABBNode, buildAABBTree, recurseTreeFromKnownNode } from '../../lib/s3d/bsp/region-utils';
@@ -37,8 +37,10 @@ class ZoneController extends GameControllerChild {
   };
   dispose() {
     if (this.scene) {
+      this.scene.onPointerObservable.remove(this.onClick.bind(this));
       this.scene.onBeforeRenderObservable.remove(this.renderHook.bind(this));
       this.scene.dispose();
+
     }
     this.scene = null;
     this.hadStoredScene = false;
@@ -75,17 +77,38 @@ class ZoneController extends GameControllerChild {
       new Vector3(0, -0, 0),
       this.scene
     );
+    this.regionMaterial = new StandardMaterial('region-material', this.scene);
 
-    // this.playerLight = new PointLight('__cam_light__', this.CameraController.camera.position, this.scene);
-    // this.playerLight.intensity = 30000;
-    // this.playerLight.intensityMode = Light.INTENSITYMODE_AUTOMATIC;
-    // this.playerLight.falloffType = Light.FALLOFF_GLTF;
-    // this.playerLight.position = this.CameraController.camera.position;
+    this.regionMaterial.alpha = 0.3;
+    this.regionMaterial.diffuseColor = new Color3(0, 127, 65); // Red color
+    this.regionMaterial.emissiveColor = new Color4(0, 127, 65, 0.3); // Red color
 
     // Default intensity is 1. Let's dim the light a small amount
     this.ambientLight.intensity = 1.5;
+
+    // Click events
+    this.scene.onPointerObservable.add(this.onClick.bind(this));
   }
 
+  /**
+   * 
+   * @param {PointerInfo} pointerInfo 
+   */
+  onClick(pointerInfo) {
+ 
+    switch (pointerInfo.type) {
+      case PointerEventTypes.POINTERDOWN:
+        // Check if the mesh under the pointer is the sphere
+        if (pointerInfo.pickInfo.hit && ((pointerInfo.pickInfo.pickedMesh?.metadata?.spawnId ?? null) !== null)) {
+          console.log('Spawn', pointerInfo.pickInfo.pickedMesh?.metadata?.spawnId);
+          // Place your onClick logic here
+        }
+        break;
+      default:
+        break;
+      
+    }
+  }
   renderHook() {
     if (window.aabbPerf === undefined) {
       window.aabbPerf = 0;
@@ -93,6 +116,7 @@ class ZoneController extends GameControllerChild {
     if (window.aabbs === undefined) {
       window.aabbs = [];
     }
+    this.skybox.position = this.CameraController.camera.position;
     
     const aabbPerf = performance.now();
     const aabbRegion = recurseTreeFromKnownNode(
@@ -137,32 +161,33 @@ class ZoneController extends GameControllerChild {
     const material = new StandardMaterial('zone-spawns-material', this.scene);
     material.emissiveColor = new Color3(0.5, 0.5, 1);
 
-    const addTextOverMesh = function(mesh, text, scene, offset) {
+    const addTextOverMesh = function(mesh, text, scene, offset, id) {
       const temp = new DynamicTexture('DynamicTexture', 64, scene);
       const tmpctx = temp.getContext();
       tmpctx.font = '16px Arial';
       const textWidth = tmpctx.measureText(text).width + 20;
-
+      temp.dispose();
 
       const dynamicTexture = new DynamicTexture('DynamicTexture', { width: textWidth, height: 80 }, scene);
       dynamicTexture.drawText(text, null, null, 'bold 16px Arial', 'white', 'transparent', true, true);
 
       const plane = MeshBuilder.CreatePlane('textPlane', { width: textWidth / 30, height: 3 }, scene);
-      plane.position = mesh.position.clone();
+      plane.addLODLevel(500, null);
+
+      // plane.position = mesh.position.clone();
       plane.position.y += 3 + offset; // Adjust this value to control the height of the text above the sphere
       plane.billboardMode = ParticleSystem.BILLBOARDMODE_ALL;
-      plane.parent = zoneSpawnsNode;
-      const material = new StandardMaterial('Mat', scene);
+      plane.parent = mesh;
+      const material = new StandardMaterial(`nameplate_${id}`, scene);
       plane.material = material;
       material.diffuseTexture = dynamicTexture;
       material.diffuseTexture.hasAlpha = true;
       material.useAlphaFromDiffuseTexture = true;
       material.emissiveColor = Color3.White();// ('#fbdc02');// Color3.FromInts(100, 200, 100);
-  
+      return plane;
       // Make the plane always face the camera
 
     };
-
     for (const spawn of spawns) {
       const sphere = MeshBuilder.CreateSphere(`zone-spawn-${spawn.id}`, { diameter: 3, segments: 32 }, this.scene);
       sphere.material = material;
@@ -170,21 +195,22 @@ class ZoneController extends GameControllerChild {
       sphere.position.x = spawn.y;
       sphere.position.y = spawn.z;
       sphere.position.z = spawn.x;
+      sphere.addLODLevel(1500, null);
+      sphere.metadata = { spawnId: spawn.id };
       sphere.parent = zoneSpawnsNode;
       sphere.name = 'npc-sphere';
       let offset = 0;
+      const nameplates = [];
       if (Array.isArray(spawn.spawnentries)) {
         for (const entry of spawn.spawnentries) {
           if (!entry.npc_type) {
             continue;
           }
           const text = `${entry.npc_type.name} :: Level ${entry.npc_type.level} :: ${entry.chance}% Chance`;
-          addTextOverMesh(sphere, text, this.scene, offset);
+          nameplates.push(addTextOverMesh(sphere, text, this.scene, offset, spawn.id));
           offset += 1;
         }
       }
-      
- 
     }
 
   }
@@ -216,6 +242,7 @@ class ZoneController extends GameControllerChild {
       { size: 10000.0 },
       this.scene
     );
+    this.skybox = skybox;
     const skyboxMaterial = new StandardMaterial('skyBox', this.scene);
     skyboxMaterial.backFaceCulling = false;
 
@@ -260,6 +287,7 @@ class ZoneController extends GameControllerChild {
       true
     );
     zoneMesh.name = 'zone';
+    zoneMesh.isPickable = false;
     const metadata = await getEQFile('zones', `${name}.json`, 'json');
     if (metadata) {
       const meshes = [];
@@ -319,7 +347,8 @@ class ZoneController extends GameControllerChild {
           },
           this.scene
         );
-        this.glowLayer.addExcludedMesh(box);
+        this.glowLayer.addIncludedOnlyMesh(box);
+        
         box.metadata = region.region;
         box.name = `Region-${idx++}`;
         // Set the position of the box to the center
@@ -329,12 +358,8 @@ class ZoneController extends GameControllerChild {
           region.center[2]
         );
 
-        // Optionally, you can set material and color to the box
-        const material = new StandardMaterial('material', this.scene);
-        material.alpha = 0.3;
-        material.diffuseColor = new Color3(127, 127, 0); // Red color
-        box.material = material;
-        box.showBoundingBox = true;
+        box.material = this.regionMaterial;
+        // box.showBoundingBox = true;
         box.parent = regionNode;
       }
     }
