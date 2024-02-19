@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useMainContext } from '../main/main';
 import './overlay.scss';
 
 export const BabylonZoneOverlay = () => {
   const { selectedZone, setZoneDialogOpen, setSelectedZone } = useMainContext();
+  const ref = useRef(null);
+
   return selectedZone ? (
-    <Box sx={{ position: 'fixed', zIndex: 10, width: '100vw' }}>
+    <Box ref={ref} sx={{ position: 'fixed', zIndex: 10, width: 'auto', left: `calc(50% - ${ref.current?.clientWidth ?? 0}px)` }}>
       <Typography
         sx={{
           color    : 'white',

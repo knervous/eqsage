@@ -281,7 +281,7 @@ export class GameController {
         break;
       }
       case 'f': {
-        this.#scene.rootNodes.forEach((r) => {
+        zoneController.scene.rootNodes.forEach((r) => {
           r.getChildMeshes().forEach((m) => {
             if (m.material) {
               m.material.wireframe = true;
@@ -291,7 +291,7 @@ export class GameController {
         break;
       }
       case 'r': {
-        this.#scene.rootNodes.forEach((r) => {
+        zoneController.scene.rootNodes.forEach((r) => {
           r.getChildMeshes().forEach((m) => {
             if (m.material) {
               m.material.wireframe = false;
@@ -330,8 +330,8 @@ export class GameController {
   }
 
   dispose() {
-    if (this.#scene) {
-      this.#scene.dispose();
+    if (zoneController.scene) {
+      zoneController.scene.dispose();
     }
     this.aabbTree = null;
     this.ZoneController.dispose();
