@@ -361,7 +361,7 @@ class ZoneController extends GameControllerChild {
             continue;
           }
           lines.push(
-            `${entry.npc_type.name} :: Level ${entry.npc_type.level} :: ${entry.chance}% Chance`
+            `${entry.npc_type?.name} :: Level ${entry.npc_type?.level} :: ${entry.chance}% Chance`
           );
         }
         addTextOverMesh(instance, lines, this.scene, spawn.id, idx * 25);
