@@ -5,8 +5,6 @@ import {
   Texture,
   Scene,
   HemisphericLight,
-  PointLight,
-  Light,
   MeshBuilder,
   StandardMaterial,
   CubeTexture,
@@ -16,15 +14,11 @@ import {
   TransformNode,
   GlowLayer,
   DynamicTexture,
-  CreatePlane,
   ParticleSystem,
   Color4,
   PointerEventTypes,
-  PointerInfo,
+  Quaternion,
   Matrix,
-  EffectFallbacks,
-  ShaderMaterial,
-  Effect,
 } from '@babylonjs/core';
 
 import { GameControllerChild } from './GameControllerChild';
@@ -34,39 +28,6 @@ import {
   recurseTreeFromKnownNode,
 } from '../../lib/s3d/bsp/region-utils';
 import { getEQFile } from '../../lib/util/fileHandler';
-
-Effect.ShadersStore['customVertexShader'] = `
-    precision highp float;
-
-    // Attributes
-    attribute vec3 position;
-    attribute float visibility;
-
-    // Uniforms
-    uniform mat4 worldViewProjection;
-
-    // Varying
-    varying float vVisibility;
-
-    void main(void) {
-        gl_Position = worldViewProjection * vec4(position, 1.0);
-        vVisibility = visibility;
-    }
-`;
-
-Effect.ShadersStore['customFragmentShader'] = `
-    precision highp float;
-
-    // Varying
-    varying float vVisibility;
-
-    void main(void) {
-        if (vVisibility < 0.5) {
-            discard;
-        }
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // Red color for demonstration
-    }
-`;
 
 class ZoneController extends GameControllerChild {
   /**
@@ -168,11 +129,11 @@ class ZoneController extends GameControllerChild {
       case PointerEventTypes.POINTERDOWN:
         if (
           pointerInfo.pickInfo.hit &&
-          (pointerInfo.pickInfo.pickedMesh?.metadata?.spawnIdx ?? null) !== null
+          (pointerInfo.pickInfo.pickedMesh?.metadata?.spawn ?? null) !== null
         ) {
           this.clickCallbacks.forEach((c) =>
             c(
-              this.spawns?.[pointerInfo.pickInfo.pickedMesh?.metadata?.spawnIdx]
+              pointerInfo.pickInfo.pickedMesh?.metadata?.spawn
             )
           );
         }
@@ -192,11 +153,12 @@ class ZoneController extends GameControllerChild {
     if (coords.length === 0) {
       return;
     }
+    const path = coords.map((a) => new Vector3(a.y, a.z, a.x));
     const tube = MeshBuilder.CreateTube(
       'tube',
       {
-        path           : coords.map((a) => new Vector3(a.y, a.z, a.x)),
-        radius         : 1,
+        path,
+        radius         : 0.5,
         sideOrientation: Mesh.DOUBLESIDE,
         updatable      : true,
       },
@@ -207,6 +169,23 @@ class ZoneController extends GameControllerChild {
     tubeMaterial.emissiveColor = new Color3(0, 0.5, 1); // A bright color for glowing effect
     tube.material = tubeMaterial;
     this.glowLayer.addIncludedOnlyMesh(tube);
+
+
+    // Function to create an arrow
+    const createDirectionalBox = (name, point, scene) => {
+  
+      // Create box with initial size, will scale later
+      const box = MeshBuilder.CreateBox(name, { height: 2, width: 2, depth: 2 }, scene);
+      box.position = point;
+      box.material = tubeMaterial;
+      this.glowLayer.addIncludedOnlyMesh(box);
+
+    };
+  
+    // Place directional boxes along the path with updated scaling
+    for (let i = 0; i < path.length - 1; i++) {
+      createDirectionalBox(`box${ i}`, path[i], this.scene);
+    }
   }
 
   renderHook() {
@@ -259,11 +238,13 @@ class ZoneController extends GameControllerChild {
     zoneSpawnsNode.id = 'zone-spawns';
     zoneSpawnsNode.getChildren().forEach((c) => c.dispose());
     const material = new StandardMaterial('zone-spawns-material', this.scene);
+    const pathMaterial = new StandardMaterial('zone-spawns-path-material', this.scene);
     const missingMaterial = new StandardMaterial(
       'zone-spawns-material-missing',
       this.scene
     );
     material.emissiveColor = new Color3(0.5, 0.5, 1);
+    pathMaterial.emissiveColor = new Color3(0.0, 0.0, 1);
     missingMaterial.emissiveColor = new Color3(1, 0, 0);
 
     const addTextOverMesh = function (mesh, lines, scene, id, idx) {
@@ -338,21 +319,26 @@ class ZoneController extends GameControllerChild {
     npcMesh.setEnabled(false);
     npcMesh.parent = zoneSpawnsNode;
     npcMesh.material = material;
-    npcMesh.thinInstanceSetBuffer(
-      'visibility',
-      Array.from({ length: spawns.length }, () => 1),
-      1
+
+    const npcWithPathMesh = MeshBuilder.CreateSphere(
+      'zone-spawn',
+      { diameter: 3, segments: 32 },
+      this.scene
     );
-    this.npcMesh = npcMesh;
+    npcWithPathMesh.setEnabled(false);
+    npcWithPathMesh.parent = zoneSpawnsNode;
+    npcWithPathMesh.material = pathMaterial;
+
     this.glowLayer.addIncludedOnlyMesh(npcMesh);
+    this.glowLayer.addIncludedOnlyMesh(npcWithPathMesh);
 
     for (const [idx, spawn] of Object.entries(spawns)) {
       const hasEntries = Array.isArray(spawn.spawnentries);
-      const instance = npcMesh.createInstance(`zone-spawn-${spawn.id}`);
+      const instance = (spawn.grid ? npcWithPathMesh : npcMesh).createInstance(`zone-spawn-${spawn.id}`);
       instance.position.x = spawn.y;
       instance.position.y = spawn.z;
       instance.position.z = spawn.x;
-      instance.metadata = { spawnIdx: idx };
+      instance.metadata = { spawn };
       instance.parent = zoneSpawnsNode;
       if (hasEntries) {
         const lines = [];

@@ -8,7 +8,7 @@ export const BabylonZoneOverlay = () => {
   const ref = useRef(null);
 
   return selectedZone ? (
-    <Box ref={ref} sx={{ position: 'fixed', zIndex: 10, width: 'auto', left: `calc(50% - ${ref.current?.clientWidth ?? 0}px)` }}>
+    <Box ref={ref} sx={{ position: 'fixed', zIndex: 10, width: 'auto', left: `calc(50vw - ${(ref.current?.clientWidth ?? 0) / 2}px)` }}>
       <Typography
         sx={{
           color    : 'white',
