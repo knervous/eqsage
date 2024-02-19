@@ -238,83 +238,6 @@ export class GameController {
         }
         break;
       }
-      case 'g': {
-        this.addToast(
-          `Gravity ${
-            gameController.CameraController.camera.applyGravity
-              ? 'disabled'
-              : 'enabled'
-          }`,
-          {}
-        );
-        gameController.CameraController.camera.applyGravity =
-          !gameController.CameraController.camera.applyGravity;
-        break;
-      }
-      case 'c': {
-        this.addToast(
-          `Collision ${
-            gameController.CameraController.camera.checkCollisions
-              ? 'disabled'
-              : 'enabled'
-          }`,
-          {}
-        );
-        zoneController.CameraController.camera.checkCollisions =
-          !gameController.CameraController.camera.checkCollisions;
-        break;
-      }
-      case 'u': {
-        this.showUi = !this.showUi;
-        GlobalStore.actions.setZoneInfo({ ...GlobalStore.getState().zoneInfo });
-        break;
-      }
-      case 'b': {
-        Object.values(gameController.SpawnController.spawns).forEach(
-          (spawn) => {
-            spawn.rootNode.showBoundingBox = !spawn.rootNode.showBoundingBox;
-            spawn.rootNode
-              .getChildMeshes()
-              .forEach((m) => (m.showBoundingBox = !m.showBoundingBox));
-          }
-        );
-        break;
-      }
-      case 'f': {
-        zoneController.scene.rootNodes.forEach((r) => {
-          r.getChildMeshes().forEach((m) => {
-            if (m.material) {
-              m.material.wireframe = true;
-            }
-          });
-        });
-        break;
-      }
-      case 'r': {
-        zoneController.scene.rootNodes.forEach((r) => {
-          r.getChildMeshes().forEach((m) => {
-            if (m.material) {
-              m.material.wireframe = false;
-            }
-          });
-        });
-        break;
-      }
-      case 'l': {
-        const { x, y, z } =
-          gameController.CameraController.camera.globalPosition;
-        sessionStorage.setItem(
-          'cam-loc',
-          JSON.stringify({
-            x,
-            y,
-            z,
-          })
-        );
-        this.addToast(`Storing cam lock at x: ${x}, y: ${y}, z: ${z}`, {});
-
-        break;
-      }
       default:
         break;
     }
@@ -351,6 +274,7 @@ export class GameController {
    * @property {any} SpireQueryBuilder
    * @property {import ('../../tsdef/zones').Zones} Zones
    * @property {import ('../../tsdef/spawn').Spawn} Spawn
+   * @property {import ('../../tsdef/grid').Grid} Grid
    * @property {import ('../../tsdef/npcs').Npcs} Npcs
    */
 

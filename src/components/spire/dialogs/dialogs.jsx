@@ -16,12 +16,7 @@ export const OverlayDialogs = () => {
     }
     const loadCallback = async () => {
       const spawnPoints = await 
-      gameController.Spire.Spawn.getByZone(selectedZone.short_name, selectedZone.version, {
-        relations: [
-        //  'all'
-        ],
-        uniqueEntries: true,
-      });
+      gameController.Spire.Spawn.getByZone(selectedZone.short_name, selectedZone.version);
       setSpawns(spawnPoints);
 
     };
@@ -32,7 +27,6 @@ export const OverlayDialogs = () => {
   }, [selectedZone]);
 
   useEffect(() => {
-    console.log('spawns', spawns);
     gameController.ZoneController.loadZoneSpawns(spawns);
   }, [spawns]);
 

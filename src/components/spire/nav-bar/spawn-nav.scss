@@ -7,4 +7,13 @@
     border-style: solid;
     color: white;
     border-color: rgb(180, 173, 134) rgb(142, 134, 107) rgb(61, 58, 48) rgb(177, 170, 142);
+    transition: right 0.5s ease;
+}
+
+.nav-bg-open {
+    right: 0px;
+}
+
+.nav-bg-closed {
+    right: -500px;
 }

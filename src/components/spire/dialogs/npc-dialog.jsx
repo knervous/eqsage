@@ -31,7 +31,7 @@ export const NpcDialog = ({ onClose, spawns }) => {
 
   useEffect(() => {
     const meshes = gameController.ZoneController.scene.getNodeById('zone-spawns')?.getChildMeshes() ?? [];
-    for (const mesh of meshes.filter(m => m.name === 'npc-sphere')) {
+    for (const mesh of meshes.filter(m => m.name.startsWith('zone-spawn-'))) {
       if (filteredSpawns.some(s => mesh.id === `zone-spawn-${s.id}`)) {
         mesh.setEnabled(true);
       } else {
