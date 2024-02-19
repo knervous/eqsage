@@ -127,9 +127,9 @@ function Row(props) {
                     {spawn.spawnentries.map((entry) => (
                       <TableRow key={entry.npc_id}>
                         <TableCell component="th" scope="row">
-                          {entry.npc_type.name}
+                          {entry.npc_type?.name}
                         </TableCell>
-                        <TableCell>{entry.npc_type.level}</TableCell>
+                        <TableCell>{entry.npc_type?.level}</TableCell>
                         <TableCell>{entry.chance}%</TableCell>
                       </TableRow>
                     ))}
