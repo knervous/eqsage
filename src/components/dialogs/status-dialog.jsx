@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Box,
   Button,
   Dialog,
   DialogContent,
@@ -10,6 +11,7 @@ import {
 } from '@mui/material';
 import { gameController } from '../../viewer/controllers/GameController';
 import { PermissionStatusTypes } from '../../hooks/permissions';
+import './status-dialog.scss';
 
 export const StatusDialog = ({
   open,
@@ -105,6 +107,15 @@ export const StatusDialog = ({
                 can be safely deleted at any time.
               </Typography>
               <Button onClick={requestPermissions}>Request Permissions</Button>
+              <Typography
+                sx={{ fontSize: 17, marginBottom: 2 }}
+                color="text.secondary"
+                gutterBottom
+              >
+                If you want to grant persistent permissions and are using Chrome, you can enable
+                the <b>#file-system-access-persistent-permission</b> flag under <b>chrome://flags</b>. Once enabled, you need to restart your browser for this to take effect.
+              </Typography>
+              <Box className="chrome-flags" sx={{ width: '100%' }} />
             </Stack>
           )}
           {permissionStatus === PermissionStatusTypes.NeedEQDir && (

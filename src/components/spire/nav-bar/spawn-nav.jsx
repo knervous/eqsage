@@ -28,26 +28,8 @@ function SpawnNavBar() {
     }
     const clickCallback = (spawn) => {
       console.log('Spawn', spawn);
-      if (gameController.Spire.Grid) {
-        gameController.Spire.Grid.getById(
-          selectedZone.zoneidnumber,
-          spawn.pathgrid
-        ).then((res) => {
-          gameController.ZoneController.showSpawnPath(res);
-        });
-      } else if (gameController.Spire.SpireApi) {
-        window.top
-          .fetch(
-            `${gameController.Spire.SpireApi.getBaseV1Path()}/grid_entries?where=zoneid__${
-              selectedZone.zoneidnumber
-            }.gridid__${spawn.pathgrid}&orderBy=gridid.number`
-          )
-          .then((r) => r.json())
-          .then((res) => {
-            gameController.ZoneController.showSpawnPath(res);
-          });
-      }
-
+      
+      gameController.ZoneController.showSpawnPath(spawn.grid ?? []);
       setSelectedSpawn(JSON.parse(JSON.stringify(spawn)));
       setOpen(true);
     };
