@@ -14,6 +14,7 @@ import { useCallback, useEffect } from 'react';
 import { OverlayDialogs } from './dialogs/dialogs';
 import classNames from 'classnames';
 import { useSettingsHook } from './hooks';
+import SpawnNavBar from './nav-bar/spawn-nav';
 
 const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
   const doToggleDialog = useCallback(() => {
@@ -101,7 +102,7 @@ export const SpireOverlay = () => {
           <NavButton
             dialogState={dialogState}
             dialog="npc"
-            text={'NPCs'}
+            text={'Spawns'}
             Icon={SpawnIcon}
             toggleDialog={toggleDialog}
           />
@@ -129,6 +130,8 @@ export const SpireOverlay = () => {
         </Stack>
       </Box>
       <OverlayDialogs />
+
+      <SpawnNavBar />
     </>
   );
 };

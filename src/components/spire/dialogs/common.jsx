@@ -33,6 +33,7 @@ export const CommonDialog = ({ onClose, children, title = '', fullWidth = false 
       open
       disableEnforceFocus
       fullWidth={fullWidth}
+      maxWidth='md'
       className='ui-dialog'
       sx={{ pointerEvents: 'none' }}
       slotProps={{ backdrop: { sx: { pointerEvents: 'none' } } }}

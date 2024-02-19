@@ -8,7 +8,6 @@ import { gameController } from '../../../viewer/controllers/GameController';
 
 export const OverlayDialogs = () => {
   const { dialogState, closeDialogs } = useOverlayContext();
-  const [npcs, setNpcs] = useState([]);
   const [spawns, setSpawns] = useState([]);
   const { selectedZone } = useMainContext();
   useEffect(() => {
@@ -16,7 +15,6 @@ export const OverlayDialogs = () => {
       return;
     }
     const loadCallback = async () => {
-   
       const spawnPoints = await 
       gameController.Spire.Spawn.getByZone(selectedZone.short_name, selectedZone.version, {
         relations: [
@@ -25,15 +23,6 @@ export const OverlayDialogs = () => {
         uniqueEntries: true,
       });
       setSpawns(spawnPoints);
-      
-      const npcs = await gameController.Spire.Npcs.getNpcsByZone(selectedZone.short_name, selectedZone.version, {
-        relations: [
-        //  'all'
-        ],
-        uniqueEntries: true,
-      });
-
-      setNpcs(npcs);
 
     };
     gameController.ZoneController.addLoadCallback(loadCallback);
@@ -46,9 +35,11 @@ export const OverlayDialogs = () => {
     console.log('spawns', spawns);
     gameController.ZoneController.loadZoneSpawns(spawns);
   }, [spawns]);
+
+
   return <>
     {dialogState['settings'] && <SettingsDialog onClose={closeDialogs} />}
     {dialogState['zone'] && <ZoneDialog onClose={closeDialogs} />}
-    {dialogState['npc'] && <NpcDialog onClose={closeDialogs} npcs={npcs} />}
+    {dialogState['npc'] && <NpcDialog onClose={closeDialogs} spawns={spawns} />}
   </>;
 };

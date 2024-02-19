@@ -28,6 +28,14 @@ class ZoneController extends GameControllerChild {
   navigationPlugin = null;
 
   loadCallbacks = [];
+  clickCallbacks = [];
+
+  addClickCallback = cb => {
+    this.clickCallbacks.push(cb);
+  };
+  removeClickCallback = cb => {
+    this.clickCallbacks = this.clickCallbacks.filter(l => l !== cb);
+  };
 
   addLoadCallback = cb => {
     this.loadCallbacks.push(cb);
@@ -99,9 +107,10 @@ class ZoneController extends GameControllerChild {
     switch (pointerInfo.type) {
       case PointerEventTypes.POINTERDOWN:
         // Check if the mesh under the pointer is the sphere
-        if (pointerInfo.pickInfo.hit && ((pointerInfo.pickInfo.pickedMesh?.metadata?.spawnId ?? null) !== null)) {
-          console.log('Spawn', pointerInfo.pickInfo.pickedMesh?.metadata?.spawnId);
+        if (pointerInfo.pickInfo.hit && ((pointerInfo.pickInfo.pickedMesh?.metadata?.spawn ?? null) !== null)) {
+          console.log('Spawn', pointerInfo.pickInfo.pickedMesh?.metadata?.spawn);
           // Place your onClick logic here
+          this.clickCallbacks.forEach(c => c(pointerInfo.pickInfo.pickedMesh?.metadata?.spawn));
         }
         break;
       default:
@@ -127,9 +136,9 @@ class ZoneController extends GameControllerChild {
     if (aabbRegion) {
       this.lastAabbNode = aabbRegion;
       if (aabbRegion?.data) {
-        console.log(
-          `Hit region: ${JSON.stringify(aabbRegion.data ?? {}, null, 4)}`
-        );
+        // console.log(
+        //   `Hit region: ${JSON.stringify(aabbRegion.data ?? {}, null, 4)}`
+        // );
       }
     }
     const timeTaken = performance.now() - aabbPerf;
@@ -159,23 +168,52 @@ class ZoneController extends GameControllerChild {
     zoneSpawnsNode.id = 'zone-spawns';
     zoneSpawnsNode.getChildren().forEach(c => c.dispose());
     const material = new StandardMaterial('zone-spawns-material', this.scene);
+    const missingMaterial = new StandardMaterial('zone-spawns-material-missing', this.scene);
     material.emissiveColor = new Color3(0.5, 0.5, 1);
+    missingMaterial.emissiveColor = new Color3(1, 0, 0);
 
-    const addTextOverMesh = function(mesh, text, scene, offset, id) {
+    const addTextOverMesh = function(mesh, lines, scene, id) {
+      if (!lines.length) {
+        return;
+      }
       const temp = new DynamicTexture('DynamicTexture', 64, scene);
       const tmpctx = temp.getContext();
       tmpctx.font = '16px Arial';
-      const textWidth = tmpctx.measureText(text).width + 20;
+      const textWidth = lines.reduce((acc, val) => {
+        const newTextWidth = tmpctx.measureText(val).width + 25;
+        if (newTextWidth > acc) {
+          return newTextWidth;
+        } 
+        return acc;
+      }, 0);
+
+      const textLengthLongest = lines.reduce((acc, val) => {
+        const newTextLength = val.length;
+        if (newTextLength > acc) {
+          return newTextLength;
+        } 
+        return acc;
+      }, 0);
       temp.dispose();
 
-      const dynamicTexture = new DynamicTexture('DynamicTexture', { width: textWidth, height: 80 }, scene);
-      dynamicTexture.drawText(text, null, null, 'bold 16px Arial', 'white', 'transparent', true, true);
+      const dynamicTexture = new DynamicTexture('DynamicTexture', { width: textWidth, height: 80 + lines.length * 40 }, scene);
+      const ctx = dynamicTexture.getContext();
+      const lineHeight = 20; // Adjust based on your font size
+      ctx.font = 'bold 16px arial';
+      ctx.fillStyle = 'white';
+      for (let i = 0; i < lines.length; i++) {
+        let txt = lines[i];
+        txt = txt.padStart(textLengthLongest, ' ');
+        ctx.fillText(txt, 0, lineHeight * (i + 1));
+      }
+      dynamicTexture.update();
 
-      const plane = MeshBuilder.CreatePlane('textPlane', { width: textWidth / 30, height: 3 }, scene);
+
+      const plane = MeshBuilder.CreatePlane('textPlane', { width: textWidth / 30, height: 2 + lines.length }, scene);
       plane.addLODLevel(500, null);
 
-      // plane.position = mesh.position.clone();
-      plane.position.y += 3 + offset; // Adjust this value to control the height of the text above the sphere
+
+      plane.position.y += 2;
       plane.billboardMode = ParticleSystem.BILLBOARDMODE_ALL;
       plane.parent = mesh;
       const material = new StandardMaterial(`nameplate_${id}`, scene);
@@ -189,27 +227,29 @@ class ZoneController extends GameControllerChild {
 
     };
     for (const spawn of spawns) {
-      const sphere = MeshBuilder.CreateSphere(`zone-spawn-${spawn.id}`, { diameter: 3, segments: 32 }, this.scene);
-      sphere.material = material;
+      const hasEntries = Array.isArray(spawn.spawnentries);
+      const sphere = MeshBuilder.CreateSphere(`zone-spawn-${spawn.id}`, { diameter: hasEntries ? 3 : 10, segments: 32 }, this.scene);
+      sphere.material = hasEntries ? material : missingMaterial;
       this.glowLayer.addIncludedOnlyMesh(sphere);
       sphere.position.x = spawn.y;
       sphere.position.y = spawn.z;
       sphere.position.z = spawn.x;
       sphere.addLODLevel(1500, null);
-      sphere.metadata = { spawnId: spawn.id };
+      sphere.metadata = { spawn };
       sphere.parent = zoneSpawnsNode;
       sphere.name = 'npc-sphere';
-      let offset = 0;
-      const nameplates = [];
-      if (Array.isArray(spawn.spawnentries)) {
+
+      if (hasEntries) {
+        const lines = [];
         for (const entry of spawn.spawnentries) {
           if (!entry.npc_type) {
             continue;
           }
-          const text = `${entry.npc_type.name} :: Level ${entry.npc_type.level} :: ${entry.chance}% Chance`;
-          nameplates.push(addTextOverMesh(sphere, text, this.scene, offset, spawn.id));
-          offset += 1;
+          lines.push(`${entry.npc_type.name} :: Level ${entry.npc_type.level} :: ${entry.chance}% Chance`);
         }
+        addTextOverMesh(sphere, lines, this.scene, spawn.id);
+      } else {
+        addTextOverMesh(sphere, ['No Associated Spawns'], this.scene, spawn.id);
       }
     }
 
