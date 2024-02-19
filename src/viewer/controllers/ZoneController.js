@@ -176,6 +176,7 @@ class ZoneController extends GameControllerChild {
   
       // Create box with initial size, will scale later
       const box = MeshBuilder.CreateBox(name, { height: 2, width: 2, depth: 2 }, scene);
+      box.parent = tube;
       box.position = point;
       box.material = tubeMaterial;
       this.glowLayer.addIncludedOnlyMesh(box);
