@@ -246,6 +246,7 @@ class ZoneController extends GameControllerChild {
     );
     material.emissiveColor = new Color3(0.5, 0.5, 1);
     pathMaterial.emissiveColor = new Color3(0.0, 0.0, 1);
+    pathMaterial.specularColor = new Color4(0.0, 0.0, 1, 0.5);
     missingMaterial.emissiveColor = new Color3(1, 0, 0);
 
     const addTextOverMesh = function (mesh, lines, scene, id, idx) {

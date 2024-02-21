@@ -269,13 +269,13 @@ export class GameController {
 
   /**
    * @typedef Spire
-   * @property {any} SpireApi
-   * @property {any} SpireApiTypes
-   * @property {any} SpireQueryBuilder
-   * @property {import ('../../tsdef/zones').Zones} Zones
-   * @property {import ('../../tsdef/spawn').Spawn} Spawn
-   * @property {import ('../../tsdef/grid').Grid} Grid
-   * @property {import ('../../tsdef/npcs').Npcs} Npcs
+   * @property {import ('../../../../spire/frontend/src/app/api/spire-api')} SpireApi
+   * @property {import ('../../../../spire/frontend/src/app/api')} SpireApiTypes
+   * @property {import ('../../../../spire/frontend/src/app/api/spire-query-builder').SpireQueryBuilder} SpireQueryBuilder
+   * @property {import ('../../../../spire/frontend/src/app/zones').Zones} Zones
+   * @property {import ('../../../../spire/frontend/src/app/spawn').Spawn} Spawn
+   * @property {import ('../../../../spire/frontend/src/app/grid').Grid} Grid
+   * @property {import ('../../../../spire/frontend/src/app/npcs').Npcs} Npcs
    */
 
   /**
