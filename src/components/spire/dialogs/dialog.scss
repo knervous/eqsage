@@ -42,4 +42,9 @@
         background-size: 256px 512px;
         background-position: -0px -47px;
     }
+
+    .ui-dialog-btn-disabled {
+        background: transparent;
+        color: gray;
+    }
 }

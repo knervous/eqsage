@@ -14,7 +14,7 @@ import { useCallback, useEffect } from 'react';
 import { OverlayDialogs } from './dialogs/dialogs';
 import classNames from 'classnames';
 import { useSettingsHook } from './hooks';
-import SpawnNavBar from './nav-bar/spawn-nav';
+import SpawnNavBar from './nav-bar/spawn-nav/spawn-nav';
 
 const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
   const doToggleDialog = useCallback(() => {

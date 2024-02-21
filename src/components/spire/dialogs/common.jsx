@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 
 import './dialog.scss';
+import classNames from 'classnames';
 
 export function PaperComponent(props) {
   return (
@@ -22,19 +23,28 @@ export function PaperComponent(props) {
   );
 }
 
-export const CommonDialog = ({ onClose, children, title = '', fullWidth = false }) => {
+export const CommonDialog = ({
+  onClose,
+  children,
+  title = '',
+  fullWidth = false,
+  open = true,
+  cancelButton = false,
+  doneText = 'Done',
+  doneDisabled = false,
+}) => {
   return (
     <Dialog
-      onKeyDown={e => {
+      onKeyDown={(e) => {
         if (e.key === 'Escape') {
           onClose();
         }
       }}
-      open
+      open={open}
       disableEnforceFocus
       fullWidth={fullWidth}
-      maxWidth='md'
-      className='ui-dialog'
+      maxWidth="md"
+      className="ui-dialog"
       sx={{ pointerEvents: 'none' }}
       slotProps={{ backdrop: { sx: { pointerEvents: 'none' } } }}
       hideBackdrop
@@ -42,18 +52,28 @@ export const CommonDialog = ({ onClose, children, title = '', fullWidth = false 
       aria-labelledby="draggable-dialog-title"
     >
       <DialogTitle
-        className='ui-dialog-title'
+        className="ui-dialog-title"
         style={{ cursor: 'move' }}
         id="draggable-dialog-title"
       >
         {title}
       </DialogTitle>
-      <DialogContent>
-        {children}
-      </DialogContent>
+      <DialogContent>{children}</DialogContent>
       <DialogActions>
-        <Button className='ui-dialog-btn' autoFocus onClick={onClose}>
-          Done
+        {cancelButton && (
+          <Button className="ui-dialog-btn" onClick={() => onClose(false)}>
+            Cancel
+          </Button>
+        )}
+        <Button
+          disabled={doneDisabled}
+          className={classNames('ui-dialog-btn', {
+            'ui-dialog-btn-disabled': doneDisabled,
+          })}
+          autoFocus
+          onClick={() => onClose(true)}
+        >
+          {doneText}
         </Button>
       </DialogActions>
     </Dialog>
