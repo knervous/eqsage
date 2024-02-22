@@ -315,7 +315,7 @@ class SpawnController extends GameControllerChild {
     if (spawn.timestamp) {
       // Get per ms tick velocity
       const diff = thisTimestamp - spawn.timestamp;
-      // console.log(`Update x y z :: ${update.x} ${update.y} ${update.z} :: diff ${diff}`);
+      // console.log(`Update x y z - ${update.x} ${update.y} ${update.z} - diff ${diff}`);
       if (diff < 500) {
         didMove = false;
       }
@@ -345,7 +345,7 @@ class SpawnController extends GameControllerChild {
     };
     
     // console.log('Did rotate', didRotate);
-    // console.log(`Spawn: ${spawn.spawn.displayedName} :: Animation ${animation} :: Mapped ${locomotionAnimMap[animation]}`);
+    // console.log(`Spawn: ${spawn.spawn.displayedName} - Animation ${animation} - Mapped ${locomotionAnimMap[animation]}`);
     if (Vector3.Distance(this.CameraController.camera.globalPosition, rootNode.position) < 200) {
       if ((spawn.lastUpdate?.x === x && spawn.lastUpdate?.y === y && spawn.lastUpdate?.z === z) || (animation === 0 && !didRotate)) {
         spawn.swapLoopedAnimation(AnimationNames.Idle);

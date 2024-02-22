@@ -172,7 +172,7 @@ export class S3DDecoder {
       this.files[fileName] = f.data;
 
       if (fileName.endsWith('.wld')) {
-        console.log(`Processing WLD file :: ${fileName}`);
+        console.log(`Processing WLD file - ${fileName}`);
         const wld = new Wld(f.data, this.#fileHandle, fileName);
         for (const mat of wld.materialList.flatMap((ml) => ml.materialList)) {
           for (const bitmapName of mat.bitmapInfo?.reference?.bitmapNames ??
@@ -195,9 +195,9 @@ export class S3DDecoder {
     for (const image of images) {
       image.shaderType = shaderMap[image.name];
     }
-    console.log(`Processed :: ${file.name}`);
+    console.log(`Processed - ${file.name}`);
     await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
-    console.log(`Done processing images ${file.name} :: ${images.length}`);
+    console.log(`Done processing images ${file.name} - ${images.length}`);
   }
 
   /**
@@ -737,7 +737,7 @@ export class S3DDecoder {
           break;
         default:
           console.warn(
-            `Unhandled extension for ${this.#fileHandle.name} :: ${extension}`
+            `Unhandled extension for ${this.#fileHandle.name} - ${extension}`
           );
       }
     }

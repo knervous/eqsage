@@ -10,8 +10,8 @@
         width: 75px;
         opacity: 0.6;
         transition: opacity 0.2s ease-out; // Transition effect for opacity change
-
-        background-image: url('https://eqrequiem.com/ui/wnd_bg_light_rock.png');
+        background-image: url('../../components/images/super_fancy_bg.png');
+        // background-image: url('https://eqrequiem.com/ui/wnd_bg_light_rock.png');
 
         &:hover {
             opacity: 1.0;

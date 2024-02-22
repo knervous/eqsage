@@ -150,7 +150,7 @@ function SpawnNavBar() {
             variant="h6"
             sx={{ marginBottom: '15px', textAlign: 'center' }}
           >
-            Spawn ID :: {selectedSpawn?.id}
+            Spawn ID - {selectedSpawn?.id}
             <Typography variant="body2" color="textSecondary" component="p">
               {spawnSubtext}
             </Typography>
@@ -190,7 +190,7 @@ function SpawnNavBar() {
               >
                 {selectedSpawn?.spawnentries?.map?.((e, idx) => (
                   <MenuItem key={idx} value={idx}>
-                    {e.npc_type?.name} :: Level {e.npc_type?.level}
+                    {e.npc_type?.name} - Level {e.npc_type?.level}
                   </MenuItem>
                 ))}
               </Select>

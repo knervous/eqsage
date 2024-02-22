@@ -4,9 +4,6 @@ import { CommonDialog } from '../../dialogs/common';
 import {
   Autocomplete,
   IconButton,
-  Input,
-  List,
-  ListItem,
   Table,
   TableBody,
   TableCell,
@@ -206,7 +203,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
         value=""
         options={spawnList.map((spawn, idx) => {
           return {
-            label: `${spawn.name} :: Level ${spawn.level}`,
+            label: `${spawn.name} - Level ${spawn.level}`,
             id   : idx,
             spawn,
           };

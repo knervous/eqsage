@@ -277,7 +277,7 @@ export class Wld {
       case 0x16: // Zone Unknown
 
       default: {
-        console.warn(`Unknown frag type :: 0x${fragType.toString(16)}`);
+        console.warn(`Unknown frag type - 0x${fragType.toString(16)}`);
       }
     }
     this.reader.setCursor(originalCursor + fragSize);
