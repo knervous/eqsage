@@ -104,7 +104,6 @@ function Row(props) {
             gameController.CameraController.camera.position = new Vector3(spawn.y, spawn.z + 20, spawn.x);
             gameController.CameraController.camera.rotation = new Vector3(1.57, 1.548, 0);
           }}>Teleport</Button>
-          <Button className='ui-dialog-btn' onClick={() => {}}>Edit</Button>
         </TableCell>
       </TableRow>
       {hasMultipleEntries && (
