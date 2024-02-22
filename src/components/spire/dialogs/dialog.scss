@@ -1,3 +1,28 @@
+
+/* For Chrome, Safari, and Edge */
+::-webkit-scrollbar {
+    width: 8px; /* Adjust scrollbar thickness */
+    height: 8px; /* Horizontal scrollbar height */
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1); /* Track color */
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2); /* Handle color */
+    border-radius: 4px; /* Handle roundness */
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4); /* Handle color on hover */
+  }
+  
+  /* For Firefox */
+  * {
+    scrollbar-width: thin; /* "auto" or "thin" */
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1); /* Handle and track color */
+  }
 .ui-dialog {
     .ui-dialog-title {
         width: 100%;
@@ -12,6 +37,9 @@
         1.5px -1.5px 0 rgba(0,0,0,0.7),  
         -1.5px  1.5px 0 rgba(0,0,0,0.7), 
         1.5px  1.5px 0 rgba(0,0,0,0.7),   /* Outline effect */
+    }
+    .MuiDialogContent-root {
+        margin: 35px 10px !important
     }
     .ui-dialog-title-bg {
         position: absolute;

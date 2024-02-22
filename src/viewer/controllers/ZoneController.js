@@ -319,7 +319,7 @@ class ZoneController extends GameControllerChild {
 
         tooltip.style.left = `${e.pageX - tooltip.clientWidth / 2 }px`;
         tooltip.style.top = `${e.pageY + tooltip.clientHeight / 2 }px`;
-        tooltip.innerHTML = `<p>[T] to commit :: [Escape] to cancel</p><p>X: ${hitPoint.z.toFixed(2)}, Y: ${hitPoint.x.toFixed(2)}, Z: ${(hitPoint.y + 5).toFixed(2)}</p>`;
+        tooltip.innerHTML = `<p>[T] to commit - [Escape] to cancel</p><p>X: ${hitPoint.z.toFixed(2)}, Y: ${hitPoint.x.toFixed(2)}, Z: ${(hitPoint.y + 5).toFixed(2)}</p>`;
       }
     };
     const self = this;
@@ -468,17 +468,17 @@ class ZoneController extends GameControllerChild {
             continue;
           }
           lines.push(
-            `${entry.npc_type?.name} :: Level ${entry.npc_type?.level} :: ${entry.chance}% Chance`
+            `${entry.npc_type?.name} - Level ${entry.npc_type?.level} - ${entry.chance}% Chance`
           );
         }
-        addTextOverMesh(instance, lines, this.scene, spawn.id, idx * 25);
+        addTextOverMesh(instance, lines, this.scene, spawn.id, idx * 5);
       } else {
         addTextOverMesh(
           instance,
           ['No Associated Spawns'],
           this.scene,
           spawn.id,
-          idx * 25
+          idx * 5
         );
       }
     }

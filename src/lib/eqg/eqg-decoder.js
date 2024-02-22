@@ -152,7 +152,7 @@ export class EQGDecoder {
         }
       }
     }
-    console.log(`Processed :: ${file.name}`);
+    console.log(`Processed - ${file.name}`);
     await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
     console.log('Done processing images');
   }
@@ -798,7 +798,7 @@ export class EQGDecoder {
           break;
         default:
           console.warn(
-            `Unhandled extension for ${this.#fileHandle.name} :: ${extension}`
+            `Unhandled extension for ${this.#fileHandle.name} - ${extension}`
           );
       }
     }

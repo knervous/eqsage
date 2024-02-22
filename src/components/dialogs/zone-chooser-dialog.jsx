@@ -210,7 +210,7 @@ export const ZoneChooserDialog = ({ open }) => {
               }}
               options={filteredZoneList.map((zone, idx) => {
                 return {
-                  label: `${zone.long_name} :: ${zone.short_name}`,
+                  label: `${zone.long_name} - ${zone.short_name}`,
                   id   : idx,
                   key  : `${zone.id}-${zone.zoneidnumber}`,
                 };
