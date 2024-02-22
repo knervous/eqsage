@@ -181,6 +181,10 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
       </Table>
       <Autocomplete
         size="small"
+        onKeyDown={e => {
+          // e.preventDefault();
+          e.stopPropagation();
+        }}
         sx={{ width: '100%', margin: '25px auto' }}
         id="add-new-spawn"
         onChange={async (_, { spawn: newSpawn }) => {

@@ -19,6 +19,8 @@ import {
   PointerEventTypes,
   Quaternion,
   Matrix,
+  VertexBuffer,
+  PointLight,
 } from '@babylonjs/core';
 
 import { GameControllerChild } from './GameControllerChild';
@@ -225,6 +227,123 @@ class ZoneController extends GameControllerChild {
   showRegions(value) {
     this.regionsShown = value;
     this.scene?.getNodeById('regions')?.setEnabled(value);
+  }
+
+  moveSpawn(spawn) {
+    if (!spawn) {
+      return;
+    }
+    const spawnMesh = this.scene?.getMeshById(`zone-spawn-${spawn.id}`);
+    if (spawnMesh) {
+      spawnMesh.position.x = spawn.y;
+      spawnMesh.position.y = spawn.z;
+      spawnMesh.position.z = spawn.x;
+      spawnMesh.metadata = { spawn };
+    }
+  }
+
+  npcLight(spawn) {
+    const light = this.scene?.getLightById('spawn-light') ?? new PointLight('spawn-light', this.scene);
+    light.intensity = 500.0;
+    light.diffuse = new Color3(1, 0.84, 0); // RGB for gold color
+    light.range = 300;
+    light.radius = 50;
+
+    if (!spawn) {
+      if (light) {
+        light.dispose();
+      }
+      return;
+    }
+    const spawnMesh = this.scene?.getMeshById(`zone-spawn-${spawn.id}`);
+    if (spawnMesh) {
+      light.position = spawnMesh.position;
+    } else {
+      if (light) {
+        light.dispose();
+      }
+    }
+  }
+
+  pickRaycastForLoc(callback) {
+    const zoneMesh = this.scene.getMeshByName('zone');
+    if (!zoneMesh) {
+      return;
+    }
+
+    zoneMesh.isPickable = true;
+
+    // Create node for moving
+    const raycastMesh = MeshBuilder.CreateSphere(
+      'raycast-sphere',
+      { diameter: 3, segments: 32 },
+      this.scene
+    );
+    const pointLight = new PointLight('pointLight', new Vector3(0, 10, 0), this.scene);
+    // pointLight.parent = raycastMesh;
+    // Set the intensity of the point light
+    pointLight.intensity = 500.0;
+    pointLight.range = 300;
+    pointLight.radius = 50;
+
+    // Optional: Adjust other properties like the light's color
+    pointLight.diffuse = new Color3(1, 1, 1); // White light
+    pointLight.position = raycastMesh.position;
+    const material = new StandardMaterial('raycast-sphere', this.scene);
+
+    material.emissiveColor = new Color3(1, 1, 0);
+    raycastMesh.material = material;
+    this.glowLayer.addIncludedOnlyMesh(raycastMesh);
+    let chosenLocation = null;
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'raycast-tooltip';
+    document.body.appendChild(tooltip);
+
+    const mouseMove = (e) => {
+      // Calculate the pick ray from the camera position and mouse position
+
+      const pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY, null, false, this.CameraController.camera, (p0, p1, p2, ray) => {
+        const p0p1 = p0.subtract(p1);
+        const p2p1 = p2.subtract(p1);
+        const normal = Vector3.Cross(p0p1, p2p1);
+        return Vector3.Dot(ray.direction, normal) > 0;
+      });
+
+      // Check if the ray intersects with the specific mesh
+      if (pickResult.hit && pickResult.pickedMesh === zoneMesh) {
+        // Perform actions based on the hit
+        const hitPoint = pickResult.pickedPoint;
+        raycastMesh.position.set(hitPoint.x, hitPoint.y + 5, hitPoint.z);
+        chosenLocation = { x: hitPoint.x, y: hitPoint.y + 5, z: hitPoint.z };
+
+        tooltip.style.left = `${e.pageX - tooltip.clientWidth / 2 }px`;
+        tooltip.style.top = `${e.pageY + tooltip.clientHeight / 2 }px`;
+        tooltip.innerHTML = `<p>[T] to commit :: [Escape] to cancel</p><p>X: ${hitPoint.z.toFixed(2)}, Y: ${hitPoint.x.toFixed(2)}, Z: ${(hitPoint.y + 5).toFixed(2)}</p>`;
+      }
+    };
+    const self = this;
+    function finish(loc) {
+      window.removeEventListener('keydown', keyHandler);
+      self.canvas.removeEventListener('mousemove', mouseMove);
+      zoneMesh.isPickable = false;
+      raycastMesh.dispose();
+      pointLight.dispose();
+      document.body.removeChild(tooltip);
+      callback(loc);
+    }
+    function keyHandler(e) {
+      if (e.key === 'Escape') {
+        finish(null);
+      }
+
+      if (e.key?.toLowerCase() === 't') {
+        finish(chosenLocation);
+      }
+    }
+    window.addEventListener('keydown', keyHandler);
+    this.canvas.addEventListener('mousemove', mouseMove);
+
   }
 
   loadZoneSpawns(spawns) {

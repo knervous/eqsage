@@ -8,6 +8,7 @@ import {
   MenuItem,
   Select,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import { gameController } from '../../../../viewer/controllers/GameController';
@@ -24,23 +25,48 @@ function SpawnNavBar() {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [addEditDialogOpen, setAddEditDialogOpen] = useState(false);
 
+  const pickRaycast = useCallback(() => {
+    gameController.ZoneController.pickRaycastForLoc(loc => {
+      if (!loc) {
+        return;
+      }
+      setSelectedSpawn(s => ({ ...s, x: loc.z, y: loc.x, z: loc.y }));
+    });
+  }, []);
+
   useEffect(() => {
     if (!open) {
       gameController.ZoneController.showSpawnPath([]);
     }
   }, [open]);
 
-  const refreshSpawn = useCallback(id => {
-    
-  }, []);
+  useEffect(() => {
+    if (!selectedSpawn) {
+      return;
+    }
+    gameController.ZoneController.moveSpawn(selectedSpawn);
+
+    (async () => {
+      const { Spire } = gameController;
+
+      const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
+        ...Spire.SpireApi.cfg()
+      );
+      await spawn2Api.updateSpawn2({ id: selectedSpawn.id, spawn2: selectedSpawn });
+  
+    })();
+
+
+  }, [selectedSpawn?.x, selectedSpawn?.y, selectedSpawn?.z]); // eslint-disable-line
 
   useEffect(() => {
+    setOpen(false);
     if (!selectedZone) {
       return;
     }
     const clickCallback = (spawn) => {
       console.log('Spawn', spawn);
-
+      gameController.ZoneController.npcLight(spawn);
       gameController.ZoneController.showSpawnPath(spawn.grid ?? []);
       const s = JSON.parse(JSON.stringify(spawn));
       setSelectedSpawn(s);
@@ -51,7 +77,11 @@ function SpawnNavBar() {
 
     const keyHandle = (e) => {
       if (e.key === 'Escape') {
+        gameController.ZoneController.npcLight(null);
         setOpen(false);
+      }
+      if (e.key.toLowerCase() === 'r') {
+        pickRaycast();
       }
     };
     gameController.ZoneController.addClickCallback(clickCallback);
@@ -60,7 +90,7 @@ function SpawnNavBar() {
       gameController.ZoneController.removeClickCallback(clickCallback);
       window.removeEventListener('keydown', keyHandle);
     };
-  }, [selectedZone]);
+  }, [selectedZone, pickRaycast]);
 
   const spawnSubtext = useMemo(() => {
     if (!selectedSpawn) {
@@ -74,7 +104,10 @@ function SpawnNavBar() {
     } more`;
   }, [selectedSpawn]);
 
-  const spawnEntries = useMemo(() => selectedSpawn?.spawnentries ?? [], [selectedSpawn?.spawnentries]);
+  const spawnEntries = useMemo(
+    () => selectedSpawn?.spawnentries ?? [],
+    [selectedSpawn?.spawnentries]
+  );
   console.log('My render, spawn entries', spawnEntries, selectedSpawn);
   return (
     <>
@@ -127,7 +160,7 @@ function SpawnNavBar() {
             variant="h6"
             sx={{
               fontSize  : '18px',
-              margin    : '15px 10px',
+              margin    : '25px 10px 15px 10px',
               textAlign : 'center',
               userSelect: 'none',
               color     : 'primary.main',
@@ -156,7 +189,7 @@ function SpawnNavBar() {
                 onChange={(e) => setSelectedIdx(e.target.value)}
               >
                 {selectedSpawn?.spawnentries?.map?.((e, idx) => (
-                  <MenuItem value={idx}>
+                  <MenuItem key={idx} value={idx}>
                     {e.npc_type?.name} :: Level {e.npc_type?.level}
                   </MenuItem>
                 ))}
@@ -181,6 +214,69 @@ function SpawnNavBar() {
               </IconButton>
             </Stack>
           </FormControl>
+          <Typography
+            onClick={pickRaycast}
+            variant="h6"
+            sx={{
+              fontSize  : '18px',
+              margin    : '25px 10px 10px 10px',
+              textAlign : 'center',
+              userSelect: 'none',
+              color     : 'primary.main',
+              '&:hover' : {
+                color: 'secondary.main',
+              },
+              '&:active': {
+                color: 'info.main',
+              },
+            }}
+          >
+            Choose Raycast Location [R]
+          </Typography>
+          <Stack direction="row" justifyContent={'space-around'}>
+            <Typography sx={{ fontSize: 18 }}>X</Typography>
+            <Typography sx={{ fontSize: 18 }}>Y</Typography> 
+            <Typography sx={{ fontSize: 18 }}>Z</Typography>
+          </Stack>
+          <Stack direction="row">
+            <TextField
+              size="small"
+              type="number"
+              inputProps={{
+                style: { textAlign: 'center' },
+              }}
+              sx={{ margin: 0, padding: 0 }}
+              value={selectedSpawn?.x}
+              onChange={(e) =>
+                setSelectedSpawn((s) => ({ ...s, x: +e.target.value }))
+              }
+            ></TextField>
+            <TextField
+              size="small"
+              type="number"
+              inputProps={{
+                style: { textAlign: 'center' },
+              }}
+              sx={{ margin: 0, padding: 0 }}
+              value={selectedSpawn?.y}
+              onChange={(e) =>
+                setSelectedSpawn((s) => ({ ...s, y: +e.target.value }))
+              }
+            ></TextField>
+            <TextField
+              size="small"
+              type="number"
+              inputProps={{
+                style: { textAlign: 'center' },
+              }}
+              sx={{ margin: 0, padding: 0 }}
+              value={selectedSpawn?.z}
+              onChange={(e) =>
+                setSelectedSpawn((s) => ({ ...s, z: +e.target.value }))
+              }
+            ></TextField>
+          </Stack>
+          
         </Box>
       </Box>
     </>
