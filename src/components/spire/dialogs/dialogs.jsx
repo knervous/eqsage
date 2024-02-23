@@ -37,7 +37,6 @@ export const OverlayDialogs = () => {
         }
       }
     }
-    console.log('spoints', spawnPoints);
     setSpawns(spawnPoints);
   }, [selectedZone]);
 
