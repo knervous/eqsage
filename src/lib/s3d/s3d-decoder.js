@@ -32,7 +32,7 @@ const getMaterials = async (materialList, document) => {
   const materials = {};
   for (const eqMaterial of materialList) {
     if (materials[eqMaterial.name]) {
-      return;
+      continue;
     }
     let [name] = eqMaterial.name.toLowerCase().split('_');
 
