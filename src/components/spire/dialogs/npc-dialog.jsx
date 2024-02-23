@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { CommonDialog } from './common';
 import Box from '@mui/material/Box';
 import Collapse from '@mui/material/Collapse';
@@ -11,14 +11,20 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
+
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { Button, FormControl, TextField } from '@mui/material';
+import { Button, FormControl, Stack, TextField } from '@mui/material';
 import { gameController } from '../../../viewer/controllers/GameController';
 import { Vector3 } from '@babylonjs/core';
+import { useMainContext } from '../../main/main';
+import { useZoneContext } from '../../zone/zone-context';
 
-export const NpcDialog = ({ onClose, spawns }) => {
+export const NpcDialog = ({ onClose }) => {
   const [spawnFilter, setSpawnFilter] = useState('');
+  const { selectedZone } = useMainContext();
+  const { spawns } = useZoneContext();
   const filteredSpawns = useMemo(
     () =>
       spawns.filter((s) =>
@@ -28,11 +34,28 @@ export const NpcDialog = ({ onClose, spawns }) => {
       ),
     [spawns, spawnFilter]
   );
+  const addSpawn = useCallback(async () => {
+    const { Spire } = gameController;
+
+    const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
+      ...Spire.SpireApi.cfg()
+    );
+    const spawnGroupApi = new Spire.SpireApiTypes.SpawngroupApi(
+      ...Spire.SpireApi.cfg()
+    );
+    // First create spawn group
+    const spawnGroup = await spawnGroupApi.createSpawngroup({ spawngroup });
+    const createResult = await spawn2Api.createSpawn2({ spawn2: { zone: selectedZone.short_name, x: 0, y: 0, z: 0 } });
+    console.log('Res', createResult);
+  }, [selectedZone]);
 
   useEffect(() => {
-    const meshes = gameController.ZoneController.scene.getNodeById('zone-spawns')?.getChildMeshes() ?? [];
-    for (const mesh of meshes.filter(m => m.name.startsWith('zone-spawn-'))) {
-      if (filteredSpawns.some(s => mesh.id === `zone-spawn-${s.id}`)) {
+    const meshes =
+      gameController.ZoneController.scene
+        .getNodeById('zone-spawns')
+        ?.getChildMeshes() ?? [];
+    for (const mesh of meshes.filter((m) => m.name.startsWith('zone-spawn-'))) {
+      if (filteredSpawns.some((s) => mesh.id === `zone-spawn-${s.id}`)) {
         mesh.setEnabled(true);
       } else {
         mesh.setEnabled(false);
@@ -41,23 +64,36 @@ export const NpcDialog = ({ onClose, spawns }) => {
   }, [filteredSpawns]);
   return (
     <CommonDialog fullWidth onClose={onClose} title={'Spawns'}>
-      <FormControl margin='dense' size="small" sx={{ m: 1, width: 300, top: 0, left: 0 }}>
-        <TextField
-          margin='dense'
-          onKeyDown={(e) => {
-            e.stopPropagation();
-          }}
-          label="Spawn Filter"
-          defaultValue=""
-          value={spawnFilter}
-          helperText={`${filteredSpawns.length} filtered spawns`}
-          onChange={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            setSpawnFilter(e.target.value);
-          }}
-        />
-      </FormControl>
+      <Stack alignItems={'center'} justifyContent={'center'} direction="row">
+        <FormControl
+          margin="dense"
+          size="small"
+          sx={{ m: 1, width: 300, top: 0, left: 0 }}
+        >
+          <TextField
+            margin="dense"
+            onKeyDown={(e) => {
+              e.stopPropagation();
+            }}
+            label="Spawn Filter"
+            defaultValue=""
+            value={spawnFilter}
+            helperText={`${filteredSpawns.length} filtered spawns`}
+            onChange={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setSpawnFilter(e.target.value);
+            }}
+          />
+        </FormControl>
+        <Button
+          startIcon={<AddCircleIcon />}
+          sx={{ height: '40px', marginBottom: '20px' }}
+          onClick={addSpawn}
+        >
+          Add Spawn{' '}
+        </Button>
+      </Stack>
       <CollapsibleTable spawns={filteredSpawns} />
     </CommonDialog>
   );
@@ -100,10 +136,23 @@ function Row(props) {
         </TableCell>
         <TableCell align="left">{spawn.respawntime}</TableCell>
         <TableCell align="center">
-          <Button className='ui-dialog-btn' onClick={() => {
-            gameController.CameraController.camera.position = new Vector3(spawn.y, spawn.z + 20, spawn.x);
-            gameController.CameraController.camera.rotation = new Vector3(1.57, 1.548, 0);
-          }}>Teleport</Button>
+          <Button
+            className="ui-dialog-btn"
+            onClick={() => {
+              gameController.CameraController.camera.position = new Vector3(
+                spawn.y,
+                spawn.z + 20,
+                spawn.x
+              );
+              gameController.CameraController.camera.rotation = new Vector3(
+                1.57,
+                1.548,
+                0
+              );
+            }}
+          >
+            Teleport
+          </Button>
         </TableCell>
       </TableRow>
       {hasMultipleEntries && (
@@ -143,7 +192,12 @@ function Row(props) {
 function CollapsibleTable({ spawns }) {
   return (
     <TableContainer
-      sx={{ background: 'transparent', overflowX: 'visible', height: '400px', maxHeight: '400px' }}
+      sx={{
+        background: 'transparent',
+        overflowX : 'visible',
+        height    : '400px',
+        maxHeight : '400px',
+      }}
       component={Paper}
     >
       <Table stickyHeader size="medium" aria-label="collapsible table">

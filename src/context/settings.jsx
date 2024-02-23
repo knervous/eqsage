@@ -7,6 +7,7 @@ const defaultOptions = {
   flySpeed   : 2,
   showRegions: true,
   glow       : true,
+  webgpu     : false,
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(

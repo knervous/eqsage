@@ -6,15 +6,20 @@ import { processZone } from './processZone';
 import { gameController } from '../../viewer/controllers/GameController';
 import { SpireOverlay } from '../spire/overlay';
 import { OverlayProvider } from '../spire/provider';
-import { SettingsProvider } from '../../context/settings';
+import { SettingsProvider, useSettingsContext } from '../../context/settings';
 
 export const BabylonZone = () => {
   const canvasRef = useRef();
   const { selectedZone } = useMainContext();
-  const [zoneProcessed, setZoneProcessed] = useState(false);
+  const { webgpu } = useSettingsContext();
   useEffect(() => {
     (async () => {
-      await gameController.loadEngine(canvasRef.current);
+      if (!selectedZone) {
+        return;
+      }
+      await new Promise(res => setTimeout(res, 50));
+      console.log('Canvas ref', canvasRef);
+      await gameController.loadEngine(canvasRef.current, webgpu);
       await gameController.ZoneController.loadViewerScene();
       window.addEventListener('resize', gameController.resize);
       window.addEventListener('keydown', gameController.keyDown);
@@ -43,17 +48,17 @@ export const BabylonZone = () => {
 
   return selectedZone ? (
     <OverlayProvider>
-      <SettingsProvider>
-        <SpireOverlay />
-        <Box
-          as="canvas"
-          sx={{ flexGrow: '1', position: 'fixed' }}
-          ref={canvasRef}
-          id="renderCanvas"
-          width="100vw"
-          height="100vh"
-        />
-      </SettingsProvider>
+
+      <SpireOverlay />
+      <Box
+        as="canvas"
+        sx={{ flexGrow: '1', position: 'fixed' }}
+        ref={canvasRef}
+        id="renderCanvas"
+        width="100vw"
+        height="100vh"
+      />
+
     </OverlayProvider>
   ) : null;
 };

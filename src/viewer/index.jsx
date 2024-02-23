@@ -8,6 +8,8 @@ export const BabylonViewer = ({ zoneName = '' }) => {
 
   useEffect(() => {
     (async () => {
+      await new Promise(res => setTimeout(res, 50));
+      console.log('Canvas ref?', canvasRef);
       await gameController.loadEngine(canvasRef.current);
       await gameController.loadViewerScene();
       window.addEventListener('resize', gameController.resize);

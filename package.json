@@ -31,6 +31,7 @@
     "gl-matrix": "^3.4.3",
     "idb-keyval": "^6.2.1",
     "jimp": "^0.22.10",
+    "material-ui-confirm": "^3.0.11",
     "pako": "^2.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

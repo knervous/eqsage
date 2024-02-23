@@ -10,7 +10,7 @@ import { CommonDialog } from './common';
 import { useSettingsContext } from '../../../context/settings';
 
 export const SettingsDialog = ({ onClose }) => {
-  const { setOption, showRegions, flySpeed, glow } = useSettingsContext();
+  const { setOption, showRegions, flySpeed, glow, webgpu = false } = useSettingsContext();
   return (
     <CommonDialog onClose={onClose} title={'Settings'}>
       <FormControl sx={{ marginTop: 1, marginBottom: 2 }} fullWidth>
@@ -41,6 +41,7 @@ export const SettingsDialog = ({ onClose }) => {
         }
         label="Show Regions"
       />
+      <br/>
       <FormControlLabel
         control={
           <Checkbox
@@ -51,6 +52,18 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="NPC Glow"
+      />
+      <br/>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={webgpu}
+            onChange={({ target: { checked } }) =>
+              setOption('webgpu', checked)
+            }
+          />
+        }
+        label="Use WebGPU Engine"
       />
    
     </CommonDialog>

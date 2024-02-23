@@ -14,6 +14,7 @@ import {
   Database,
   SceneLoader,
   ThinEngine,
+  WebGPUEngine,
 } from '@babylonjs/core';
 
 import { Inspector } from '@babylonjs/inspector';
@@ -29,8 +30,7 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 
 class EQDatabase extends Database {
   async loadImage(url, image) {
-    if (url.startsWith('https://')) {
-      console.log('spec');
+    if (url.startsWith('http')) {
       const res = await fetch(url).then((a) => a.arrayBuffer());
       image.src = URL.createObjectURL(
         new Blob([res], { type: 'image/png' } /* (1) */)
@@ -49,9 +49,14 @@ class EQDatabase extends Database {
     errorCallback,
     _useArrayBuffer
   ) {
+    if (url.startsWith('blob')) {
+      const res = await fetch(url).then((a) => a.arrayBuffer());
+      await sceneLoaded(res);
+      return;
+    }
     const [, eq, folder, file] = url.split('/');
     if (eq === 'eq') {
-      const fileBuffer = await getEQFile(folder, file);
+      const fileBuffer = await getEQFile(folder, file) || await getEQFile('textures', `${url}.png`);
       if (!fileBuffer) {
         console.log('No bytes', url);
         errorCallback();
@@ -59,7 +64,17 @@ class EQDatabase extends Database {
       }
       await sceneLoaded(fileBuffer);
       return;
+    } 
+
+    const fileBuffer = await getEQFile('textures', `${url}.png`);
+    if (!fileBuffer) {
+      console.log('No bytes', url);
+      errorCallback();
+      return;
     }
+    await sceneLoaded(fileBuffer);
+    return;
+    
     console.log('No bytes', url);
     errorCallback();
   }
@@ -177,12 +192,18 @@ export class GameController {
     return zoneController.scene;
   }
 
-  async loadEngine(canvas) {
+  async loadEngine(canvas, webgpu = false) {
     if (this.engine) {
       this.engine.dispose();
     }
     this.canvas = canvas;
-    this.engine = new Engine(canvas); // await EngineFactory.CreateAsync(canvas);
+    if (navigator.gpu && webgpu) {
+      this.engine = new WebGPUEngine(canvas);
+      await this.engine.initAsync();
+    } else {
+      this.engine = new Engine(canvas); // await EngineFactory.CreateAsync(canvas);
+
+    }
     this.engine.setHardwareScalingLevel(1 / window.devicePixelRatio);
     this.engine.disableManifestCheck = true;
     this.engine.enableOfflineSupport = true;

@@ -18,11 +18,13 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useDebouncedCallback } from 'use-debounce';
 import { gameController } from '../../../../viewer/controllers/GameController';
 import { deepClone } from '@mui/x-data-grid/utils/utils';
-import { loadCallbackContainer } from '../../dialogs/dialogs';
+import { useZoneContext } from '../../../zone/zone-context';
+
 
 export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
   const [npcList, setNpcList] = useState(entries);
   const [spawnList, setSpawnList] = useState([]);
+  const { loadCallback } = useZoneContext();
   const dialogClosed = useCallback(
     async (forSave) => {
       if (forSave) {
@@ -78,7 +80,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
           }
         }
 
-        loadCallbackContainer.cb?.();
+        loadCallback();
       }
       onClose();
     },

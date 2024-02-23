@@ -500,6 +500,7 @@ class ZoneController extends GameControllerChild {
   }
 
   async loadModel(name) {
+    console.log('load model', name);
     this.loadViewerScene();
     if (this.cameraFlySpeed !== undefined && this.CameraController?.camera) {
       this.CameraController.camera.speed = this.cameraFlySpeed;
