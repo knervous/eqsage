@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { gameController } from '../../viewer/controllers/GameController';
 import { useMainContext } from '../main/main';
+import * as keyval from 'idb-keyval';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -135,7 +136,7 @@ export const ZoneChooserDialog = ({ open }) => {
 
   return (
     <Dialog
-      className='ui-dialog'
+      className="ui-dialog"
       onKeyDown={(e) => e.stopPropagation()}
       maxWidth="md"
       open={open}
@@ -145,7 +146,7 @@ export const ZoneChooserDialog = ({ open }) => {
       <DialogTitle
         style={{ cursor: 'move', margin: '0 auto' }}
         id="draggable-dialog-title"
-        className='ui-dialog-title'
+        className="ui-dialog-title"
       >
         Select a Zone
       </DialogTitle>
@@ -237,14 +238,28 @@ export const ZoneChooserDialog = ({ open }) => {
         </Stack>
       </DialogContent>
       <DialogActions>
+        {!selectedZone && <Button
+          onClick={() => {
+            keyval.clear().then(() => {
+              window.location.reload();
+            });
+          }}
+          variant="outlined"
+          sx={{ margin: '0 auto' }}
+        >
+          Unlink EQ Directory
+        </Button>}
+        
         <Button
+          color='primary'
           onClick={() => selectAndExit(zone)}
           disabled={!zone}
           variant="outlined"
           sx={{ margin: '0 auto' }}
         >
-          Select Zone
+            Select Zone
         </Button>
+        
       </DialogActions>
     </Dialog>
   );

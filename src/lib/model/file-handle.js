@@ -54,7 +54,7 @@ export class EQFileHandle {
   }
 
   get #type() {
-    if (this.#fileHandles.some((f) => f.name.endsWith('eqg'))) {
+    if (this.#fileHandles.some((f) => f.name === `${this.name}.eqg`)) {
       return FILE_TYPE.EQG;
     }
     return FILE_TYPE.S3D;
