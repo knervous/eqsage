@@ -200,8 +200,10 @@ export class GameController {
     if (navigator.gpu && webgpu) {
       this.engine = new WebGPUEngine(canvas);
       await this.engine.initAsync();
+      this.engineInitialized = true;
     } else {
       this.engine = new Engine(canvas); // await EngineFactory.CreateAsync(canvas);
+      this.engineInitialized = true;
 
     }
     this.engine.setHardwareScalingLevel(1 / window.devicePixelRatio);

@@ -6,6 +6,10 @@ export class GameControllerChild {
     this.#gc = gameController;
   }
 
+  get gc() {
+    return this.#gc;
+  }
+
   get canvas() {
     return this.#gc.canvas;
   }

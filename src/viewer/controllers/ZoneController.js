@@ -93,7 +93,7 @@ class ZoneController extends GameControllerChild {
   loadViewerScene() {
     this.dispose();
     this.scene = null;
-    if (!this.engine || !this.canvas) {
+    if (!this.engine || !this.canvas || !this.gc.engineInitialized) {
       return;
     }
     this.scene = new Scene(this.engine);
@@ -120,6 +120,7 @@ class ZoneController extends GameControllerChild {
 
     // Click events
     this.scene.onPointerObservable.add(this.onClick.bind(this));
+    return true;
   }
 
   /**
@@ -501,7 +502,9 @@ class ZoneController extends GameControllerChild {
 
   async loadModel(name) {
     console.log('load model', name);
-    this.loadViewerScene();
+    if (!await this.loadViewerScene()) {
+      return;
+    }
     if (this.cameraFlySpeed !== undefined && this.CameraController?.camera) {
       this.CameraController.camera.speed = this.cameraFlySpeed;
     }
