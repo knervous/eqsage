@@ -26,6 +26,7 @@ import {
 import { gameController } from '../../viewer/controllers/GameController';
 import { useMainContext } from '../main/main';
 import * as keyval from 'idb-keyval';
+import { useConfirm } from 'material-ui-confirm';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -129,10 +130,24 @@ export const ZoneChooserDialog = ({ open }) => {
       }
     }
   }, [open]);
-
+  const confirm = useConfirm();
   useEffect(() => {
     localStorage.setItem('recent-zones', JSON.stringify(recentList));
   }, [recentList]);
+
+  const unlinkDir = () => {
+    confirm({ description: 'Are you sure you want to unlink your EQ directory?', title: 'Unlink EQ Directory' })
+      .then(() => {
+        /* ... */
+        keyval.clear().then(() => {
+          window.location.reload();
+        });
+      })
+      .catch(() => {
+        /* ... */
+      });
+  
+  };
 
   return (
     <Dialog
@@ -239,11 +254,7 @@ export const ZoneChooserDialog = ({ open }) => {
       </DialogContent>
       <DialogActions>
         {!selectedZone && <Button
-          onClick={() => {
-            keyval.clear().then(() => {
-              window.location.reload();
-            });
-          }}
+          onClick={unlinkDir}
           variant="outlined"
           sx={{ margin: '0 auto' }}
         >

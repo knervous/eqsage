@@ -42,18 +42,16 @@ function App() {
   const [zoneNames, setZoneNames] = useState(knownZoneShortNames);
 
   useEffect(() => {
-
     // Give this a second to inject
     setTimeout(() => {
       console.log('Spire', gameController.Spire, window.Spire);
       if (gameController.Spire) {
         console.log('Fetching');
-        gameController.Spire.Zones.getZones().then(zones => {
+        gameController.Spire.Zones.getZones().then((zones) => {
           console.log('Zones', zones);
         });
       }
     }, 100);
-    
   }, []);
 
   const eqFiles = useMemo(() => {
@@ -94,7 +92,6 @@ function App() {
       }
     );
   }, [fileHandles]);
-
 
   const refresh = useCallback(async (infHandle) => {
     const eqdir = infHandle ?? (await get('eqdir'));
@@ -176,7 +173,12 @@ function App() {
     <ThemeProvider
       theme={createTheme({
         palette   : { mode: 'dark' },
-        typography: { fontFamily: 'Montaga' },
+        typography: {
+          fontFamily: 'Montaga',
+          button    : {
+            textTransform: 'none',
+          },
+        },
       })}
     >
       <Stack
@@ -260,20 +262,25 @@ function App() {
                 await obj.initialize();
                 await obj.process(false);
               }}
-
               options={eqFiles.rest.map((fh, idx) => {
                 return {
                   label: fh.name,
-                  id   : idx
+                  id   : idx,
                 };
               })}
               //  sx={{ width: 300 }}
-              renderInput={(params) => <TextField {...params} label="S3D / EQG Files" />}
+              renderInput={(params) => (
+                <TextField {...params} label="S3D / EQG Files" />
+              )}
             />
             {/**
              * Refresh needs user interaction
              */}
-            <Button sx={{ width: '80%', margin: '5px auto' }} onClick={() => refresh()} variant="outlined">
+            <Button
+              sx={{ width: '80%', margin: '5px auto' }}
+              onClick={() => refresh()}
+              variant="outlined"
+            >
               Refresh EQ Directory Link
             </Button>
           </Stack>
