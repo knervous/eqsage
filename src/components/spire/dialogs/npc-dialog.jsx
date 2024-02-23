@@ -44,7 +44,7 @@ export const NpcDialog = ({ onClose }) => {
       ...Spire.SpireApi.cfg()
     );
     // First create spawn group
-    const spawnGroup = await spawnGroupApi.createSpawngroup({ spawngroup });
+    // const spawnGroup = await spawnGroupApi.createSpawngroup({ spawngroup });
     const createResult = await spawn2Api.createSpawn2({ spawn2: { zone: selectedZone.short_name, x: 0, y: 0, z: 0 } });
     console.log('Res', createResult);
   }, [selectedZone]);
