@@ -108,7 +108,6 @@ function SpawnNavBar() {
     () => selectedSpawn?.spawnentries ?? [],
     [selectedSpawn?.spawnentries]
   );
-  console.log('My render, spawn entries', spawnEntries, selectedSpawn);
   return (
     <>
       {addEditDialogOpen && spawnEntries && (
