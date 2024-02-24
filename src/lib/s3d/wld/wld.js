@@ -97,7 +97,7 @@ export class Wld {
   }
 
   get isNewWldFormat() {
-    this.version === 0x1000c800;
+    return this.version === 0x1000c800;
   }
 
   get type() {
@@ -126,6 +126,7 @@ export class Wld {
   load() {
     this.identifier = this.reader.readUint32();
     this.version = this.reader.readUint32();
+    this.oldS3d = this.version === 0x00015500;
     this.fragmentCount = this.reader.readUint32();
     this.bspRegionCount = this.reader.readUint32();
     this.reader.addCursor(4);
