@@ -20,7 +20,7 @@ async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
   }
 }
 
-export async function processZone(zoneName) {
+export async function processZone(zoneName, settings) {
   console.log('Zone name', zoneName);
   return new Promise(async (res, rej) => {
     const handles = [];
@@ -36,7 +36,8 @@ export async function processZone(zoneName) {
     const obj = new EQFileHandle(
       zoneName,
       handles,
-      gameController.rootFileSystemHandle
+      gameController.rootFileSystemHandle,
+      settings
     );
     await obj.initialize();
     await obj.process();

@@ -24,12 +24,28 @@
 }
 
 .text-outline {
+    cursor: initial;
+    user-select: none;
+    transition: text-shadow 0.2s ease;
+    transition: color 0.2s ease;
+    & + .clickable {
+        &:hover {
+            text-shadow:
+          -0.5px -1px 0 rgba(0,0,0,.1),  
+           0.5px -1px 0 rgba(0,0,0,.1),
+          -0.5px  1px 0 rgba(0,0,0,.1),
+           0.5px  1px 0 rgba(0,0,0,.1); /* Outline effect */
+        color: gold !important;
+
+        }
+    }
+   
     color: white !important; /* Text color */
     text-shadow:
-      -1px -1px 0 #000,  
-       1px -1px 0 #000,
-      -1px  1px 0 #000,
-       1px  1px 0 #000; /* Outline effect */
+      -1px -1px 0 rgba(0,0,0,0.5),  
+       1px -1px 0 rgba(0,0,0,0.5),
+      -1px  1px 0 rgba(0,0,0,0.5),
+       1px  1px 0 rgba(0,0,0,0.5); /* Outline effect */
 }
 
 .outline-text-strong {

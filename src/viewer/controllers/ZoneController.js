@@ -577,8 +577,8 @@ class ZoneController extends GameControllerChild {
       );
       if (mergedMesh) {
         mergedMesh.name = 'static-objects';
+        mergedMesh.isPickable = false;
       }
-      mergedMesh.isPickable = false;
       const regionNode = new TransformNode('regions', this.scene);
       this.regionNode = regionNode;
       regionNode.setEnabled(!!this.regionsShown);

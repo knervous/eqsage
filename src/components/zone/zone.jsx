@@ -11,7 +11,7 @@ import { SettingsProvider, useSettingsContext } from '../../context/settings';
 export const BabylonZone = () => {
   const canvasRef = useRef();
   const { selectedZone } = useMainContext();
-  const { webgpu } = useSettingsContext();
+  const settings = useSettingsContext();
   useEffect(() => {
     (async () => {
       if (!selectedZone) {
@@ -19,7 +19,7 @@ export const BabylonZone = () => {
       }
       await new Promise(res => setTimeout(res, 50));
       console.log('Canvas ref', canvasRef);
-      await gameController.loadEngine(canvasRef.current, webgpu);
+      await gameController.loadEngine(canvasRef.current, settings.webgpu);
       await gameController.ZoneController.loadViewerScene();
       window.addEventListener('resize', gameController.resize);
       window.addEventListener('keydown', gameController.keyDown);
@@ -29,7 +29,7 @@ export const BabylonZone = () => {
       window.removeEventListener('resize', gameController.resize);
       window.removeEventListener('keydown', gameController.keyDown);
     };
-  }, [selectedZone]);
+  }, [selectedZone, settings?.webgpu]);
 
   useEffect(() => {
     if (!selectedZone) {
@@ -37,14 +37,14 @@ export const BabylonZone = () => {
     }
     let current = true;
     (async () => {
-      const zones = await processZone(selectedZone.short_name);
+      await processZone(selectedZone.short_name, settings);
       if (!current) {
         return;
       }
       gameController.ZoneController.loadModel(selectedZone.short_name);
     })();
     return () => (current = false);
-  }, [selectedZone]);
+  }, [selectedZone]); // eslint-disable-line
 
   return selectedZone ? (
     <OverlayProvider>

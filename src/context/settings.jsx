@@ -8,6 +8,7 @@ const defaultOptions = {
   showRegions: true,
   glow       : true,
   webgpu     : false,
+  forceReload: false
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(

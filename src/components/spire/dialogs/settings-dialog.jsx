@@ -10,7 +10,7 @@ import { CommonDialog } from './common';
 import { useSettingsContext } from '../../../context/settings';
 
 export const SettingsDialog = ({ onClose }) => {
-  const { setOption, showRegions, flySpeed, glow, webgpu = false } = useSettingsContext();
+  const { setOption, showRegions, flySpeed, glow, webgpu = false, forceReload = false } = useSettingsContext();
   return (
     <CommonDialog onClose={onClose} title={'Settings'}>
       <FormControl sx={{ marginTop: 1, marginBottom: 2 }} fullWidth>
@@ -64,6 +64,18 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Use WebGPU Engine"
+      />
+      <br/>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={forceReload}
+            onChange={({ target: { checked } }) =>
+              setOption('forceReload', checked)
+            }
+          />
+        }
+        label="Force zone reload"
       />
    
     </CommonDialog>

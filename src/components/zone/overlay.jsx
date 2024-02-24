@@ -10,6 +10,7 @@ export const BabylonZoneOverlay = () => {
   return selectedZone ? (
     <Box ref={ref} sx={{ position: 'fixed', zIndex: 10, width: 'auto', left: `calc(50vw - ${(ref.current?.clientWidth ?? 0) / 2}px)` }}>
       <Typography
+        className='text-outline'
         sx={{
           color    : 'white',
           margin   : '10px auto',
@@ -21,7 +22,7 @@ export const BabylonZoneOverlay = () => {
       </Typography>
       <Typography
         onClick={() => setZoneDialogOpen(true)}
-        className='zone-overlay-text'
+        className='zone-overlay-text text-outline clickable'
         sx={{
           userSelect: 'none',
           margin    : '5px auto',
@@ -41,7 +42,7 @@ export const BabylonZoneOverlay = () => {
           }, 1);
             
         } }
-        className='zone-overlay-text'
+        className='zone-overlay-text text-outline clickable'
         sx={{
           userSelect: 'none',
           margin    : '5px auto',
