@@ -4,19 +4,18 @@ import { Wld, WldType } from './wld/wld';
 import { TypedArrayReader } from '../util/typed-array-reader';
 import { imageProcessor } from '../util/image/image-processor';
 import { Accessor, WebIO } from '@gltf-transform/core';
-import { mat4, vec3 } from 'gl-matrix';
+import { mat4 } from 'gl-matrix';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
 import {
-  resample,
   draco,
-  textureCompress,
   DRACO_DEFAULTS,
 } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 import { ShaderType } from './materials/material';
 import { getEQFile, getEQFileExists, writeEQFile } from '../util/fileHandler';
 import { optimizeBoundingBoxes } from './bsp/region-utils';
+import { VERSION } from '../model/file-handle';
 
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
   'draco3d.decoder': await draco3d.createDecoderModule(),
@@ -499,6 +498,7 @@ export class S3DDecoder {
     scene.addChild(node);
 
     const zoneMetadata = {
+      version: VERSION,
       objects: {},
       lights : [],
       music  : [],
@@ -546,6 +546,7 @@ export class S3DDecoder {
       // Compress mesh geometry with Draco.
       draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
     );
+
     // Object instances
     await writeEQFile(
       'zones',

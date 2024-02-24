@@ -1,8 +1,10 @@
 import { FILE_TYPE } from './constants';
 import { S3DDecoder } from '../s3d/s3d-decoder';
-import { GltfDocument } from './gltf-document';
 import { Document } from '@gltf-transform/core';
 import { EQGDecoder } from '../eqg/eqg-decoder';
+import { getEQFile } from '../util/fileHandler';
+
+export const VERSION = 1.0;
 
 export class EQFileHandle {
   /**
@@ -71,6 +73,11 @@ export class EQFileHandle {
   async process(doExport = true) {
     if (!this.#initialized) {
       console.warn('Was not initialized, cannot process');
+      return;
+    }
+    const existingMetadata = await getEQFile('zones', `${this.name}.json`, 'json');
+    if (existingMetadata?.version === VERSION) {
+      console.log('Had cached version, skipping translation');
       return;
     }
     if (this.#type === FILE_TYPE.EQG) {
