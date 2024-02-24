@@ -17,6 +17,7 @@ import { Zone, ZoneData } from './zone/zone';
 import { Model } from './model/model';
 import { getEQFile, getEQFileExists, writeEQFile } from '../util/fileHandler';
 import { Eco } from './eco/eco';
+import { VERSION } from '../model/file-handle';
 
 const io = new WebIO()
   .registerExtensions(ALL_EXTENSIONS)
@@ -172,6 +173,7 @@ export class EQGDecoder {
       .setTranslation([0, 0, 0]);
     scene.addChild(node);
     const zoneMetadata = {
+      version: VERSION,
       objects: {},
       lights : [],
       music  : [],
@@ -584,6 +586,7 @@ export class EQGDecoder {
     scene.addChild(node);
 
     const zoneMetadata = {
+      version: VERSION,
       objects: {},
       lights : [],
       music  : [],

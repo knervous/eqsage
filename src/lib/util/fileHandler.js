@@ -82,9 +82,9 @@ export const getEQFile = async (directory, name, type = 'arrayBuffer') => {
     case 'arrayBuffer':
       return contents;
     case 'json':
-      return JSON.parse(
+      return contents ? JSON.parse(
         new TextDecoder('utf-8').decode(new Uint8Array(contents))
-      );
+      ) : undefined;
   }
 };
 
