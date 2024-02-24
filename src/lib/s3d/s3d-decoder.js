@@ -41,7 +41,7 @@ const getMaterials = async (materialList, document) => {
     const gltfMaterial = document
       .createMaterial()
       .setDoubleSided(false)
-      .setExtension('KHR_materials_unlit')
+    // .setExtension('KHR_materials_unlit')
       .setRoughnessFactor(0)
       .setMetallicFactor(0);
     if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {

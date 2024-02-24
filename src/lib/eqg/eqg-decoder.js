@@ -197,7 +197,7 @@ export class EQGDecoder {
         const gltfMaterial = document
           .createMaterial(tex.name)
           .setDoubleSided(false)
-          .setExtension('KHR_materials_unlit')
+        //  .setExtension('KHR_materials_unlit')
           .setRoughnessFactor(0)
           .setMetallicFactor(0);
         const detailText = tex.detailMap.replace('.dds', '');
@@ -223,7 +223,7 @@ export class EQGDecoder {
         const gltfMaterial = document
           .createMaterial(mat.name)
           .setDoubleSided(false)
-          .setExtension('KHR_materials_unlit')
+        //  .setExtension('KHR_materials_unlit')
           .setRoughnessFactor(0)
           .setMetallicFactor(0);
 
@@ -449,7 +449,7 @@ export class EQGDecoder {
       const gltfMaterial = document
         .createMaterial(mat.name)
         .setDoubleSided(false)
-        .setExtension('KHR_materials_unlit')
+      //  .setExtension('KHR_materials_unlit')
         .setRoughnessFactor(0)
         .setMetallicFactor(0);
 
@@ -612,7 +612,7 @@ export class EQGDecoder {
         const gltfMaterial = document
           .createMaterial(mat.name)
           .setDoubleSided(false)
-          .setExtension('KHR_materials_unlit')
+        //   .setExtension('KHR_materials_unlit')
           .setRoughnessFactor(0)
           .setMetallicFactor(0);
 
