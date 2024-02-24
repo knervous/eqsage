@@ -8,7 +8,8 @@ const defaultOptions = {
   showRegions: true,
   glow       : true,
   webgpu     : false,
-  forceReload: false
+  forceReload: false,
+  clipPlane  : 10000,
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(
