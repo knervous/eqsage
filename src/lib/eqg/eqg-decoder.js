@@ -12,12 +12,19 @@ import {
 } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 import { gameController } from '../../viewer/controllers/GameController';
-import { mat4 } from 'gl-matrix';
+import { mat4, quat, vec3 } from 'gl-matrix';
 import { Zone, ZoneData } from './zone/zone';
 import { Model } from './model/model';
 import { getEQFile, getEQFileExists, writeEQFile } from '../util/fileHandler';
 import { Eco } from './eco/eco';
 import { VERSION } from '../model/file-handle';
+
+// Function to rotate a position by a quaternion
+function rotatePositionByQuaternion(position, rotationQuat) {
+  const rotatedPosition = vec3.create();
+  vec3.transformQuat(rotatedPosition, position, rotationQuat);
+  return rotatedPosition;
+}
 
 const io = new WebIO()
   .registerExtensions(ALL_EXTENSIONS)
@@ -159,7 +166,6 @@ export class EQGDecoder {
   }
 
   async exportv4() {
-
     const document = new Document();
     const buffer = document.createBuffer();
     if (!this.zone) {
@@ -171,6 +177,10 @@ export class EQGDecoder {
       .createNode(`zone-${this.zone.name.replace('.zon', '')}`)
       .setExtras({ uvMap: true })
       .setTranslation([0, 0, 0]);
+    const zoneRotation = quat.create();
+    quat.fromEuler(zoneRotation, 0, -90, 0); // Rotate 90 degrees around the Y axis
+
+    node.setRotation(zoneRotation);
     scene.addChild(node);
     const zoneMetadata = {
       version: VERSION,
@@ -201,7 +211,7 @@ export class EQGDecoder {
           .setRoughnessFactor(0)
           .setMetallicFactor(0);
         const detailText = tex.detailMap.replace('.dds', '');
-        const normalText = tex.normalMap.replace('.dds', '');
+        const _normalText = tex.normalMap.replace('.dds', '');
         gltfMaterial.setBaseColorTexture(document
           .createTexture(detailText)
           .setURI(`/eq/textures/${detailText}`));
@@ -409,11 +419,47 @@ export class EQGDecoder {
    * 
    * @param {import('./common/models').PlaceableGroup} p 
    */
-  async writeModels(p, zoneMetadata, modelFile, writtenModels, mod) {
+  async writeModels(p, zoneMetadata, modelFile, writtenModels, mod, v3) {
+    
+    const position = vec3.fromValues(p.x, p.y, p.z); // Replace x, y, z with the object's position
+
+    // let flippedPosition;
+    let x, y, z;
+    if (v3) {
+      
+      const flipMatrix = mat4.create();
+      mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]); // Scale X and Z by -1
+      
+      // Apply the flip transformation to the rotated position
+      const flippedPosition = vec3.create();
+      vec3.transformMat4(flippedPosition, position, flipMatrix);
+      x = flippedPosition[0];
+      y = flippedPosition[2];
+      z = flippedPosition[1];
+    } else {
+      // Create a quaternion representing a 270-degree rotation around the X-axis
+      const rotation = quat.create();
+      quat.rotateY(rotation, rotation, 3 * (Math.PI / 2)); // Rotate 270 degrees
+
+      // Apply the rotation to the position
+      const rotatedPosition = vec3.create();
+      vec3.transformQuat(rotatedPosition, position, rotation);
+
+      const flipMatrix = mat4.create();
+      mat4.scale(flipMatrix, flipMatrix, [-1, -1, 1]); // Scale X and Z by -1
+      
+      // Apply the flip transformation to the rotated position
+      const flippedPosition = vec3.create();
+      vec3.transformMat4(flippedPosition, rotatedPosition, flipMatrix);
+      x = flippedPosition[1];
+      y = flippedPosition[0];
+      z = flippedPosition[2];
+    }
+
     const entry = {
-      y      : p.z,
-      z      : p.y,
-      x      : p.x,
+      x,
+      y,
+      z,
       rotateX: 0, // p.rotateX * -1,
       rotateY: p.rotateX,
       rotateZ: p.rotateZ,
@@ -582,7 +628,12 @@ export class EQGDecoder {
     const scene = document.createScene(this.zone.name);
     const node = document
       .createNode(`zone-${this.zone.name.replace('.zon', '')}`)
-      .setTranslation([0, 0, 0]);
+      .setTranslation([0, 0, 0])
+      .setScale([-1, 1, 1]);
+    const zoneRotation = quat.create();
+    // quat.fromEuler(zoneRotation, 0, -90, 0); // Rotate 90 degrees around the Y axis
+  
+    node.setRotation(zoneRotation);
     scene.addChild(node);
 
     const zoneMetadata = {
@@ -656,7 +707,7 @@ export class EQGDecoder {
           continue;
         }
         if (!mod?.name.includes('ter_')) {
-          await this.writeModels(p, zoneMetadata, modelFile, writtenModels, mod);
+          await this.writeModels(p, zoneMetadata, modelFile, writtenModels, mod, true);
           continue;
         }
         if (mod) {

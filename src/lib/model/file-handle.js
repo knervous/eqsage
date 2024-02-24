@@ -13,6 +13,7 @@ export class EQFileHandle {
   #fileHandles = [];
   #name = '';
   #initialized = false;
+  #settings = {};
   /**
    * @type {FileSystemDirectoryHandle}
    */
@@ -27,10 +28,11 @@ export class EQFileHandle {
    *
    * @param {FileSystemFileHandle} fileHandles
    */
-  constructor(name, fileHandles, rootFileHandle) {
+  constructor(name, fileHandles, rootFileHandle, settings) {
     this.#name = name;
     this.#fileHandles = fileHandles;
     this.#rootFileHandle = rootFileHandle;
+    this.#settings = settings;
   }
 
   /**
@@ -76,7 +78,7 @@ export class EQFileHandle {
       return;
     }
     const existingMetadata = await getEQFile('zones', `${this.name}.json`, 'json');
-    if (existingMetadata?.version === VERSION) {
+    if (existingMetadata?.version === VERSION && !this.#settings.forceReload) {
       console.log('Had cached version, skipping translation');
       return;
     }
