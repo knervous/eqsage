@@ -46,6 +46,9 @@ class CameraController extends GameControllerChild {
     );
     document.removeEventListener('keydown', this.keyDownHandler);
     document.exitPointerLock();
+    if (this.canvas) {
+      this.canvas.removeEventListener('wheel', this.scrollHandler);
+    }
     this.isLocked = false;
     this.speedModified = false;
   }
@@ -55,9 +58,24 @@ class CameraController extends GameControllerChild {
     this.onChangePointerLock = this.onChangePointerLock.bind(this);
     this.keyDownHandler = this.keyDownHandler.bind(this);
     this.keyUpHandler = this.keyUpHandler.bind(this);
+    this.scrollHandler = this.scrollHandler.bind(this);
   }
 
-  
+  scrollHandler(event) {
+    const delta = event.deltaY;
+    const zoomSpeed = 50; // Adjust the speed of zooming
+    const zoomDirection = delta > 0 ? -1 : 1; // Determine the direction to zoom
+
+    // Calculate the new position
+    const forward = this.camera.getTarget().subtract(this.camera.position).normalize();
+    forward.scaleInPlace(zoomSpeed * zoomDirection);
+
+    // Update the camera position
+    this.camera.position.addInPlace(forward);
+
+    // Prevent the page from scrolling
+    event.preventDefault();
+  }
 
   swapCharacterSelectView (view) {
     this.camera.position.set(view.position.x, view.position.y, view.position.z);
@@ -146,7 +164,7 @@ class CameraController extends GameControllerChild {
     this.camera.speed = 2;
     document.addEventListener('keydown', this.keyDownHandler.bind(this));
     document.addEventListener('keyup', this.keyUpHandler.bind(this));
-
+    this.canvas.addEventListener('wheel', this.scrollHandler.bind(this));
     
     document.addEventListener('pointerlockchange', this.onChangePointerLock, false);
     document.addEventListener('mspointerlockchange', this.onChangePointerLock, false);

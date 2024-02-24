@@ -14,6 +14,10 @@ export const useSettingsHook = () => {
   }, [settings.flySpeed]);
 
   useEffect(() => {
+    gameController.ZoneController.setClipPlane(settings.clipPlane);
+  }, [settings.clipPlane]);
+
+  useEffect(() => {
     gameController.ZoneController.setGlow(settings.glow);
   }, [settings.glow]);
 

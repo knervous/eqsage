@@ -493,6 +493,15 @@ class ZoneController extends GameControllerChild {
     this.CameraController.camera.speed = value;
   }
 
+  setClipPlane(value) {
+    if (!this.CameraController?.camera) {
+      return;
+    }
+    this.CameraController.camera.maxZ = value;
+    const scaleValue = value / 10000;
+    this.skybox.scaling.setAll(scaleValue);
+  }
+
   setGlow(value) {
     if (!this.glowLayer) {
       return;

@@ -10,7 +10,7 @@ import { CommonDialog } from './common';
 import { useSettingsContext } from '../../../context/settings';
 
 export const SettingsDialog = ({ onClose }) => {
-  const { setOption, showRegions, flySpeed, glow, webgpu = false, forceReload = false } = useSettingsContext();
+  const { setOption, showRegions, flySpeed, glow, webgpu = false, forceReload = false, clipPlane = 10000 } = useSettingsContext();
   return (
     <CommonDialog onClose={onClose} title={'Settings'}>
       <FormControl sx={{ marginTop: 1, marginBottom: 2 }} fullWidth>
@@ -28,6 +28,23 @@ export const SettingsDialog = ({ onClose }) => {
           step={0.01}
           min={0.01}
           max={20}
+        />
+      </FormControl>
+      <FormControl sx={{ marginTop: 1, marginBottom: 2 }} fullWidth>
+        <Typography
+          sx={{ fontSize: 14, marginTop: 2, width: '80%' }}
+          color="text.secondary"
+          gutterBottom
+        >
+              Clip Plane: {clipPlane}
+        </Typography>
+        <Slider
+
+          value={clipPlane}
+          onChange={(e) => setOption('clipPlane', +e.target.value)}
+          step={1}
+          min={5}
+          max={30000}
         />
       </FormControl>
       <FormControlLabel
