@@ -191,6 +191,8 @@ export class S3DDecoder {
       }
     }
 
+    console.log('Files', Object.keys(this.files));
+
     for (const image of images) {
       image.shaderType = shaderMap[image.name];
     }
