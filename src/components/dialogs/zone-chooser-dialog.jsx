@@ -27,6 +27,8 @@ import { gameController } from '../../viewer/controllers/GameController';
 import { useMainContext } from '../main/main';
 import * as keyval from 'idb-keyval';
 import { useConfirm } from 'material-ui-confirm';
+import { processGlobal } from '../zone/processZone';
+import { useSettingsContext } from '../../context/settings';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -77,6 +79,7 @@ export const ZoneChooserDialog = ({ open }) => {
   const [_type, setType] = useState('unknown');
   const { selectedZone, setSelectedZone, setZoneDialogOpen } = useMainContext();
   const [zoneList, setZoneList] = useState([]);
+  const settings = useSettingsContext();
   const [expansionFilter, setExpansionFilter] = useState([]);
   const [zone, setZone] = useState(null);
   const [recentList, setRecentList] = useState(() =>
@@ -270,8 +273,18 @@ export const ZoneChooserDialog = ({ open }) => {
         >
             Select Zone
         </Button>
-        
+
+  
       </DialogActions>
+      <Button
+        color='primary'
+        onClick={() => processGlobal(settings)}
+        variant="outlined"
+        sx={{ margin: '0 auto' }}
+      >
+            Process Global Objects/Characters
+      </Button>
+        
     </Dialog>
   );
 };

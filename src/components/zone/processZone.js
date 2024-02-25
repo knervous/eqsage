@@ -20,6 +20,31 @@ async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
   }
 }
 
+export async function processGlobal(settings) {
+  console.log('global');
+  return new Promise(async (res, rej) => {
+    const handles = [];
+    try {
+      for await (const fileHandle of getFilesRecursively(gameController.rootFileSystemHandle, '', new RegExp('^global(\\d+)?[_\\.].*'))) {
+        handles.push(await fileHandle.getFile()); 
+      }
+    } catch (e) {
+      console.warn('Error', e, handles);
+    }
+    console.log('File handles', handles);
+
+    const obj = new EQFileHandle(
+      'global',
+      handles,
+      gameController.rootFileSystemHandle,
+      settings
+    );
+    await obj.initialize();
+    await obj.process();
+    res();
+  });
+}
+
 export async function processZone(zoneName, settings) {
   console.log('Zone name', zoneName);
   return new Promise(async (res, rej) => {
