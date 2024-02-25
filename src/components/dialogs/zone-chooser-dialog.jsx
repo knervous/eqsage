@@ -276,7 +276,7 @@ export const ZoneChooserDialog = ({ open }) => {
 
   
       </DialogActions>
-      <Button
+      {/* <Button
         color='primary'
         onClick={() => processGlobal(settings)}
         variant="outlined"
@@ -284,7 +284,7 @@ export const ZoneChooserDialog = ({ open }) => {
       >
             Process Global Objects/Characters
       </Button>
-        
+         */}
     </Dialog>
   );
 };
