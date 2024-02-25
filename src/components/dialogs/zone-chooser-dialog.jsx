@@ -276,15 +276,16 @@ export const ZoneChooserDialog = ({ open }) => {
 
   
       </DialogActions>
-      {/* <Button
+      <Button
         color='primary'
+        disabled
         onClick={() => processGlobal(settings)}
         variant="outlined"
         sx={{ margin: '0 auto' }}
       >
             Process Global Objects/Characters
       </Button>
-         */}
+        
     </Dialog>
   );
 };
