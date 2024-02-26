@@ -83,7 +83,7 @@ export const StatusDialog = ({
               <Link target="_blank" href="https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle/requestPermission">
                 this link
               </Link>{' '}
-              to learn more about which browsers are supported.
+              to learn more about which browsers are supported. Additionally, if you are using Spire and viewing this site over http, a workaround is required.
             </Typography>
           )}
           {permissionStatus === PermissionStatusTypes.NeedRefresh && (
@@ -118,7 +118,7 @@ export const StatusDialog = ({
               <Box className="chrome-flags" sx={{ width: '100%' }} />
             </Stack>
           )}
-          {permissionStatus === PermissionStatusTypes.NeedEQDir && (
+          {permissionStatus === PermissionStatusTypes.NeedEQDir && (<Stack direction={'column'} sx={{ justifyContent: 'center !important', alignItems: 'center', alignContent: 'center' }}>
             <Typography
               sx={{ fontSize: 17, marginBottom: 2 }}
               color="text.secondary"
@@ -129,6 +129,16 @@ export const StatusDialog = ({
               version of zones related to the database linked, e.g. old Freeport
               vs. new.
             </Typography>
+            <Button onClick={async () => {
+              try {
+                const dirHandle = await window.showDirectoryPicker();
+                console.log('dir handle', dirHandle);
+                onDrop(dirHandle);
+              } catch (e) {
+                console.warn(e);
+              }
+            }} variant={'outlined'} sx={{ margin: '0 auto' }}>Select EQ Directory</Button>
+          </Stack>
           )}
         </div>
       </DialogContent>
