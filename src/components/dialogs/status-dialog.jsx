@@ -107,7 +107,7 @@ export const StatusDialog = ({
                 <b>{gameController.rootFileSystemHandle?.name}/eqsage</b> and
                 can be safely deleted at any time.
               </Typography>
-              <Button onClick={requestPermissions}>Request Permissions</Button>
+              <Button variant='outlined' sx={{ margin: '25px' }} onClick={requestPermissions}>Request Permissions</Button>
               <Typography
                 sx={{ fontSize: 17, marginBottom: 2 }}
                 color="text.secondary"
