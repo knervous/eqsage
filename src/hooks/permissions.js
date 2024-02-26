@@ -52,7 +52,14 @@ export const usePermissions = () => {
     })();
   }, []);
 
-  const onDrop = useCallback((e) => {
+  const onDrop = useCallback(async (e) => {
+    if (e?.kind === 'directory') {
+      await clear();
+      await set('eqdir', e);
+      gameController.rootFileSystemHandle = e;
+      setPermissionStatus(PermissionStatusTypes.NeedRefresh);
+      return;
+    }
     e.preventDefault();
     e.stopPropagation();
     if (!apiSupported) {
