@@ -44,7 +44,7 @@ function SpawnNavBar() {
     if (!selectedSpawn) {
       return;
     }
-    gameController.ZoneController.moveSpawn(selectedSpawn);
+    gameController.SpawnController.moveSpawn(selectedSpawn);
 
     (async () => {
       const { Spire } = gameController;

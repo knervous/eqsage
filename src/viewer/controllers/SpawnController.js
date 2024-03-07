@@ -265,13 +265,7 @@ class SpawnController extends GameControllerChild {
       count++;
       spawnList[realModel].push({
         ...firstSpawn,
-        spawnentries: spawn.spawnentries ?? [],
-        grid        : spawn.grid,
-        x           : spawn.x,
-        y           : spawn.y,
-        z           : spawn.z,
-        spawn_id    : spawn.id,
-        heading     : spawn.heading,
+        ...spawn
       });
     }
 
@@ -300,6 +294,13 @@ class SpawnController extends GameControllerChild {
     const allSpawns = Object.values(this.spawns);
     for (const spawn of allSpawns) {
       spawn.setLods(value);
+    }
+  }
+
+  moveSpawn(infSpawn) {
+    const spawn = this.spawns[infSpawn.id];
+    if (spawn) {
+      spawn.rootNode.position.set(infSpawn.y, infSpawn.z, infSpawn.x);
     }
   }
   /**
