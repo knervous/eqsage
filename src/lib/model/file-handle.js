@@ -4,7 +4,7 @@ import { Document } from '@gltf-transform/core';
 import { EQGDecoder } from '../eqg/eqg-decoder';
 import { getEQFile } from '../util/fileHandler';
 
-export const VERSION = 1.1;
+export const VERSION = 1.2;
 
 export class EQFileHandle {
   /**
