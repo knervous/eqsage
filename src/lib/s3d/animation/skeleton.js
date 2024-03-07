@@ -4,9 +4,11 @@ import { fragmentNameCleaner } from '../../util/util';
 import { Animation } from './animation';
 import { Mesh, MeshReference } from '../mesh/mesh';
 import * as glMat from 'gl-matrix';
+import { TrackFragment } from './track';
 
 const vec3 = glMat.vec3;
 const mat4 = glMat.mat4;
+const quat = glMat.quat;
 
 class SkeletonFlags {
   static HasCenterOffset = 0x01;
@@ -55,12 +57,22 @@ export class SkeletonHierarchy extends WldFragment {
    */
   flags = null;
 
+  /**
+   * @type {[Mesh]}
+   */
   meshes = [];
   alternateMeshes = [];
+  /**
+   * @type {[SkeletonBone]}
+   */
   skeleton = [];
   modelBase = '';
   isAssigned = false;
   skeletonPieceDictionary = {};
+
+  /**
+   * @type {Object.<string, Animation>}
+   */
   animations = {};
   boneMappingClean = {};
   boneMapping = {};
@@ -84,7 +96,6 @@ export class SkeletonHierarchy extends WldFragment {
     const skeletonTrackParams1Exists = (flags & 1) === 1;
     if (this.flags.hasCenterOffset || skeletonTrackParams1Exists) {
       this.centerOffset = vec3.fromValues(reader.readFloat32(), reader.readFloat32(), reader.readFloat32());
-      console.log('Had this', this.centerOffset);
     }
     if (this.flags.hasBoundingRadius) {
       this.boundingRadius = reader.readFloat32();
@@ -146,6 +157,92 @@ export class SkeletonHierarchy extends WldFragment {
         this.skeletonPieceDictionary[pieceNew.name] = pieceNew;
       }
     }
+
+    if (this.flags.hasMeshReference) {
+      const size2 = reader.readUint32();
+
+      for (let i = 0; i < size2; ++i) {
+        const meshRefIndex = reader.readUint32() - 1;
+
+        const meshRef = this.wld.fragments[meshRefIndex];
+
+        if (meshRef?.mesh) {
+          if (this.meshes.every(x => x.name !== meshRef.mesh.name)) {
+            this.meshes.push(meshRef.mesh);
+            meshRef.mesh.isHandled = true;
+          }
+        }
+
+        // if (meshRef?.LegacyMesh != null)
+        // {
+        //     if (AlternateMeshes.All(x => x.Name != meshRef.LegacyMesh.Name))
+        //     {
+        //         AlternateMeshes.Add(meshRef.LegacyMesh);
+        //     }
+        // }
+      }
+    }
+  }
+
+  /**
+   * 
+   * @param {TrackFragment} track 
+   * @param {boolean} isDefault 
+   */
+  addTrackData(track, isDefault = false) {
+    let animationName = '';
+    let modelName = '';
+    let pieceName = '';
+
+    let cleanedName = fragmentNameCleaner(track, true);
+
+    if (isDefault) {
+      animationName = 'pos';
+      modelName = this.modelBase;
+      cleanedName = cleanedName.replace(this.modelBase, String.Empty);
+      pieceName = cleanedName === 'string.Empty ' ? 'root' : cleanedName;
+    } else {
+      if (cleanedName.length <= 3) {
+        return;
+      }
+
+      animationName = cleanedName.slice(0, 3);
+      cleanedName = cleanedName.slice(3, cleanedName.length);
+
+      if (cleanedName.length < 3) {
+        return;
+      }
+
+      modelName = cleanedName.slice(0, 3);
+      cleanedName = cleanedName.slice(3, cleanedName.length);
+      pieceName = cleanedName;
+
+      if (pieceName === '') {
+        pieceName = 'root';
+      }
+    }
+
+    track.setTrackData(modelName, animationName, pieceName);
+
+    if (this.animations.hasOwnProperty(track.animationName)) {
+      if (modelName === this.modelBase && this.modelBase !== this.animations[animationName].animModelBase) {
+        delete this.animations[animationName];
+      }
+
+      if (modelName !== this.modelBase && this.modelBase === this.animations[animationName].animModelBase) {
+        return;
+      }
+    }
+
+    if (!this.animations.hasOwnProperty(track.animationName)) {
+      this.animations[track.animationName] = new Animation();
+    }
+
+    this.animations[track.animationName]
+      .addTrack(track, track.name, Animation.CleanBoneName(track.pieceName),
+        Animation.CleanBoneAndStripBase(track.pieceName, this.modelBase));
+    track.trackDefFragment.isAssigned = true;
+    track.isProcessed = true;
   }
 
   addPoseTrack(track, pieceName) {
@@ -161,6 +258,14 @@ export class SkeletonHierarchy extends WldFragment {
     track.trackDefFragment.isAssigned = true;
     track.isProcessed = true;
     track.isPoseAnimation = true;
+  }
+
+  buildSkeletonData(stripModelBase) {
+    if (this.hasBuiltData) {
+      return;
+    }
+    this.buildSkeletonTreeData(0, this.skeleton, null, '', '', '', stripModelBase);
+    this.hasBuiltData = true;
   }
 
   buildSkeletonTreeData(index, treeNodes, parent, 
@@ -206,14 +311,14 @@ export class SkeletonHierarchy extends WldFragment {
 
   addAdditionalMesh(mesh) {
     if (this.meshes.some(x => x.name === mesh.name) 
-        || this.secondaryMeshes.some(x => x.name == mesh.name)) {
+        || this.secondaryMeshes.some(x => x.name === mesh.name)) {
       return;
     }
     
     if (Object.entries(mesh.mobPieces).length === 0) {
       return;
     }
-
+    mesh.secondary = true;
     this.secondaryMeshes.push(mesh);
     this.secondaryMeshes = this.secondaryMeshes.sort((a, b) => a.name > b.name ? -1 : 1);
   }
@@ -239,15 +344,13 @@ export class SkeletonHierarchy extends WldFragment {
     return [false, boneName];
   }
 
-  getBoneMatrix(boneIndex, animationTracks, frame, centerCorrectionVector) {
+  getBoneMatrix(boneIndex, animationTracks, frame = 0, centerCorrectionVector = vec3.create()) {
     if (frame < 0) {
-      return mat4.from;
+      return mat4.create();
     }
 
     let currentBone = this.skeleton[boneIndex];
-    let boneMatrix = mat4.fromTranslation(mat4.create(), centerCorrectionVector);
-    boneMatrix = mat4.invert(mat4.create(), boneMatrix);
-    boneMatrix = mat4.multiply(mat4.create(), boneMatrix, mat4.identity(mat4.create()));
+    let boneMatrix = mat4.multiply(mat4.create(), mat4.invert(mat4.create(), mat4.fromTranslation(mat4.create(), centerCorrectionVector)), mat4.create());
 
     while (currentBone !== null) {
       if (!animationTracks.hasOwnProperty(currentBone.cleanedName)) {
@@ -259,23 +362,26 @@ export class SkeletonHierarchy extends WldFragment {
       currentBone = this.skeleton[boneIndex].parent;
 
       const scaleValue = track.frames[realFrame].scale;
-      const scaleMat = mat4.fromScaling(mat4.create(), vec3.fromValues(scaleValue, scaleValue, scaleValue));
+      const scaleMat = mat4.fromScaling(mat4.create(), [scaleValue, scaleValue, scaleValue]);
 
-      const rotationMatrix = mat4.fromQuat(mat4.create(), track.frames[realFrame]);
+      const rotationQuat = quat.normalize(quat.create(), track.frames[realFrame].rotation); // Assuming rotation is a quaternion
+      
+      
+      const rotationMatrix = mat4.fromQuat(mat4.create(), rotationQuat);
+      
 
-      const translateMat = mat4.fromTranslation(mat4.create(), track.frames[realFrame].translation);
+      const translation = track.frames[realFrame].translation;
+      const translateMat = mat4.fromTranslation(mat4.create(), translation);
 
-      let mMatrix = mat4.multiply(mat4.create(), translateMat, rotationMatrix);
-      mMatrix = mat4.multiply(mat4.create(), mMatrix, scaleMat);
-     
-      boneMatrix = mat4.multiply(mat4.create(), mMatrix, boneMatrix);
+      const modelMatrix = mat4.multiply(mat4.create(), mat4.multiply(mat4.create(), translateMat, rotationMatrix), scaleMat);
+
+      boneMatrix = mat4.multiply(mat4.create(), modelMatrix, boneMatrix);
 
       if (currentBone !== null) {
         boneIndex = currentBone.index;
       }
     }
-    const translatedMat = mat4.fromTranslation(mat4.create(), centerCorrectionVector);
-    return mat4.multiply(mat4.create(), translatedMat, boneMatrix);
+    return mat4.multiply(mat4.create(), mat4.fromTranslation(mat4.create(), centerCorrectionVector), boneMatrix);
   }
 
   renameNodeBase(newBase) {

@@ -1,7 +1,18 @@
+import { TrackDefFragment } from './track';
+
 export class Animation {
   animModelBase = '';
+  /**
+   * @type {Object.<string, TrackFragment>}
+   */
   tracks = {};
+  /**
+   * @type {Object.<string, TrackFragment>}
+   */
   tracksCleaned = {};
+  /**
+   * @type {Object.<string, TrackFragment>}
+   */
   tracksCleanedStripped = {};
   frameCount = 0;
   animationTimeMs = 0;
@@ -12,7 +23,7 @@ export class Animation {
     }
 
     const cleanedName = Animation.CleanBoneNameDag(boneName);
-    return cleanedName.Length == 0 ? 'root' : cleanedName;
+    return cleanedName.length === 0 ? 'root' : cleanedName;
   }
 
   static CleanBoneAndStripBase(boneName, modelBase) {
@@ -22,7 +33,7 @@ export class Animation {
       cleanedName = cleanedName.slice(modelBase.length, cleanedName.length);
     }
 
-    return cleanedName.length == 0 ? 'root' : cleanedName;
+    return cleanedName.length === 0 ? 'root' : cleanedName;
   }
 
   static CleanBoneNameDag(boneName) {

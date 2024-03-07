@@ -18,7 +18,15 @@ export const useSettingsHook = () => {
   }, [settings.clipPlane]);
 
   useEffect(() => {
+    gameController.SpawnController.setSpawnLOD(settings.spawnLOD);
+  }, [settings.spawnLOD]);
+
+  useEffect(() => {
     gameController.ZoneController.setGlow(settings.glow);
   }, [settings.glow]);
+
+  useEffect(() => {
+    gameController.settings = settings;
+  }, [settings]);
 
 };

@@ -9,6 +9,7 @@ import { BabylonZoneOverlay } from '../zone/overlay';
 import { BabylonZone } from '../zone/zone';
 import { ZoneProvider } from '../zone/zone-context';
 import { SettingsProvider } from '../../context/settings';
+import { LoadingDialog } from '../spire/dialogs/loading-dialog';
 
 const CONSTANTS = {
   BONE         : '#ccc',
@@ -42,6 +43,7 @@ export const Main = () => {
         setStatusDialogOpen,
       }}
     >
+      <LoadingDialog />
       <SettingsProvider>
         <ThemeProvider
           theme={createTheme({

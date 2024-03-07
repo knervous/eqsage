@@ -26,6 +26,7 @@ export const UiState = {
   visibleSpawns: store => store.ui.visibleSpawns,
   loading      : store => store.ui.loading,
   loadingText  : store => store.ui.loadingText,
+  loadingTitle : store => store.ui.loadingTitle,
 };
 
 export const ChatState = {

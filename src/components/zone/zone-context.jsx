@@ -50,7 +50,7 @@ export const ZoneProvider = ({ children }) => {
 
 
   useEffect(() => {
-    gameController.ZoneController.loadZoneSpawns(spawns);
+    gameController.SpawnController.addSpawns(spawns);
   }, [spawns]);
   return (
     <ZoneContext.Provider

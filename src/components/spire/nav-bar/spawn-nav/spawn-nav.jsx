@@ -36,7 +36,7 @@ function SpawnNavBar() {
 
   useEffect(() => {
     if (!open) {
-      gameController.ZoneController.showSpawnPath([]);
+      gameController.SpawnController.showSpawnPath([]);
     }
   }, [open]);
 
@@ -66,8 +66,8 @@ function SpawnNavBar() {
     }
     const clickCallback = (spawn) => {
       console.log('Spawn', spawn);
-      gameController.ZoneController.npcLight(spawn);
-      gameController.ZoneController.showSpawnPath(spawn.grid ?? []);
+      gameController.SpawnController.npcLight(spawn);
+      gameController.SpawnController.showSpawnPath(spawn?.grid ?? []);
       const s = JSON.parse(JSON.stringify(spawn));
       setSelectedSpawn(s);
       setAddEditDialogOpen(false);
@@ -77,17 +77,17 @@ function SpawnNavBar() {
 
     const keyHandle = (e) => {
       if (e.key === 'Escape') {
-        gameController.ZoneController.npcLight(null);
+        gameController.SpawnController.npcLight(null);
         setOpen(false);
       }
       if (e.key.toLowerCase() === 'r') {
         pickRaycast();
       }
     };
-    gameController.ZoneController.addClickCallback(clickCallback);
+    gameController.SpawnController.addClickCallback(clickCallback);
     window.addEventListener('keydown', keyHandle);
     return () => {
-      gameController.ZoneController.removeClickCallback(clickCallback);
+      gameController.SpawnController.removeClickCallback(clickCallback);
       window.removeEventListener('keydown', keyHandle);
     };
   }, [selectedZone, pickRaycast]);
@@ -108,7 +108,7 @@ function SpawnNavBar() {
     () => selectedSpawn?.spawnentries ?? [],
     [selectedSpawn?.spawnentries]
   );
-  return (
+  return open ? (
     <>
       {addEditDialogOpen && spawnEntries && (
         <AddEditSpawnDialog
@@ -279,7 +279,7 @@ function SpawnNavBar() {
         </Box>
       </Box>
     </>
-  );
+  ) : null;
 }
 
 export default SpawnNavBar;

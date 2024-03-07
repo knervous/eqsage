@@ -8,9 +8,19 @@ import {
 } from '@mui/material';
 import { CommonDialog } from './common';
 import { useSettingsContext } from '../../../context/settings';
+import { useDebouncedCallback, useThrottledCallback } from 'use-debounce';
 
 export const SettingsDialog = ({ onClose }) => {
-  const { setOption, showRegions, flySpeed, glow, webgpu = false, forceReload = false, clipPlane = 10000 } = useSettingsContext();
+  const {
+    setOption,
+    showRegions,
+    flySpeed,
+    glow,
+    webgpu = false,
+    forceReload = false,
+    clipPlane = 10000,
+    spawnLOD = 500,
+  } = useSettingsContext();
   return (
     <CommonDialog onClose={onClose} title={'Settings'}>
       <FormControl sx={{ marginTop: 1, marginBottom: 2 }} fullWidth>
@@ -19,10 +29,9 @@ export const SettingsDialog = ({ onClose }) => {
           color="text.secondary"
           gutterBottom
         >
-              Camera Fly Speed: {flySpeed}
+          Camera Fly Speed: {flySpeed}
         </Typography>
         <Slider
-
           value={flySpeed}
           onChange={(e) => setOption('flySpeed', +e.target.value)}
           step={0.01}
@@ -36,15 +45,30 @@ export const SettingsDialog = ({ onClose }) => {
           color="text.secondary"
           gutterBottom
         >
-              Clip Plane: {clipPlane}
+          Clip Plane: {clipPlane}
         </Typography>
         <Slider
-
           value={clipPlane}
           onChange={(e) => setOption('clipPlane', +e.target.value)}
           step={1}
           min={5}
           max={30000}
+        />
+      </FormControl>
+      <FormControl sx={{ marginTop: 1, marginBottom: 2 }} fullWidth>
+        <Typography
+          sx={{ fontSize: 14, marginTop: 2, width: '80%' }}
+          color="text.secondary"
+          gutterBottom
+        >
+          Spawn LOD: {spawnLOD}
+        </Typography>
+        <Slider
+          value={spawnLOD}
+          onChange={useDebouncedCallback((e) => setOption('spawnLOD', +e.target.value), 100)}
+          step={1}
+          min={0}
+          max={1000}
         />
       </FormControl>
       <FormControlLabel
@@ -58,31 +82,27 @@ export const SettingsDialog = ({ onClose }) => {
         }
         label="Show Regions"
       />
-      <br/>
+      <br />
       <FormControlLabel
         control={
           <Checkbox
             checked={glow}
-            onChange={({ target: { checked } }) =>
-              setOption('glow', checked)
-            }
+            onChange={({ target: { checked } }) => setOption('glow', checked)}
           />
         }
         label="NPC Glow"
       />
-      <br/>
+      <br />
       <FormControlLabel
         control={
           <Checkbox
             checked={webgpu}
-            onChange={({ target: { checked } }) =>
-              setOption('webgpu', checked)
-            }
+            onChange={({ target: { checked } }) => setOption('webgpu', checked)}
           />
         }
         label="Use WebGPU Engine"
       />
-      <br/>
+      <br />
       <FormControlLabel
         control={
           <Checkbox
@@ -94,7 +114,6 @@ export const SettingsDialog = ({ onClose }) => {
         }
         label="Force zone reload"
       />
-   
     </CommonDialog>
   );
 };

@@ -21,7 +21,7 @@ export const AnimationNames = {
   Swim                   : 10,
   Sitting                : 38,
   'Stand (Arms at Sides)': 39,
-  Idle                   : 17,
+  'p01'                  : 17,
   'Idle (Arms at Sides)' : 18,
   'Idle (Sitting)'       : 38,
   Walk                   : 41,

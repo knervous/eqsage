@@ -1,4 +1,22 @@
-import { Color3, DynamicTexture, Mesh, MeshBuilder, ParticleSystem, PhysicsAggregate, PhysicsShapeType, StandardMaterial, Tools, Vector3 } from '@babylonjs/core';
+import {
+  AbstractMesh,
+  Color3,
+  DynamicTexture,
+  Material,
+  Mesh,
+  MeshBuilder,
+  MultiMaterial,
+  Node,
+  PBRMaterial,
+  ParticleSystem,
+  PhysicsAggregate,
+  PhysicsShapeType,
+  Scene,
+  StandardMaterial,
+  Texture,
+  Tools,
+  Vector3,
+} from '@babylonjs/core';
 import { Spawn } from './Spawn';
 import { gameController } from '../controllers/GameController';
 import { eqtoBabylonVector } from '../util/vector';
@@ -16,14 +34,13 @@ export class BabylonSpawn {
   /** @type {TransformNode} */
   transform = null;
 
-  /** @type {import('@babylonjs/core').AssetContainer} */
-  assetContainer = null;
-  
+  modelName = '';
+
   /** @type {Mesh} */
   nameplateMesh = null;
 
-  /** @type {PhysicsAggregate} */
-  physicsAggregate;
+  /** @type {Node} */
+  parentNode = null;
 
   /** @type {import('@babylonjs/core').AnimationGroup[]} */
   animationGroups = [];
@@ -36,45 +53,57 @@ export class BabylonSpawn {
   /** @type {Animatable[]} */
   animatables = [];
 
-  /** @type {number | null} */
-  timestamp = null;
-
-  /** @type {Vector3} */
-  linearVelocity = null;
-
-  lastX = -1;
-  lastY = -1;
-  lastZ = -1;
-
   loopedAnimation = AnimationNames.Idle;
 
   animating = false;
   canAnimate = false;
   animatingIndex = AnimationNames.Idle;
 
-  agentIndex = -1;
-
   /**
-     * @param {object} spawnData
-     * @param {import('@babylonjs/core').AssetContainer} container
-     */
-  constructor(spawnEntry, container, options = {}) {
-    this.options = options;
-    this.assetContainer = container;
-    this.instanceContainer = container.instantiateModelsToScene();
-    this.instanceContainer.animationGroups?.forEach(ag => gameController.currentScene.removeAnimationGroup(ag));
-    const totalAnimatables = this.instanceContainer.animationGroups.reduce((acc, val) => acc + val.targetedAnimations.length, 0);
-    gameController.currentScene._activeAnimatables = gameController.currentScene._activeAnimatables.slice(0, gameController.currentScene._activeAnimatables.length - totalAnimatables);
+   * @param {object} spawnData
+   * @param {Node} parentNode
+   * @param {Material} sphereMat
+   *
+   */
+  constructor(spawnEntry, modelName, parentNode, sphereMat) {
+    this.modelName = modelName;
+    this.spawnEntry = spawnEntry;
+    this.metadata = {
+      spawn        : this.spawnEntry,
+      emissiveColor: spawnEntry.grid?.length
+        ? new Color3(0, 1, 1)
+        : new Color3(1, 1, 1),
+    };
     this.spawn = new Spawn(spawnEntry);
-    this.animationGroups = this.instanceContainer.animationGroups;
-    this.animationMap = mapAnimations(this.animationGroups);
-    this.rootNode = this.instanceContainer.rootNodes[0];
+    this.parentNode = parentNode;
+    this.sphereMat = sphereMat;
+  }
+
+  setLods(value) {
+    this.rootNode.getLODLevels().forEach(lod => {
+      this.rootNode.removeLODLevel(lod.mesh);
+    });
+    this.rootNode.addLODLevel(value, this.instance);
   }
 
   /**
    * @returns {boolean}
    */
   async initializeSpawn() {
+    const modelVariation =
+      this.spawnEntry.texture >= 10
+        ? `${this.modelName}${(Number(this.spawnEntry.texture.toString()[0]))
+          .toString()
+          .padStart(2, '0')}`
+        : this.modelName;
+
+    const assetContainer =
+      await gameController.SpawnController.getAssetContainer(modelVariation);
+    this.instanceContainer = assetContainer.instantiateModelsToScene();
+    this.animationGroups = this.instanceContainer.animationGroups;
+    this.animationMap = mapAnimations(this.animationGroups);
+    this.rootNode = this.instanceContainer.rootNodes[0];
+
     if (!this.rootNode) {
       console.log('No root node for container spawn', this.spawn);
       return false;
@@ -82,8 +111,8 @@ export class BabylonSpawn {
 
     this.rootNode.id = `spawn_${this.spawn.id}`;
     this.rootNode.name = this.spawn.name;
-    const scale = (this.spawn.size ?? 0) === 0 ? 1.5 : this.spawn.size / 4;
-
+    const scale = this.modelName === 'fis' ? 0.005 : (this.spawn.size ?? 0) === 0 ? 1.5 : this.spawn.size / 4;
+    this.scale = scale;
     for (const mesh of this.rootNode.getChildMeshes()) {
       mesh.checkCollisions = true;
       mesh.name = mesh.material.name;
@@ -91,8 +120,6 @@ export class BabylonSpawn {
         spawn: true,
       };
     }
-    // Initialize and delete excess textures before merging
-    this.updateTextures(true);
 
     this.rootNode.position.setAll(0);
     this.rootNode.scaling.setAll(1);
@@ -100,8 +127,47 @@ export class BabylonSpawn {
     this.rootNode.rotation.setAll(0);
 
     const instanceSkeleton = this.instanceContainer.skeletons[0];
-    const skeletonRoot = this.rootNode.getChildren(undefined, true).find(a => a.name.includes('root'));
-    const merged = Mesh.MergeMeshes(this.rootNode.getChildMeshes(false), false, true, undefined, false, true);
+    const skeletonRoot = this.rootNode.getChildren(undefined, true)[0];
+
+
+    const secondaryMeshes = this.rootNode.getChildTransformNodes()[0]?.metadata?.gltf?.extras?.secondaryMeshes ?? 0;
+  
+    // Secondary mesh
+    let secModel = null;
+    if (secondaryMeshes > 0) {
+      const variation = this.spawnEntry.helmtexture?.toString().padStart(2, '0') ?? '00';
+      const container = await gameController.SpawnController.getAssetContainer(`${this.modelName}he${variation}`, true);
+      const secondaryModel = container.instantiateModelsToScene();
+      secModel = secondaryModel;
+      try {
+        secondaryModel.rootNodes[0].getChildMeshes()?.forEach(m => {
+          this.rootNode.addChild(m);
+        });
+
+
+      } catch (e) {
+
+      }
+      // this.rootNode.addChild(secondaryModel.rootNodes[0].getChildMeshes()[0]);
+      // if (secondaryModel.rootNodes.length) {
+      //   this.rootNode.addChild(secondaryModel.rootNodes[0].getChildMeshes()[0]);
+
+      // } else {
+      //   console.warn(`Sec mesh for ${this.spawnEntry.name} not loaded`);
+      // }
+    }
+
+    const merged = Mesh.MergeMeshes(
+      this.rootNode.getChildMeshes(false),
+      false,
+      true,
+      undefined,
+      true,
+      true
+    );
+    if (secModel) {
+      secModel.dispose();
+    }
     if (merged) {
       skeletonRoot.parent = merged;
       skeletonRoot.skeleton = instanceSkeleton;
@@ -110,71 +176,139 @@ export class BabylonSpawn {
       this.rootNode = merged;
       this.rootNode.skeleton = skeletonRoot.skeleton;
 
+      // Let's do textures
+      /**
+       * @type {MultiMaterial}
+       */
+      const multiMat = merged.material;
+      if (
+        this.spawnEntry.hasOwnProperty('texture') &&
+        this.spawnEntry.texture > 0
+      ) {
+        for (const [idx, mat] of Object.entries(multiMat.subMaterials)) {
+          if (!mat?._albedoTexture) {
+            continue;
+          }
+          const isVariationTexture = this.spawnEntry.texture >= 10;
+          let text =
+            isVariationTexture
+              ? this.spawnEntry.texture - 10
+              : this.spawnEntry.texture;
+          if (mat.name.startsWith('clk')) {
+            text += 4;
+          }
+          const prefix = mat.name.slice(0, mat.name.length - 4);
+          const suffix = mat.name.slice(mat.name.length - 4, mat.name.length);
+          const textVer = suffix.slice(0, 2);
+          const textNum = suffix.slice(2, 4);
+
+          const thisText = text.toString().padStart(2, '0');
+
+          const newFullName = `${prefix}${thisText}${textNum}`;
+          if (thisText !== textVer) {
+            const existing = gameController.currentScene.materials
+              .flat()
+              .find((m) => m.name === newFullName);
+            if (existing) {
+              multiMat.subMaterials[idx] = existing;
+            } else {
+              const newMat = new PBRMaterial(newFullName);
+              newMat.metallic = 0;
+              newMat.roughness = 0;
+              newMat._albedoTexture = new Texture(
+                newFullName,
+                gameController.currentScene,
+                mat._albedoTexture.noMipMap,
+                mat._albedoTexture.invertY,
+                mat._albedoTexture.samplingMode
+              );
+              multiMat.subMaterials[idx] = newMat;
+            }
+          }
+        }
+      }
     }
+    const sphere = MeshBuilder.CreateSphere(
+      this.spawn.name,
+      { diameter: 3, segments: 32 },
+      this.currentScene
+    );
+    // sphere.isVisible = false;
+    sphere.metadata = { ...this.metadata, onlyOccluded: false };
+    sphere.position = this.rootNode.position;
+    sphere.parent = this.parentNode;
+    sphere.isPickable = true;
+    this.rootNode.parent = this.parentNode;
+    this.instance = sphere;
+    this.rootNode.metadata = { ...this.metadata, onlyOccluded: true };
+    this.rootNode.addLODLevel(gameController.settings.spawnLOD, sphere);
+
+    gameController.ZoneController.glowLayer.addIncludedOnlyMesh(this.rootNode);
+    gameController.ZoneController.glowLayer.addIncludedOnlyMesh(this.instance);
+
     this.rootNode.id = `spawn_${this.spawn.id}`;
     this.rootNode.name = this.spawn.name;
-    // this.rootNode.setEnabled(false);
 
-    await this.updatePrimarySecondary(instanceSkeleton, skeletonRoot).catch((e) => {
-      console.warn('Error instantiating primary/secondary', e);
-    });
-
-    this.rootNode.position = eqtoBabylonVector(this.spawn.x, this.spawn.y, this.spawn.z + 2);
+    this.rootNode.position = eqtoBabylonVector(
+      this.spawn.x,
+      this.spawn.y,
+      this.spawn.z + 2
+    );
     this.rootNode.scaling.z = scale;
     this.rootNode.scaling.x = scale;
     this.rootNode.scaling.y = Math.abs(scale);
-    this.rootNode.rotation = new Vector3(Tools.ToRadians(0), Tools.ToRadians(this.spawn.heading), Tools.ToRadians(0));
-    this.rootNode.setEnabled(false);
-    this.rootNode.isPickable = true;
+    this.rootNode.rotation = new Vector3(
+      Tools.ToRadians(0),
+      Tools.ToRadians(this.spawn.heading),
+      Tools.ToRadians(0)
+    );
 
-    // Create nameplate
+    this.rootNode.isPickable = true;
+    this.rootNode.babylonSpawn = this;
+    this.rootNode.forceRenderingWhenOccluded = true;
+    this.rootNode.occlusionType = AbstractMesh.OCCLUSION_TYPE_OPTIMISTIC;
     this.createNameplate();
 
-    // Create physics aggregate
+    const anim =
+      this.animationGroups.find((ag) => ag.name === 'Clone of p01') ??
+      this.animationGroups?.[0];
+    if (anim) {
+      this.disableLoopedAnimation();
+      anim.play(true);
+    }
     this.rootNode.refreshBoundingInfo();
-    const height = Math.abs(this.rootNode.getBoundingInfo().boundingBox.maximumWorld.y - this.rootNode.getBoundingInfo().boundingBox.minimumWorld.y);
-    this.nameplateMesh.position.y = Math.abs(this.rootNode.getBoundingInfo().boundingBox.minimum.y - 1.2);
-    if (this.physicsAggregate) {
-      this.physicsAggregate.dispose();
-      delete this.physicsAggregate;
-    }
-
-    if (!this.options.skipPhysics) {
-      const ag = new PhysicsAggregate(this.rootNode, PhysicsShapeType.BOX, { center: new Vector3(0, -1.5, 0), extents: new Vector3(2, height, 2), mass: 3, restitution: 0, friction: 1 });
-      ag.body.setMassProperties({
-        inertia: new Vector3(0, 0, 0)
-      });
-      this.physicsAggregate = ag;
-    }
-   
-    // this.rootNode.forceRenderingWhenOccluded = true;
-    // this.rootNode.occlusionType = AbstractMesh.OCCLUSION_TYPE_OPTIMISTIC;
-
-    this.animatables = this.animationGroups.map(ag => ag.animatables).flat();
-
-    this.rootNode.babylonSpawn = this;
     return true;
   }
 
   enableLoopedAnimation() {
-    this.animationMap[this.loopedAnimation]?.play(this.loopedAnimation !== AnimationNames['Shuffle Feet']);
+    this.animationMap[this.loopedAnimation]?.play(
+      this.loopedAnimation !== AnimationNames['Shuffle Feet']
+    );
     this.animating = true;
   }
 
   disableLoopedAnimation(removeAnimatables = false) {
     if (removeAnimatables) {
-      const startIdx = gameController.currentScene._activeAnimatables.findIndex(ag => this.animatables[0] === ag);
+      const startIdx = gameController.currentScene._activeAnimatables.findIndex(
+        (ag) => this.animatables[0] === ag
+      );
       if (startIdx > -1) {
-        gameController.currentScene._activeAnimatables.splice(startIdx, this.animatables.length);
+        gameController.currentScene._activeAnimatables.splice(
+          startIdx,
+          this.animatables.length
+        );
       }
     }
-    
+
     this.animationMap[this.loopedAnimation]?.stop();
     this.animating = false;
   }
 
   swapLoopedAnimation(newIdx) {
-    if (newIdx === this.loopedAnimation && this.animationMap[newIdx]?.isPlaying) {
+    if (
+      newIdx === this.loopedAnimation &&
+      this.animationMap[newIdx]?.isPlaying
+    ) {
       return;
     }
     this.disableLoopedAnimation();
@@ -186,318 +320,111 @@ export class BabylonSpawn {
     if (!this.rootNode.isEnabled() || this.animatingIndex === idx) {
       return;
     }
-    this.animatingIndex = idx;
-    const anim = this.animationMap[idx];
+
+    const anim =
+      this.animationGroups.find((ag) => ag.name === 'Clone of p01') ??
+      this.animationGroups?.[0];
     if (anim) {
       this.disableLoopedAnimation();
-      anim.play(false);
-      anim.onAnimationEndObservable.addOnce(() => {
-        this.enableLoopedAnimation();
-        this.animatingIndex = -1;
-      });
+      anim.play(true);
     }
   }
 
   dispose() {
     this.rootNode?.dispose();
     this.rootNode = null;
-    clearInterval(this.charSelectInterval);
-  }
-
-  charSelectAnimation() {
-    this.swapLoopedAnimation(AnimationNames.Idle);
-    this.charSelectInterval = setInterval(() => {
-      
-      this.playAnimation(Math.floor(Math.random() * 5));
-    }, 5000);
+    this.nameplateMesh?.dispose();
+    this.nameplateMesh = null;
+    this.instance?.dispose();
+    this.instance = null;
   }
 
   createNameplate() {
-    const temp = new DynamicTexture('DynamicTexture', 64, gameController.currentScene);
+    const hasEntries =
+      Array.isArray(this.spawnEntry.spawnentries) &&
+      this.spawnEntry.spawnentries.length > 0;
+    let text = ['No Associated Spawns'];
+    if (hasEntries) {
+      const lines = [];
+      for (const entry of this.spawnEntry.spawnentries) {
+        if (!entry.npc_type) {
+          continue;
+        }
+        lines.push(
+          `${entry.npc_type?.name} - Level ${entry.npc_type?.level} - ${entry.chance}% Chance`
+        );
+      }
+      text = lines;
+    }
+
+    if (!text.length) {
+      return;
+    }
+
+    const temp = new DynamicTexture(
+      'DynamicTexture',
+      64,
+      gameController.currentScene
+    );
     const tmpctx = temp.getContext();
-    tmpctx.font = '16px Arial';
-    const textWidth = tmpctx.measureText(this.spawn.displayedName).width + 20;
-    const textureGround = new DynamicTexture(`${this.spawn.name}_nameplate_texture`, { width: textWidth, height: 30 }, gameController.currentScene);   
-    textureGround.drawText(this.spawn.displayedName, null, null, '17px Arial', '#02c473', 'transparent', false, true);
-    textureGround.update(false, true);
-    const materialGround = new StandardMaterial(`${this.spawn.name}_nameplate_material`, gameController.currentScene);
+    tmpctx.font = '32px Arial';
+    const textWidth = text.reduce((acc, val) => {
+      const newTextWidth = tmpctx.measureText(val).width;
+      if (newTextWidth > acc) {
+        return newTextWidth;
+      }
+      return acc;
+    }, 0);
 
-    materialGround.diffuseTexture = textureGround;
-    materialGround.diffuseTexture.hasAlpha = true;
-    materialGround.useAlphaFromDiffuseTexture = true;
-    materialGround.emissiveColor = Color3.White();// ('#fbdc02');// Color3.FromInts(100, 200, 100);
-    materialGround.disableLighting = true;
-    const nameplateMesh = MeshBuilder.CreatePlane(`${this.spawn.name}_nameplate`, { width: textWidth / 30, height: 1 }, gameController.currentScene);
-    nameplateMesh.parent = this.rootNode;
-    nameplateMesh.billboardMode = ParticleSystem.BILLBOARDMODE_ALL;
-    nameplateMesh.material = materialGround;
+    const textLengthLongest = text.reduce((acc, val) => {
+      const newTextLength = val.length;
+      if (newTextLength > acc) {
+        return newTextLength;
+      }
+      return acc;
+    }, 0);
+    temp.dispose();
 
-    // materialGround.onBindObservable.add(() => {
-    //   gameController.engine.alphaState.setAlphaBlendFunctionParameters(1, 0x0303 /* ONE MINUS SRC ALPHA */, 1, 0x0303 /* ONE MINUS SRC ALPHA */);
-    // });
+    const dynamicTexture = new DynamicTexture(
+      'DynamicTexture',
+      { width: textWidth, height: 100 + text.length * 65 },
+      gameController.currentScene
+    );
+    const ctx = dynamicTexture.getContext();
+    const lineHeight = 40; // Adjust based on your font size
+    ctx.font = '32px arial';
+    ctx.fillStyle = 'white';
+    for (let i = 0; i < text.length; i++) {
+      let txt = text[i];
+      txt = txt.padStart(textLengthLongest, ' ');
+      ctx.fillText(txt, 0, lineHeight * (i + 1));
+    }
+    dynamicTexture.update();
 
-    this.nameplateMesh = nameplateMesh;
+    const plane = MeshBuilder.CreatePlane(
+      'textPlane',
+      { width: textWidth / 60, height: 2 + text.length },
+      gameController.currentScene
+    );
+    plane.addLODLevel(500, null);
+    plane.isPickable = false;
+    // const height = Math.abs(this.rootNode.getBoundingInfo().boundingBox.maximumWorld.y - this.rootNode.getBoundingInfo().boundingBox.minimumWorld.y);
+    plane.position.y = Math.abs(this.rootNode.getBoundingInfo().boundingBox.minimum.y - 1.2);
+    plane.billboardMode = ParticleSystem.BILLBOARDMODE_ALL;
+    plane.parent = this.rootNode;
+    const material = new StandardMaterial(
+      'nameplate',
+      gameController.currentScene
+    );
+    plane.material = material;
+    material.diffuseTexture = dynamicTexture;
+    material.diffuseTexture.hasAlpha = true;
+    material.useAlphaFromDiffuseTexture = true;
+    material.emissiveColor = Color3.White();
+
+    this.nameplateMesh = plane;
   }
 
   // eslint-disable-next-line
-    updateTextures(doDelete = false) {
-    const model = this.spawn.model;
-    const isVariation = (name, variation) => {
-      if (/\d{4}$/.test(name)) {
-        return name.slice(name.length - 4, name.length - 2) === `${variation}`.padStart(2, '0');
-      }
-      return false;
-    };
-    const matchPrefix = (prefix, name) => {
-      return name.includes(prefix);
-    };
-    for (const mesh of this.rootNode.getChildMeshes()) {
-      // NPCs without equipment
-      if (!this.spawn.hasEquip) {
-        const texture = this.spawn.equipChest;
-        if (isVariation(mesh.name, texture)) {
-          mesh.setEnabled(true);
-        } else {
-          if (doDelete) {
-            mesh.dispose();
-          } else {
-            mesh.setEnabled(false);
-          }
-              
-        }
-      } else {
-        // Humanoid wearing equip
-        const equip = this.spawn.equipment;
-        // One-offs for helm
-        let offsetHeadId = equip.head.id;
-        if ([1].includes(this.spawn.race)) {
-          offsetHeadId += 1;
-          if (offsetHeadId > 4) {
-            offsetHeadId = 0;
-          }
-        }
-        if (mesh.name.includes('tm_helm') && !mesh.name.endsWith(offsetHeadId)) {
-          if (doDelete) {
-            mesh.dispose();
-          } else {
-            mesh.setEnabled(false);
-          }
-        }
-    
-        if (mesh.name.includes('chain') && !mesh.name.endsWith(offsetHeadId)) {
-          if (doDelete) {
-            mesh.dispose();
-          } else {
-            mesh.setEnabled(false);
-          }
-              
-        }
-        if (mesh.name.includes('leather') && !mesh.name.endsWith(offsetHeadId)) {
-          if (doDelete) {
-            mesh.dispose();
-          } else {
-            mesh.setEnabled(false);
-          }
-              
-        }
-    
-        // Disable all clk for now
-        if (mesh.name.startsWith('d_clk')) {
-          if (isVariation(mesh.name, equip.chest.id - 6)) {
-            mesh.setEnabled(true);
-            const { blue, green, red, useTint } = this.spawn.equipment.chest.tint;
-            if (useTint !== 0) {
-              mesh.material.albedoColor = Color3.FromInts(red, green, blue);
-            }
-                
-          } else {
-            if (doDelete) {
-              mesh.dispose();
-            } else {
-              mesh.setEnabled(false);
-            }
-          }
-        }
-    
-        // Chest
-        if (matchPrefix(`${model}ch`, mesh.name)) {
-          if (isVariation(mesh.name, equip.chest.id)) {
-            mesh.setEnabled(true);
-            const { blue, green, red, useTint } = this.spawn.equipment.chest.tint;
-            if (useTint !== 0) {
-              mesh.material.albedoColor = Color3.FromInts(red, green, blue);
-            }
-          } else {
-            if (doDelete) {
-              mesh.dispose();
-            } else {
-              mesh.setEnabled(false);
-            }
-          }
-        }
-    
-        // Face
-        if (matchPrefix(`${model}he00`, mesh.name)) {
-          if (offsetHeadId > 0) {
-            if (!mesh.name.endsWith(`-${offsetHeadId}`) && !(offsetHeadId === 1 && mesh.name.endsWith(offsetHeadId))) {
-              if (doDelete) {
-                mesh.dispose();
-              } else {
-                mesh.setEnabled(false);
-              }
-            } else {
-              const mat = gameController.currentScene.materials.find(m => m.name.endsWith(`${this.spawn.model}he00${this.spawn.face}1`));
-              if (mat) {
-                mesh.material = mat;
-              }
-            }
-          } else if (mesh.name.endsWith(`${this.spawn.face}1`)) {
-            mesh.setEnabled(true);
-          } else {
-            if (doDelete) {
-              mesh.dispose();
-            } else {
-              mesh.setEnabled(false);
-            }
-          }
-               
-        }
-    
-        // Hands
-        if (matchPrefix(`${model}hn`, mesh.name)) {
-          if (!isVariation(mesh.name, 0)) {
-            if (isVariation(mesh.name, equip.hands.id)) {
-              mesh.setEnabled(true);
-              const { blue, green, red, useTint } = this.spawn.equipment.hands.tint;
-              if (useTint !== 0) {
-                mesh.material.albedoColor = Color3.FromInts(red, green, blue);
-              }
-            } else {
-              if (doDelete) {
-                mesh.dispose();
-              } else {
-                mesh.setEnabled(false);
-              }
-            }
-          }
-        }
-    
-        // Arms
-        if (matchPrefix(`${model}ua`, mesh.name)) {
-          if (isVariation(mesh.name, equip.arms.id)) {
-            mesh.setEnabled(true);
-            const { blue, green, red, useTint } = this.spawn.equipment.arms.tint;
-            if (useTint !== 0) {
-              mesh.material.albedoColor = Color3.FromInts(red, green, blue);
-            }
-          } else {
-            if (doDelete) {
-              mesh.dispose();
-            } else {
-              mesh.setEnabled(false);
-            }
-          }
-        }
-    
-        // Bracers
-        if (matchPrefix(`${model}fa`, mesh.name)) {
-          if (isVariation(mesh.name, equip.wrist.id)) {
-            mesh.setEnabled(true);
-            const { blue, green, red, useTint } = this.spawn.equipment.wrist.tint;
-            if (useTint !== 0) {
-              mesh.material.albedoColor = Color3.FromInts(red, green, blue);
-            }
-          } else {
-            if (doDelete) {
-              mesh.dispose();
-            } else {
-              mesh.setEnabled(false);
-            }
-          }
-        }
-            
-        // Legs
-        if (matchPrefix(`${model}lg`, mesh.name)) {
-          if (isVariation(mesh.name, equip.legs.id)) {
-            mesh.setEnabled(true);
-            const { blue, green, red, useTint } = this.spawn.equipment.legs.tint;
-            if (useTint !== 0) {
-              mesh.material.albedoColor = Color3.FromInts(red, green, blue);
-            }
-          } else {
-            if (doDelete) {
-              mesh.dispose();
-            } else {
-              mesh.setEnabled(false);
-            }
-          }
-        }
-    
-        // Feet
-        if (matchPrefix(`${model}ft`, mesh.name)) {
-          let feetId = equip.feet.id;
-          let checkEnd = false;
-          if (feetId >= 10 && feetId <= 16) {
-            feetId = 0;
-            checkEnd = true;
-          }
-          if (isVariation(mesh.name, feetId) && (!checkEnd || mesh.name.endsWith('02'))) {
-            mesh.setEnabled(true);
-            const { blue, green, red, useTint } = this.spawn.equipment.feet.tint;
-            if (useTint !== 0) {
-              mesh.material.albedoColor = Color3.FromInts(red, green, blue);
-            }
-          } else {
-            if (doDelete) {
-              mesh.dispose();
-            } else {
-              mesh.setEnabled(false);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  async updatePrimarySecondary(skeleton, skeletonRoot) {
-    if (this.spawn.equipment.primary.id > 0) {
-      const primary = await gameController.ItemController.createItem(this.spawn.equipment.primary.id);
-      if (primary) {
-        const transformNode = skeletonRoot.getChildTransformNodes().find(a => a.name.includes('r_point'));
-        const primaryBone = skeletonRoot.skeleton.bones.find(b => b.name === 'r_point');
-        if (primaryBone && transformNode) {
-          primary.attachToBone(primaryBone);
-          primary.parent = transformNode;
-          primary.rotationQuaternion = null;
-          primary.rotation.setAll(0);
-          primary.scaling.setAll(1);
-          primary.scaling.x = -1;
-          primary.name = `it${this.spawn.equipment.primary.id}`;
-          primary.skeleton = skeleton;
-        }
-      }
-          
-    }
-    
-    if (this.spawn.equipment.secondary.id > 0) {
-      const secondary = await gameController.ItemController.createItem(this.spawn.equipment.secondary.id);
-      if (secondary) {
-        const secondaryBone = skeleton.bones.find(b => b.name === 'l_point');
-        const transformNode = this.rootNode.getChildTransformNodes().find(a => a.name.includes('l_point'));
-        // Some item type check here for shield_point
-        if (secondaryBone && transformNode) {
-          secondary.attachToBone(secondaryBone);
-          secondary.parent = transformNode;
-          secondary.rotationQuaternion = null;
-          secondary.rotation.setAll(0);
-          // secondary.scaling.setAll(-1);
-          secondary.scaling.setAll(1);
-          secondary.scaling.x = -1;
-          secondary.name = `it${this.spawn.equipment.secondary.id}`;
-        }
-      }
-          
-    }
-  }
-    
+  updateTextures() {}
 }

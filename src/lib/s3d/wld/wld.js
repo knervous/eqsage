@@ -46,10 +46,6 @@ export class Wld {
    * @type {TypedArrayReader}
    */
   reader = null;
-  /**
-   * @type {import('../../model/file-handle').EQFileHandle}
-   */
-  fileHandle;
 
   identifier = 0;
   version = 0;
@@ -66,6 +62,21 @@ export class Wld {
    * @type {Array<import('./wld-fragment').WldFragment>}
    */
   fragments = [];
+
+  /**
+   * @type {[SkeletonHierarchy]}
+   */
+  skeletons = [];
+
+  /**
+   * @type {[TrackDefFragment]}
+   */
+  trackDefs = [];
+
+  /**
+   * @type {[TrackFragment]}
+   */
+  tracks = [];
 
   /**
    * @type {[Mesh]}
@@ -87,11 +98,10 @@ export class Wld {
   /**
    *
    * @param {Uint8Array} data
-   * @param {import('../../model/file-handle').EQFileHandle} fileHandle
+   * @param {string} name
    */
-  constructor(data, fileHandle, name) {
+  constructor(data, name) {
     this.reader = new TypedArrayReader(data.buffer);
-    this.fileHandle = fileHandle;
     this.name = name;
     this.load();
   }
@@ -210,16 +220,16 @@ export class Wld {
 
       // Objects /  Animation
       case 0x10: // Skeleton Track
-        addFragment(SkeletonHierarchy);
+        this.skeletons.push(addFragment(SkeletonHierarchy));
         break;
       case 0x11: // Skeleton Track Set Reference
         addFragment(WldFragmentReference);
         break;
       case 0x12: // Skeleton Piece Track
-        addFragment(TrackDefFragment);
+        this.trackDefs.push(addFragment(TrackDefFragment));
         break;
       case 0x13: // Skeleton Piece Track Ref
-        addFragment(TrackFragment);
+        this.tracks.push(addFragment(TrackFragment));
         break;
       case 0x14: // Static or Animated Model Ref/Player Info
         this.objects.push(addFragment(ActorDef));

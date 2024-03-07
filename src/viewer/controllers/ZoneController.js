@@ -30,6 +30,9 @@ import {
   recurseTreeFromKnownNode,
 } from '../../lib/s3d/bsp/region-utils';
 import { getEQFile } from '../../lib/util/fileHandler';
+import { BabylonSpawn } from '../models/BabylonSpawn';
+import raceData from '../common/raceData.json';
+import { GlobalStore } from '../../state';
 
 class ZoneController extends GameControllerChild {
   /**
@@ -55,6 +58,11 @@ class ZoneController extends GameControllerChild {
   loadCallbacks = [];
   clickCallbacks = [];
 
+  /**
+   * @type {Object.<string, Promise<AssetContainer>}
+   */
+  assetContainers = {};
+
   addClickCallback = (cb) => {
     this.clickCallbacks.push(cb);
   };
@@ -69,6 +77,7 @@ class ZoneController extends GameControllerChild {
     this.loadCallbacks = this.loadCallbacks.filter((l) => l !== cb);
   };
   dispose() {
+    this.SpawnController.dispose();
     if (this.scene) {
       this.scene.onPointerObservable.remove(this.onClick.bind(this));
       this.scene.onBeforeRenderObservable.remove(this.renderHook.bind(this));
@@ -101,9 +110,24 @@ class ZoneController extends GameControllerChild {
     this.scene.onPointerUp = this.sceneMouseUp;
     this.CameraController.createCamera(new Vector3(0, 250, 0));
     this.CameraController.camera.rotation = new Vector3(1.57, 1.548, 0);
-    const glowLayer = new GlowLayer('glow', this.scene);
+    const glowLayer = new GlowLayer('glow', this.scene, {
+      blurKernelSize: 10
+    });
     this.glowLayer = glowLayer;
     glowLayer.intensity = 0.7;
+    glowLayer.customEmissiveColorSelector = function (mesh, subMesh, material, result) {
+      if (mesh?.metadata?.emissiveColor) {
+        result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.5);
+        if (mesh?.metadata?.onlyOccluded) {
+          if (mesh.isOccluded) {
+            result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.5);
+          } else {
+            result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.00);
+          }
+        }
+      }
+      
+    };
     this.ambientLight = new HemisphericLight(
       '__ambient_light__',
       new Vector3(0, -0, 0),
@@ -120,6 +144,10 @@ class ZoneController extends GameControllerChild {
 
     // Click events
     this.scene.onPointerObservable.add(this.onClick.bind(this));
+
+    // Setups
+    this.SpawnController.setupSpawnController();
+
     return true;
   }
 
@@ -135,9 +163,7 @@ class ZoneController extends GameControllerChild {
           (pointerInfo.pickInfo.pickedMesh?.metadata?.spawn ?? null) !== null
         ) {
           this.clickCallbacks.forEach((c) =>
-            c(
-              pointerInfo.pickInfo.pickedMesh?.metadata?.spawn
-            )
+            c(pointerInfo.pickInfo.pickedMesh?.metadata?.spawn)
           );
         }
         break;
@@ -146,51 +172,6 @@ class ZoneController extends GameControllerChild {
     }
   }
 
-  showSpawnPath(coords) {
-    if (!this.scene) {
-      return;
-    }
-    if (this.scene.getMeshById('spawn-path')) {
-      this.scene.getMeshById('spawn-path').dispose();
-    }
-    if (coords.length === 0) {
-      return;
-    }
-    const path = coords.map((a) => new Vector3(a.y, a.z, a.x));
-    const tube = MeshBuilder.CreateTube(
-      'tube',
-      {
-        path,
-        radius         : 0.5,
-        sideOrientation: Mesh.DOUBLESIDE,
-        updatable      : true,
-      },
-      this.scene
-    );
-    tube.id = 'spawn-path';
-    const tubeMaterial = new StandardMaterial('tubeMaterial', this.scene);
-    tubeMaterial.emissiveColor = new Color3(0, 0.5, 1); // A bright color for glowing effect
-    tube.material = tubeMaterial;
-    this.glowLayer.addIncludedOnlyMesh(tube);
-
-
-    // Function to create an arrow
-    const createDirectionalBox = (name, point, scene) => {
-  
-      // Create box with initial size, will scale later
-      const box = MeshBuilder.CreateBox(name, { height: 2, width: 2, depth: 2 }, scene);
-      box.parent = tube;
-      box.position = point;
-      box.material = tubeMaterial;
-      this.glowLayer.addIncludedOnlyMesh(box);
-
-    };
-  
-    // Place directional boxes along the path with updated scaling
-    for (let i = 0; i < path.length - 1; i++) {
-      createDirectionalBox(`box${ i}`, path[i], this.scene);
-    }
-  }
 
   renderHook() {
     if (window.aabbPerf === undefined) {
@@ -243,28 +224,6 @@ class ZoneController extends GameControllerChild {
     }
   }
 
-  npcLight(spawn) {
-    const light = this.scene?.getLightById('spawn-light') ?? new PointLight('spawn-light', this.scene);
-    light.intensity = 500.0;
-    light.diffuse = new Color3(1, 0.84, 0); // RGB for gold color
-    light.range = 300;
-    light.radius = 50;
-
-    if (!spawn) {
-      if (light) {
-        light.dispose();
-      }
-      return;
-    }
-    const spawnMesh = this.scene?.getMeshById(`zone-spawn-${spawn.id}`);
-    if (spawnMesh) {
-      light.position = spawnMesh.position;
-    } else {
-      if (light) {
-        light.dispose();
-      }
-    }
-  }
 
   pickRaycastForLoc(callback) {
     const zoneMesh = this.scene.getMeshByName('zone');
@@ -280,7 +239,11 @@ class ZoneController extends GameControllerChild {
       { diameter: 3, segments: 32 },
       this.scene
     );
-    const pointLight = new PointLight('pointLight', new Vector3(0, 10, 0), this.scene);
+    const pointLight = new PointLight(
+      'pointLight',
+      new Vector3(0, 10, 0),
+      this.scene
+    );
     // pointLight.parent = raycastMesh;
     // Set the intensity of the point light
     pointLight.intensity = 500.0;
@@ -294,7 +257,6 @@ class ZoneController extends GameControllerChild {
 
     material.emissiveColor = new Color3(1, 1, 0);
     raycastMesh.material = material;
-    this.glowLayer.addIncludedOnlyMesh(raycastMesh);
     let chosenLocation = null;
 
     const tooltip = document.createElement('div');
@@ -304,12 +266,19 @@ class ZoneController extends GameControllerChild {
     const mouseMove = (e) => {
       // Calculate the pick ray from the camera position and mouse position
 
-      const pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY, null, false, this.CameraController.camera, (p0, p1, p2, ray) => {
-        const p0p1 = p0.subtract(p1);
-        const p2p1 = p2.subtract(p1);
-        const normal = Vector3.Cross(p0p1, p2p1);
-        return Vector3.Dot(ray.direction, normal) > 0;
-      });
+      const pickResult = this.scene.pick(
+        this.scene.pointerX,
+        this.scene.pointerY,
+        null,
+        false,
+        this.CameraController.camera,
+        (p0, p1, p2, ray) => {
+          const p0p1 = p0.subtract(p1);
+          const p2p1 = p2.subtract(p1);
+          const normal = Vector3.Cross(p0p1, p2p1);
+          return Vector3.Dot(ray.direction, normal) > 0;
+        }
+      );
 
       // Check if the ray intersects with the specific mesh
       if (pickResult.hit && pickResult.pickedMesh === zoneMesh) {
@@ -318,9 +287,11 @@ class ZoneController extends GameControllerChild {
         raycastMesh.position.set(hitPoint.x, hitPoint.y + 5, hitPoint.z);
         chosenLocation = { x: hitPoint.x, y: hitPoint.y + 5, z: hitPoint.z };
 
-        tooltip.style.left = `${e.pageX - tooltip.clientWidth / 2 }px`;
-        tooltip.style.top = `${e.pageY + tooltip.clientHeight / 2 }px`;
-        tooltip.innerHTML = `<p>[T] to commit - [Escape] to cancel</p><p>X: ${hitPoint.z.toFixed(2)}, Y: ${hitPoint.x.toFixed(2)}, Z: ${(hitPoint.y + 5).toFixed(2)}</p>`;
+        tooltip.style.left = `${e.pageX - tooltip.clientWidth / 2}px`;
+        tooltip.style.top = `${e.pageY + tooltip.clientHeight / 2}px`;
+        tooltip.innerHTML = `<p>[T] to commit - [Escape] to cancel</p><p>X: ${hitPoint.z.toFixed(
+          2
+        )}, Y: ${hitPoint.x.toFixed(2)}, Z: ${(hitPoint.y + 5).toFixed(2)}</p>`;
       }
     };
     const self = this;
@@ -344,145 +315,6 @@ class ZoneController extends GameControllerChild {
     }
     window.addEventListener('keydown', keyHandler);
     this.canvas.addEventListener('mousemove', mouseMove);
-
-  }
-
-  loadZoneSpawns(spawns) {
-    if (!this.scene) {
-      return;
-    }
-    let zoneSpawnsNode = this.scene?.getNodeById('zone-spawns');
-    if (!zoneSpawnsNode) {
-      zoneSpawnsNode = new TransformNode('zone-spawns', this.scene);
-    }
-    zoneSpawnsNode.setEnabled(true);
-    zoneSpawnsNode.id = 'zone-spawns';
-    zoneSpawnsNode.getChildren().forEach((c) => c.dispose());
-    const material = new StandardMaterial('zone-spawns-material', this.scene);
-    const pathMaterial = new StandardMaterial('zone-spawns-path-material', this.scene);
-    const missingMaterial = new StandardMaterial(
-      'zone-spawns-material-missing',
-      this.scene
-    );
-    material.emissiveColor = new Color3(0.5, 0.5, 1);
-    pathMaterial.emissiveColor = new Color3(0.0, 0.0, 1);
-    pathMaterial.specularColor = new Color4(0.0, 0.0, 1, 0.5);
-    missingMaterial.emissiveColor = new Color3(1, 0, 0);
-
-    const addTextOverMesh = function (mesh, lines, scene, id, idx) {
-      if (!lines.length) {
-        return;
-      }
-      setTimeout(() => {
-        const temp = new DynamicTexture('DynamicTexture', 64, scene);
-        const tmpctx = temp.getContext();
-        tmpctx.font = '32px Arial';
-        const textWidth = lines.reduce((acc, val) => {
-          const newTextWidth = tmpctx.measureText(val).width;
-          if (newTextWidth > acc) {
-            return newTextWidth;
-          }
-          return acc;
-        }, 0);
-
-        const textLengthLongest = lines.reduce((acc, val) => {
-          const newTextLength = val.length;
-          if (newTextLength > acc) {
-            return newTextLength;
-          }
-          return acc;
-        }, 0);
-        temp.dispose();
-
-        const dynamicTexture = new DynamicTexture(
-          'DynamicTexture',
-          { width: textWidth, height: 100 + lines.length * 65 },
-          scene
-        );
-        const ctx = dynamicTexture.getContext();
-        const lineHeight = 40; // Adjust based on your font size
-        ctx.font = '32px arial';
-        ctx.fillStyle = 'white';
-        for (let i = 0; i < lines.length; i++) {
-          let txt = lines[i];
-          txt = txt.padStart(textLengthLongest, ' ');
-          ctx.fillText(txt, 0, lineHeight * (i + 1));
-        }
-        dynamicTexture.update();
-
-        const plane = MeshBuilder.CreatePlane(
-          'textPlane',
-          { width: textWidth / 60, height: 2 + lines.length },
-          scene
-        );
-        plane.addLODLevel(300, null);
-        plane.isPickable = false;
-        plane.position.y += 2;
-        plane.billboardMode = ParticleSystem.BILLBOARDMODE_ALL;
-        plane.parent = mesh;
-        const material = new StandardMaterial(`nameplate_${id}`, scene);
-        plane.material = material;
-        material.diffuseTexture = dynamicTexture;
-        material.diffuseTexture.hasAlpha = true;
-        material.useAlphaFromDiffuseTexture = true;
-        material.emissiveColor = Color3.White();
-      }, idx);
-    };
-
-    // Bind this to grab later from index
-    this.spawns = spawns;
-
-    // Layout for thin instance buffers for npc's
-    const npcMesh = MeshBuilder.CreateSphere(
-      'zone-spawn',
-      { diameter: 3, segments: 32 },
-      this.scene
-    );
-    npcMesh.setEnabled(false);
-    npcMesh.parent = zoneSpawnsNode;
-    npcMesh.material = material;
-
-    const npcWithPathMesh = MeshBuilder.CreateSphere(
-      'zone-spawn',
-      { diameter: 3, segments: 32 },
-      this.scene
-    );
-    npcWithPathMesh.setEnabled(false);
-    npcWithPathMesh.parent = zoneSpawnsNode;
-    npcWithPathMesh.material = pathMaterial;
-
-    this.glowLayer.addIncludedOnlyMesh(npcMesh);
-    this.glowLayer.addIncludedOnlyMesh(npcWithPathMesh);
-
-    for (const [idx, spawn] of Object.entries(spawns)) {
-      const hasEntries = Array.isArray(spawn.spawnentries);
-      const instance = (spawn.grid ? npcWithPathMesh : npcMesh).createInstance(`zone-spawn-${spawn.id}`);
-      instance.position.x = spawn.y;
-      instance.position.y = spawn.z;
-      instance.position.z = spawn.x;
-      instance.metadata = { spawn };
-      instance.parent = zoneSpawnsNode;
-      if (hasEntries) {
-        const lines = [];
-        for (const entry of spawn.spawnentries) {
-          if (!entry.npc_type) {
-            continue;
-          }
-          lines.push(
-            `${entry.npc_type?.name} - Level ${entry.npc_type?.level} - ${entry.chance}% Chance`
-          );
-        }
-        addTextOverMesh(instance, lines, this.scene, spawn.id, idx * 5);
-      } else {
-        addTextOverMesh(
-          instance,
-          ['No Associated Spawns'],
-          this.scene,
-          spawn.id,
-          idx * 5
-        );
-      }
-    }
   }
 
   setFlySpeed(value) {
@@ -507,11 +339,19 @@ class ZoneController extends GameControllerChild {
       return;
     }
     this.glowLayer.intensity = value ? 0.7 : 0;
+    if (value) {
+
+    } else {
+
+    }
   }
 
   async loadModel(name) {
+    GlobalStore.actions.setLoading(true);
+    GlobalStore.actions.setLoadingTitle(`Loading ${name}`);
+    GlobalStore.actions.setLoadingText(`Loading ${name} zone`);
     console.log('load model', name);
-    if (!await this.loadViewerScene()) {
+    if (!(await this.loadViewerScene())) {
       return;
     }
     if (this.cameraFlySpeed !== undefined && this.CameraController?.camera) {
@@ -593,14 +433,11 @@ class ZoneController extends GameControllerChild {
       regionNode.setEnabled(!!this.regionsShown);
 
       let idx = 0;
-      console.log('metadata regions', metadata.regions);
       this.aabbTree = buildAABBTree(
         metadata.regions.map(
           (r) => new AABBNode(r.minVertex, r.maxVertex, r.region)
         )
       );
-      console.log('AABB tree', this.aabbTree);
-
       // Build out geometry, will have an option to toggle this on or off in the gui
       for (const region of metadata.regions) {
         const minVertex = new Vector3(
@@ -629,7 +466,7 @@ class ZoneController extends GameControllerChild {
           },
           this.scene
         );
-        this.glowLayer.addIncludedOnlyMesh(box);
+
 
         box.metadata = region.region;
         box.name = `Region-${idx++}`;
@@ -641,13 +478,15 @@ class ZoneController extends GameControllerChild {
         );
 
         box.material = this.regionMaterial;
-        // box.showBoundingBox = true;
         box.parent = regionNode;
       }
     }
     await this.addTextureAnimations();
 
     this.loadCallbacks.forEach((l) => l());
+    this.zoneLoaded = true;
+
+    GlobalStore.actions.setLoading(false);
   }
 
   async instantiateObjects(modelName, model, forEditing = false) {

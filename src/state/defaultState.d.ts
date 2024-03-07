@@ -61,6 +61,7 @@ interface GlobalState {
         settingsOpen: boolean,
         loading: boolean,
         loadingText: string,
+        loadingTitle: string,
     },
 }
 

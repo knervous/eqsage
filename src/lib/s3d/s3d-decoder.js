@@ -4,18 +4,29 @@ import { Wld, WldType } from './wld/wld';
 import { TypedArrayReader } from '../util/typed-array-reader';
 import { imageProcessor } from '../util/image/image-processor';
 import { Accessor, WebIO } from '@gltf-transform/core';
-import { mat4 } from 'gl-matrix';
+import { mat4, quat, vec4 } from 'gl-matrix';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
-import {
-  draco,
-  DRACO_DEFAULTS,
-} from '@gltf-transform/functions';
+import { draco, DRACO_DEFAULTS } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 import { ShaderType } from './materials/material';
-import { getEQFile, getEQFileExists, writeEQFile } from '../util/fileHandler';
+import {
+  getEQDir,
+  getEQFile,
+  getEQFileExists,
+  writeEQFile,
+} from '../util/fileHandler';
 import { optimizeBoundingBoxes } from './bsp/region-utils';
 import { VERSION } from '../model/file-handle';
+import { fragmentNameCleaner } from '../util/util';
+import { MeshExportHelper } from '../util/mesh-export-helper';
+import {
+  S3DAnimationWriter,
+  animationMap,
+  getSkeletonNameFromSkeleton,
+} from '../util/animation-helper';
+import { gameController } from '../../viewer/controllers/GameController';
+import { GlobalStore } from '../../state';
 
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
   'draco3d.decoder': await draco3d.createDecoderModule(),
@@ -27,7 +38,7 @@ const io = new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
  * @param {[import('./materials/material-list').MaterialList]}
  * @param {Document} document
  */
-const getMaterials = async (materialList, document) => {
+const getMaterials = async (materialList, document, roughness = 0.0) => {
   const materials = {};
   for (const eqMaterial of materialList) {
     if (materials[eqMaterial.name]) {
@@ -41,9 +52,9 @@ const getMaterials = async (materialList, document) => {
     const gltfMaterial = document
       .createMaterial()
       .setDoubleSided(false)
-    // .setExtension('KHR_materials_unlit')
       .setRoughnessFactor(0)
-      .setMetallicFactor(0);
+      .setMetallicFactor(0)
+      .setName(name);
     if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {
       name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
       gltfMaterial.setName(name);
@@ -57,7 +68,7 @@ const getMaterials = async (materialList, document) => {
 
     const texture = document
       .createTexture(name)
-      // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+    // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
       .setURI(`/eq/textures/${name}`)
       .setExtras({
         name,
@@ -172,7 +183,7 @@ export class S3DDecoder {
 
       if (fileName.endsWith('.wld')) {
         console.log(`Processing WLD file - ${fileName}`);
-        const wld = new Wld(f.data, this.#fileHandle, fileName);
+        const wld = new Wld(f.data, fileName);
         for (const mat of wld.materialList.flatMap((ml) => ml.materialList)) {
           for (const bitmapName of mat.bitmapInfo?.reference?.bitmapNames ??
             []) {
@@ -191,13 +202,13 @@ export class S3DDecoder {
       }
     }
 
-    console.log('Files', Object.keys(this.files));
+    // console.log('Files', Object.keys(this.files));
 
     for (const image of images) {
       image.shaderType = shaderMap[image.name];
     }
     console.log(`Processed - ${file.name}`);
-    await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
+    await imageProcessor.parseImages(images);
     console.log(`Done processing images ${file.name} - ${images.length}`);
   }
 
@@ -205,136 +216,319 @@ export class S3DDecoder {
    *
    * @param {Wld} wld
    */
-  async exportModels(wld) {
-    for (let i = 0; i < wld.meshes.length; i++) {
-      const mesh = wld.meshes[i];
-      const material = mesh.materialList;
-      const scrubbedName = material.name.split('_')[0].toLowerCase();
-      const document = new Document(scrubbedName);
-      const buffer = document.createBuffer();
-      const scene = document.createScene(scrubbedName);
-      document.createPrimitive().setAttribute();
-      const flipMatrix = mat4.create();
-      mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
-      const node = document
-        .createNode(scrubbedName)
-        .setTranslation([0, 0, 0])
-        .setMatrix(flipMatrix);
+  async exportModels(wld, doExport = true) {
+    for (const track of wld.tracks.filter(
+      (t) => !t.isPoseAnimation && !t.isNameParsed
+    )) {
+      track.parseTrackData();
+    }
+    const AnimationSources = {};
+    for (const skeleton of wld.skeletons) {
 
-      scene.addChild(node);
+      if (skeleton === null) {
+        continue;
+      }
 
-      const materials = await getMaterials(material.materialList, document);
+      const modelBase = skeleton.modelBase;
+      const alternateModel = AnimationSources.hasOwnProperty(modelBase)
+        ? AnimationSources[modelBase]
+        : modelBase;
+      GlobalStore.actions.setLoadingText(`Exporting model ${ modelBase}`);
 
-      const primitiveMap = {};
-
-      let polygonIndex = 0;
-      for (const mat of mesh.materialGroups) {
-        let name = mesh.materialList.materialList[mat.materialIndex].name;
-        const gltfMat = materials[name];
-        if (!gltfMat) {
-          console.warn(`S3D model had no material link ${name}`);
+      // TODO: Alternate model bases
+      wld.tracks
+        .filter(
+          (t) => t.modelName === modelBase || t.modelName === alternateModel
+        )
+        .forEach((t) => skeleton.addTrackData(t));
+      for (const mesh of wld.meshes) {
+        if (mesh.isHandled) {
           continue;
         }
-        let hasNotSolid = false;
-        for (let i = 0; i < mat.polygonCount; i++) {
-          const idc = mesh.indices[polygonIndex];
-          if (!idc.isSolid) {
-            hasNotSolid = true;
-            break;
+
+        let cleanedName = fragmentNameCleaner(mesh);
+
+        let basename = cleanedName;
+
+        const endsWithNumber = !isNaN(
+          parseInt(cleanedName[cleanedName.length - 1])
+        );
+
+        if (endsWithNumber) {
+          const id = cleanedName.slice(
+            cleanedName.length - 2,
+            cleanedName.length
+          );
+          cleanedName = cleanedName.slice(0, cleanedName.length - 2);
+
+          if (cleanedName.length !== 3) {
+            const modelType = cleanedName.slice(0, cleanedName.length - 3);
+            cleanedName = cleanedName.slice(0, cleanedName.length - 2);
+          }
+
+          basename = cleanedName;
+        }
+
+        if (basename === modelBase) {
+          skeleton.addAdditionalMesh(mesh);
+        }
+      }
+    }
+
+    for (const track of wld.tracks) {
+      if (track.isPoseAnimation || track.isProcessed) {
+        continue;
+      }
+
+      //  console.warn(`WldFileCharacters: Track not assigned: ${track.name}`);
+    }
+
+    for (const skeleton of wld.skeletons) {
+      skeleton.buildSkeletonData(true);
+      if (!doExport) {
+        return;
+      }
+      for (const mesh of skeleton.meshes.concat(skeleton.secondaryMeshes)) {
+        const material = mesh.materialList;
+        const baseName = mesh.name.split('_')[0].toLowerCase();
+        const scrubbedName = material.name.split('_')[0].toLowerCase();
+        const document = new Document(scrubbedName);
+        const buffer = document.createBuffer();
+        const scene = document.createScene(scrubbedName);
+        const secondary = /he\d+/.test(baseName);
+        // We need to map this to another skeleton
+        if (!secondary && animationMap[baseName]) {
+          let existingSkeleton =
+            wld.skeletons.find((s) => s.modelBase === animationMap[baseName]) ||
+            this.globalWld?.skeletons.find(
+              (s) => s.modelBase === animationMap[baseName]
+            );
+          // We need to try to import this from global if it doesn't exist
+          if (!existingSkeleton && !this.globalWld) {
+            const globalChr = await gameController.rootFileSystemHandle
+              .getFileHandle('global_chr.s3d')
+              .then((f) => f.getFile());
+            const decoder = new S3DDecoder();
+            await decoder.processS3D(globalChr);
+            const charWld = decoder.wldFiles.find(
+              (w) => w.type === WldType.Characters
+            );
+            if (charWld) {
+              await decoder.exportModels(charWld, false);
+
+              existingSkeleton = charWld.skeletons.find(
+                (s) => s.modelBase === animationMap[baseName]
+              );
+              this.globalWld = charWld;
+            }
+          }
+          if (existingSkeleton) {
+            for (const [key, value] of Object.entries(
+              existingSkeleton.animations
+            )) {
+              if (!skeleton.animations[key]) {
+                skeleton.animations[key] = {
+                  ...value,
+                  animModelBase: baseName,
+                };
+              }
+            }
           }
         }
-        name = hasNotSolid ? `${name}-passthrough` : name;
-        let sharedPrimitive = primitiveMap[name];
-        if (!sharedPrimitive) {
-          const mesh = document.createMesh(name);
-          const materialNode = document.createNode(name).setMesh(mesh);
-          node.addChild(materialNode);
-          sharedPrimitive = primitiveMap[name] = {
-            gltfNode: materialNode,
-            gltfMesh: mesh,
-            gltfPrim: document
-              .createPrimitive(name)
-              .setMaterial(gltfMat)
-              .setName(name),
-            indices     : [],
-            vecs        : [],
-            normals     : [],
-            uv          : [],
-            polygonCount: 0,
+
+        const node = document
+          .createNode(scrubbedName)
+          .setTranslation([0, 0, 0]);
+
+        node.setExtras({ secondaryMeshes: skeleton.secondaryMeshes.length });
+
+        scene.addChild(node);
+
+        const materials = await getMaterials(material.materialList, document);
+
+        const primitiveMap = {};
+
+        let polygonIndex = 0;
+        const gltfMesh = document.createMesh(baseName);
+
+        for (const mat of mesh.materialGroups) {
+          const name = mesh.materialList.materialList[mat.materialIndex].name;
+          const gltfMat = materials[name];
+          if (!gltfMat) {
+            console.warn(`S3D model had no material link ${name}`);
+            continue;
+          }
+
+          let sharedPrimitive = primitiveMap[name];
+          if (!sharedPrimitive) {
+            sharedPrimitive = primitiveMap[name] = {
+              gltfMesh: gltfMesh,
+              gltfPrim: document
+                .createPrimitive(name)
+                .setMaterial(gltfMat)
+                .setName(name),
+              indices     : [],
+              joints      : [],
+              vecs        : [],
+              normals     : [],
+              uv          : [],
+              polygonCount: 0,
+            };
+            gltfMesh.addPrimitive(sharedPrimitive.gltfPrim);
+          }
+
+          const getBoneIndexForVertex = (vertIndex) => {
+            for (const [key, val] of Object.entries(mesh.mobPieces)) {
+              if (val === undefined) {
+                continue;
+              }
+              if (vertIndex >= val.start && vertIndex < val.start + val.count) {
+                return +key;
+              }
+            }
+            return 0;
           };
-          mesh.addPrimitive(sharedPrimitive.gltfPrim);
-        }
-        if (hasNotSolid) {
-          sharedPrimitive.gltfNode.setExtras({ solid: false });
+          for (let i = 0; i < mat.polygonCount; i++) {
+            const idc = mesh.indices[polygonIndex];
+
+            const idxArr = [idc.v1, idc.v2, idc.v3];
+
+            const [b1, b2, b3] = idxArr.map((idx) =>
+              getBoneIndexForVertex(idx)
+            );
+            const [v1, v2, v3] = idxArr.map((idx) => mesh.vertices[idx]);
+            const [n1, n2, n3] = idxArr.map((idx) => mesh.normals[idx]);
+            const [u1, u2, u3] = idxArr.map(
+              (idx) => mesh.textureUvCoordinates[idx]
+            );
+
+            const { vecs, normals, uv } = sharedPrimitive;
+            const ln = sharedPrimitive.indices.length;
+            const newIndices = [ln + 0, ln + 1, ln + 2];
+            sharedPrimitive.indices.push(...newIndices);
+            // Joints are vec4
+            const newJoints = [b1, 0, 0, 0, b2, 0, 0, 0, b3, 0, 0, 0];
+            sharedPrimitive.joints.push(...newJoints);
+
+            vecs.push(
+              ...[v1, v2, v3].flatMap((v) => [
+                -1 * (v[0] + mesh.center[0]),
+                v[2] + mesh.center[2],
+                v[1] + mesh.center[1],
+              ])
+            );
+            normals.push(
+              ...[n1, n2, n3].flatMap((v) => [v[0] * -1, v[2], v[1]])
+            );
+            uv.push(...[u1, u2, u3].flatMap((v) => [v[0], -1 * v[1]]));
+            polygonIndex++;
+          }
         }
 
-        for (let i = 0; i < mat.polygonCount; i++) {
-          const idc = mesh.indices[polygonIndex];
+        for (const [
+          name,
+          { gltfPrim, indices, vecs, normals, uv, joints },
+        ] of Object.entries(primitiveMap)) {
+          const primIndices = document
+            .createAccessor()
+            .setType(Accessor.Type.SCALAR)
+            .setArray(new Uint16Array(indices))
+            .setBuffer(buffer);
+          const primPositions = document
+            .createAccessor()
+            .setType(Accessor.Type.VEC3)
+            .setArray(new Float32Array(vecs))
+            .setBuffer(buffer);
+          const primNormals = document
+            .createAccessor()
+            .setArray(new Float32Array(normals))
+            .setType(Accessor.Type.VEC3);
+          const primJoints = document
+            .createAccessor()
+            .setArray(new Uint16Array(joints))
+            .setType(Accessor.Type.VEC4);
+          const primWeights = document
+            .createAccessor()
+            .setArray(
+              new Float32Array(joints.map((_, idx) => (idx % 4 === 0 ? 1 : 0)))
+            )
+            .setType(Accessor.Type.VEC4);
 
-          const idxArr = [idc.v1, idc.v2, idc.v3];
-          const [v1, v2, v3] = idxArr.map((idx) => mesh.vertices[idx]);
-          const [n1, n2, n3] = idxArr.map((idx) => mesh.normals[idx]);
-          const [u1, u2, u3] = idxArr.map(
-            (idx) => mesh.textureUvCoordinates[idx]
+          const primUv = document
+            .createAccessor()
+            .setType(Accessor.Type.VEC2)
+            .setArray(new Float32Array(uv));
+
+          gltfPrim
+            .setName(name)
+            .setIndices(primIndices)
+            .setAttribute('POSITION', primPositions)
+            .setAttribute('NORMAL', primNormals)
+            .setAttribute('TEXCOORD_0', primUv)
+            .setAttribute('JOINTS_0', primJoints)
+            .setAttribute('WEIGHTS_0', primWeights);
+          const normalAccessor = gltfPrim.getAttribute('NORMAL');
+          if (normalAccessor) {
+            const normals = normalAccessor.getArray();
+            for (let i = 0; i < normals.length; i += 3) {
+              normals[i] = -normals[i]; // Negate the X component of normals
+            }
+            normalAccessor.setArray(normals);
+          }
+
+          // Reverse vertex winding order for each triangle
+          const indices2 = gltfPrim.getIndices();
+          if (indices2) {
+            const indexArray = indices2.getArray();
+            for (let i = 0; i < indexArray.length; i += 3) {
+              // Swap the first and last indices to reverse the winding order
+              [indexArray[i], indexArray[i + 2]] = [
+                indexArray[i + 2],
+                indexArray[i],
+              ];
+            }
+            indices2.setArray(indexArray);
+          }
+        }
+
+        const animWriter = new S3DAnimationWriter(document);
+        const skeletonNodes = animWriter.addNewSkeleton(skeleton);
+
+
+        if (!secondary) {
+          animWriter.applyAnimationToSkeleton(
+            skeleton,
+            'pos',
+            true,
+            true,
+            skeletonNodes
           );
-
-          const { vecs, normals, uv } = sharedPrimitive;
-          const ln = sharedPrimitive.indices.length;
-          const newIndices = [ln + 0, ln + 1, ln + 2];
-          sharedPrimitive.indices.push(...newIndices);
-
-          vecs.push(
-            ...[v1, v2, v3].flatMap((v) => [
-              v[0] + mesh.center[0],
-              v[2] + mesh.center[2],
-              v[1] + mesh.center[1],
-            ])
-          );
-          normals.push(...[n1, n2, n3].flatMap((v) => [v[0], v[2], v[1]]));
-          uv.push(...[u1, u2, u3].flatMap((v) => [v[0], v[1]]));
-          polygonIndex++;
+          for (const animationKey of Object.keys(skeleton.animations)) {
+            animWriter.applyAnimationToSkeleton(
+              skeleton,
+              animationKey,
+              true,
+              false,
+              skeletonNodes
+            );
+          }
         }
+
+        const skin = document.createSkin('mesh-skeleton');
+        for (const n of skeletonNodes) {
+          skin.addJoint(n);
+        }
+
+        node.setMesh(gltfMesh).setSkin(skin).addChild(skeletonNodes[0]);
+
+        await document.transform(
+          // Compress mesh geometry with Draco.
+          draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+        );
+        const bytes = await io.writeBinary(document);
+
+        await writeEQFile('models', `${baseName}.glb`, bytes);
       }
-
-      for (const [
-        name,
-        { gltfPrim, indices, vecs, normals, uv },
-      ] of Object.entries(primitiveMap)) {
-        const primIndices = document
-          .createAccessor()
-          .setType(Accessor.Type.SCALAR)
-          .setArray(new Uint16Array(indices))
-          .setBuffer(buffer);
-        const primPositions = document
-          .createAccessor()
-          .setType(Accessor.Type.VEC3)
-          .setArray(new Float32Array(vecs))
-          .setBuffer(buffer);
-        const primNormals = document
-          .createAccessor()
-          .setArray(new Float32Array(normals))
-          .setType(Accessor.Type.VEC3);
-
-        const primUv = document
-          .createAccessor()
-          .setType(Accessor.Type.VEC2)
-          .setArray(new Float32Array(uv));
-
-        gltfPrim
-          .setName(name)
-          .setIndices(primIndices)
-          .setAttribute('POSITION', primPositions)
-          .setAttribute('NORMAL', primNormals)
-          .setAttribute('TEXCOORD_0', primUv);
-      }
-
-      await document.transform(
-        // Compress mesh geometry with Draco.
-        draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
-      );
-      const bytes = await io.writeBinary(document);
-     
-      await writeEQFile('models', `${scrubbedName}.glb`, bytes);
     }
   }
 
@@ -443,7 +637,6 @@ export class S3DDecoder {
         name,
         { gltfPrim, indices, vecs, normals, uv },
       ] of Object.entries(primitiveMap)) {
-
         const primIndices = document
           .createAccessor()
           .setType(Accessor.Type.SCALAR)
@@ -516,9 +709,17 @@ export class S3DDecoder {
     for (const leafNode of wld.bspTree?.leafNodes ?? []) {
       regions.push({
         region   : leafNode.region.regionType,
-        minVertex: [leafNode.boundingBoxMin[0], leafNode.boundingBoxMin[2], leafNode.boundingBoxMin[1]],
-        maxVertex: [leafNode.boundingBoxMax[0], leafNode.boundingBoxMax[2], leafNode.boundingBoxMax[1]],
-        center   : [leafNode.center[0], leafNode.center[2], leafNode.center[1]],
+        minVertex: [
+          leafNode.boundingBoxMin[0],
+          leafNode.boundingBoxMin[2],
+          leafNode.boundingBoxMin[1],
+        ],
+        maxVertex: [
+          leafNode.boundingBoxMax[0],
+          leafNode.boundingBoxMax[2],
+          leafNode.boundingBoxMax[1],
+        ],
+        center: [leafNode.center[0], leafNode.center[2], leafNode.center[1]],
       });
     }
     zoneMetadata.regions = optimizeBoundingBoxes(regions);
@@ -697,15 +898,18 @@ export class S3DDecoder {
     for (const wld of this.wldFiles) {
       switch (wld.type) {
         case WldType.Zone:
+          GlobalStore.actions.setLoadingText('Exporting zone');
           await this.exportZone(wld);
           break;
         case WldType.ZoneObjects:
           break;
         case WldType.Objects:
+          GlobalStore.actions.setLoadingText('Exporting zone objects');
           await this.exportObjects(wld);
           break;
         case WldType.Characters:
-          // await this.exportModels(wld);
+          GlobalStore.actions.setLoadingText('Exporting zone models');
+          await this.exportModels(wld);
           break;
         case WldType.Equipment:
           break;
