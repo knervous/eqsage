@@ -21,6 +21,11 @@ export async function getFiles(entry) {
   }
   return files;
 }
+
+let cachedDirHandle = null;
+const handles = {
+
+};
 /**
  *
  * @param {string} name
@@ -30,13 +35,21 @@ export const getEQDir = async (name) => {
   if (!gameController.rootFileSystemHandle) {
     return;
   }
-  const eqsageDir =
+  try {
+    const eqsageDir = cachedDirHandle ||
     await gameController.rootFileSystemHandle.getDirectoryHandle('eqsage', {
       create: true,
     });
-  return await eqsageDir.getDirectoryHandle(name, {
-    create: true,
-  });
+    cachedDirHandle = eqsageDir;
+    const handle = handles[name] || await eqsageDir.getDirectoryHandle(name, {
+      create: true,
+    });
+    handles[name] = handle;
+    return handle;
+  } catch (e) {
+    return null;
+  }
+
 };
 
 /**
@@ -69,13 +82,9 @@ export const writeEQFile = async (directory, name, buffer) => {
  * @returns {Promise<ArrayBuffer> | Promise<object>}
  */
 export const getEQFile = async (directory, name, type = 'arrayBuffer') => {
-  const contents = await getEQDir(directory).then((dir) =>
-    dir
-      .getFileHandle(name)
-      .catch(() => undefined)
-      .then((fh) => fh?.getFile())
-      .then((f) => f?.arrayBuffer())
-  );
+  const dir = await getEQDir(directory);
+  const fh = await dir.getFileHandle(name).catch(() => undefined);
+  const contents = await fh?.getFile().then(f => f.arrayBuffer());
 
   switch (type) {
     default:

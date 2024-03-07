@@ -29,7 +29,7 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 });
 
 class EQDatabase extends Database {
-  async loadImage(url, image) {
+  async loadImage(url, image, ...rest) {
     if (url.startsWith('http')) {
       const res = await fetch(url).then((a) => a.arrayBuffer());
       image.src = URL.createObjectURL(
@@ -41,6 +41,10 @@ class EQDatabase extends Database {
     image.src = URL.createObjectURL(
       new Blob([data], { type: 'image/png' } /* (1) */)
     );
+  }
+
+  open(success, failure) {
+    success();
   }
   async loadFile(
     url,
@@ -68,7 +72,7 @@ class EQDatabase extends Database {
 
     const fileBuffer = await getEQFile('textures', `${url}.png`);
     if (!fileBuffer) {
-      console.log('No bytes', url);
+      console.log('No bytes for png', url);
       errorCallback();
       return;
     }
@@ -279,6 +283,7 @@ export class GameController {
     if (zoneController.scene) {
       zoneController.scene.dispose();
     }
+    this.ZoneController.dispose();
     this.aabbTree = null;
     this.ZoneController.dispose();
     this.CameraController.dispose();

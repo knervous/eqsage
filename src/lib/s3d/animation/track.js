@@ -11,7 +11,7 @@ export class TrackDefFragment extends WldFragment {
      * @type {Array<import('../common/bone-transform').BoneTransform>}
      */
   frames = [];
-
+  isAssigned = false;
   constructor(...args) {
     super(...args);
     this.initialize();
@@ -39,7 +39,7 @@ export class TrackDefFragment extends WldFragment {
         const z = shiftZ / 256;
 
         frameTransform.scale = shiftDenominator / 256;
-        frameTransform.translation = vec3.fromValues(x, y, z);
+        frameTransform.translation = vec3.fromValues(x, y * -1, z);
       } else {
         frameTransform.translation = vec3.fromValues(0, 0, 0);
       }
@@ -127,7 +127,7 @@ export class TrackFragment extends WldFragment {
     // Equipment edge case
     if (cleanedName.slice(0, 3) === cleanedName.slice(3, 6)) {
       this.animationName = cleanedName.slice(0, 3);
-      this.modelName = cleanedName.slice(Math.min(7, cleanedName.Length), cleanedName.length);
+      this.modelName = cleanedName.slice(Math.min(7, cleanedName.length), cleanedName.length);
       this.pieceName = 'root';
       this.isNameParsed = true;
       return;

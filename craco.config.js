@@ -42,7 +42,7 @@ module.exports = {
             plugin => !(plugin instanceof ModuleScopePlugin)
           );
           // Just make this local
-          if (process.env.LOCAL_DEV === 'true') {
+          if (process.env.REACT_APP_LOCAL_DEV === 'true') {
             const terserPlugin = config.optimization.minimizer.find(m => m instanceof TerserPlugin);
             if (terserPlugin) {
               terserPlugin.options.minimizer.implementation = TerserPlugin.swcMinify;

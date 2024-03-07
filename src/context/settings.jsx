@@ -10,6 +10,7 @@ const defaultOptions = {
   webgpu     : false,
   forceReload: false,
   clipPlane  : 10000,
+  spawnLOD   : 500,
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(

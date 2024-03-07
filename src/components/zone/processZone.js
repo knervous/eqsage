@@ -1,4 +1,5 @@
 import { EQFileHandle } from '../../lib/model/file-handle';
+import { GlobalStore } from '../../state';
 import { gameController } from '../../viewer/controllers/GameController';
 
 async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
@@ -26,12 +27,13 @@ export async function processGlobal(settings) {
     const handles = [];
     try {
       for await (const fileHandle of getFilesRecursively(gameController.rootFileSystemHandle, '', new RegExp('^global(\\d+)?[_\\.].*'))) {
-        handles.push(await fileHandle.getFile()); 
+        if (fileHandle.name.includes('global_chr')) {
+          handles.push(await fileHandle.getFile()); 
+        }
       }
     } catch (e) {
       console.warn('Error', e, handles);
     }
-    console.log('File handles', handles);
 
     const obj = new EQFileHandle(
       'global',
@@ -47,7 +49,10 @@ export async function processGlobal(settings) {
 
 export async function processZone(zoneName, settings) {
   console.log('Zone name', zoneName);
-  return new Promise(async (res, rej) => {
+  GlobalStore.actions.setLoading(true);
+  GlobalStore.actions.setLoadingTitle('Processing Zone');
+  GlobalStore.actions.setLoadingText('Loading Zone', zoneName);
+  await new Promise(async (res, rej) => {
     const handles = [];
     try {
       for await (const fileHandle of getFilesRecursively(gameController.rootFileSystemHandle, '', new RegExp(`^${zoneName}[_\\.].*`))) {
@@ -56,7 +61,6 @@ export async function processZone(zoneName, settings) {
     } catch (e) {
       console.warn('Error', e, handles);
     }
-    console.log('File handles', handles);
 
     const obj = new EQFileHandle(
       zoneName,
@@ -68,4 +72,6 @@ export async function processZone(zoneName, settings) {
     await obj.process();
     res();
   });
+  GlobalStore.actions.setLoading(false);
+
 }

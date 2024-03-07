@@ -32,6 +32,9 @@ export const CommonDialog = ({
   cancelButton = false,
   doneText = 'Done',
   doneDisabled = false,
+  hideBackdrop = true,
+  disableEnforceFocus = true,
+  hideButtons = false,
 }) => {
   return (
     <Dialog
@@ -41,13 +44,13 @@ export const CommonDialog = ({
         }
       }}
       open={open}
-      disableEnforceFocus
+      disableEnforceFocus={disableEnforceFocus}
       fullWidth={fullWidth}
       maxWidth="md"
       className="ui-dialog"
       sx={{ pointerEvents: 'none' }}
       slotProps={{ backdrop: { sx: { pointerEvents: 'none' } } }}
-      hideBackdrop
+      hideBackdrop={hideBackdrop}
       PaperComponent={PaperComponent}
       aria-labelledby="draggable-dialog-title"
     >
@@ -59,23 +62,25 @@ export const CommonDialog = ({
         {title}
       </DialogTitle>
       <DialogContent>{children}</DialogContent>
-      <DialogActions>
-        {cancelButton && (
-          <Button className="ui-dialog-btn" onClick={() => onClose(false)}>
-            Cancel
+      {!hideButtons && (
+        <DialogActions>
+          {cancelButton && (
+            <Button className="ui-dialog-btn" onClick={() => onClose(false)}>
+              Cancel
+            </Button>
+          )}
+          <Button
+            disabled={doneDisabled}
+            className={classNames('ui-dialog-btn', {
+              'ui-dialog-btn-disabled': doneDisabled,
+            })}
+            autoFocus
+            onClick={() => onClose(true)}
+          >
+            {doneText}
           </Button>
-        )}
-        <Button
-          disabled={doneDisabled}
-          className={classNames('ui-dialog-btn', {
-            'ui-dialog-btn-disabled': doneDisabled,
-          })}
-          autoFocus
-          onClick={() => onClose(true)}
-        >
-          {doneText}
-        </Button>
-      </DialogActions>
+        </DialogActions>
+      )}
     </Dialog>
   );
 };

@@ -255,37 +255,41 @@ export const ZoneChooserDialog = ({ open }) => {
           </FormControl>
         </Stack>
       </DialogContent>
+
+
+      <Button
+        color='primary'
+        onClick={() => selectAndExit(zone)}
+        disabled={!zone}
+        variant="outlined"
+        sx={{ margin: '0 auto' }}
+      >
+            Select Zone
+      </Button>
+
       <DialogActions>
         {!selectedZone && <Button
           onClick={unlinkDir}
           variant="outlined"
-          sx={{ margin: '0 auto' }}
+          sx={{ margin: '15px auto' }}
         >
           Unlink EQ Directory
         </Button>}
         
-        <Button
-          color='primary'
-          onClick={() => selectAndExit(zone)}
-          disabled={!zone}
-          variant="outlined"
-          sx={{ margin: '0 auto' }}
-        >
-            Select Zone
-        </Button>
 
-  
+
+        {process.env.REACT_APP_LOCAL_DEV === 'true' && 
+       <Button
+         color='primary'
+         onClick={() => processGlobal(settings)}
+         variant="outlined"
+         sx={{ margin: '0 auto' }}
+       >
+           Process Global
+       </Button>
+        }
+     
       </DialogActions>
-      <Button
-        color='primary'
-        disabled
-        onClick={() => processGlobal(settings)}
-        variant="outlined"
-        sx={{ margin: '0 auto' }}
-      >
-            Process Global Objects/Characters
-      </Button>
-        
     </Dialog>
   );
 };

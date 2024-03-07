@@ -14,6 +14,9 @@ export const actions = {
   setLoadingText: createAction('SET_LOADING_TEXT', loading => {
     return { payload: loading };
   }),
+  setLoadingTitle: createAction('SET_LOADING_TITLE', loading => {
+    return { payload: loading };
+  }),
 };
 
 export const reducer = createReducer(defaultState, builder => {
@@ -37,6 +40,11 @@ export const reducer = createReducer(defaultState, builder => {
 
   builder.addCase(actions.setLoadingText, (state, action) => {
     state.ui.loadingText = action.payload;
+    return state;
+  });
+
+  builder.addCase(actions.setLoadingTitle, (state, action) => {
+    state.ui.loadingTitle = action.payload;
     return state;
   });
 });

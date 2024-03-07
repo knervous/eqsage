@@ -1,4 +1,6 @@
 import * as Comlink from 'comlink';
+import { gameController } from '../../../viewer/controllers/GameController.js';
+import { GlobalStore } from '../../../state/store.js';
 
 function chunkArray(array, numChunks) {
   if (numChunks < 1) {
@@ -17,7 +19,6 @@ function chunkArray(array, numChunks) {
   return result;
 }
 
-
 class ImageProcessor {
   /** @type {[Worker]} */
   #workers = [];
@@ -32,11 +33,10 @@ class ImageProcessor {
 
   workerIdx = 0;
 
-
   /**
    * @typedef QueueItem
-   * @property {string} name 
-   * @property {ArrayBuffer} data 
+   * @property {string} name
+   * @property {ArrayBuffer} data
    */
 
   initializeWorkers(workers = navigator.hardwareConcurrency ?? 4) {
@@ -49,25 +49,52 @@ class ImageProcessor {
   }
 
   clearWorkers() {
-    this.#workers.forEach(w => {
+    this.#workers.forEach((w) => {
       w.terminate();
     });
     this.#workers = [];
     this.babylonWorkers = [];
   }
 
-
   /**
-   * 
-   * @param {[QueueItem]} images 
+   *
+   * @param {[QueueItem]} images
    */
-  async parseImages(images, fileHandle) {
+  async parseImages(images) {
+    if (this.#workers.length === 0) {
+      this.initializeWorkers();
+    }
     const imageChunks = chunkArray(images, this.#workers.length);
-    await Promise.all(imageChunks.map((imgs, idx) => 
-      this.babylonWorkers[idx].parseTextures(Comlink.transfer(imgs, imgs.map(i => i.data)), fileHandle)
-    ));
+    GlobalStore.actions.setLoadingTitle('Loading Images');
+    let count = 0;
+
+    GlobalStore.actions.setLoadingText(
+      `Decoded ${count} of ${images.length} images using ${
+        this.#workers.length
+      } threads`
+    );
+    await Promise.all(
+      imageChunks.map((imgs, idx) =>
+        this.babylonWorkers[idx]
+          .parseTextures(
+            Comlink.transfer(
+              imgs,
+              imgs.map((i) => i.data)
+            ),
+            gameController.rootFileSystemHandle
+          )
+          .then(() => {
+            count += imgs.length;
+            GlobalStore.actions.setLoadingText(
+              `Decoded ${count} of ${images.length} images using ${
+                this.#workers.length
+              } threads`
+            );
+          })
+      )
+    );
+    this.clearWorkers();
   }
-  
 }
 
 export const imageProcessor = new ImageProcessor();

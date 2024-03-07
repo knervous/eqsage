@@ -1,3 +1,5 @@
+import { quat, vec4 } from 'gl-matrix';
+
 export class BoneTransform {
   /**
      * @type {import('gl-matrix').vec3}
@@ -17,6 +19,7 @@ export class BoneTransform {
   modelMatrix = null;
   constructor(translation, rotation, scale, modelMatrix) {
     this.translation = translation;
+
     this.rotation = rotation;
     this.scale = scale;
     this.modelMatrix = modelMatrix;

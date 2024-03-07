@@ -35,6 +35,7 @@ export class Mesh extends WldFragment {
   maxDistance = -1;
   minPosition = null;
   maxPosition = null;
+  isHandled = false;
   /**
    * @type {Array<vec3>}
    */
@@ -55,7 +56,7 @@ export class Mesh extends WldFragment {
    * @type {Array<Polygon>}
    */
   indices = [];
-  mobPieces = {};
+  mobPieces = [];
   /**
    * @type {Array<RenderGroup>}
    */
@@ -63,7 +64,7 @@ export class Mesh extends WldFragment {
 
   initialize() {
     const reader = this.reader;
-    const flags = reader.readUint32();
+    this.flags = reader.readUint32();
     this.materialListIdx = reader.readUint32() - 1;
     this.animatedVerticesReferenceIdx = reader.readUint32() - 1;
     reader.addCursor(8);
@@ -125,7 +126,9 @@ export class Mesh extends WldFragment {
       const x = reader.readInt8() / 128.0;
       const y = reader.readInt8() / 128.0;
       const z = reader.readInt8() / 128.0;
-      this.normals.push(vec3.fromValues(x, y, z));
+      const vec = vec3.fromValues(x, y, z);
+      vec3.normalize(vec, vec);
+      this.normals.push(vec);
     }
 
     for (let i = 0; i < colorsCount; ++i) {
@@ -160,7 +163,7 @@ export class Mesh extends WldFragment {
     for (let i = 0; i < vertexPieceCount; ++i) {
       const count = reader.readInt16();
       const index1 = reader.readInt16();
-      const mobVertexPiece = new MobVertexPiece(count, mobStart);
+      const mobVertexPiece = new MobVertexPiece(mobStart, count);
       mobStart += count;
       this.mobPieces[index1] = mobVertexPiece;
     }
