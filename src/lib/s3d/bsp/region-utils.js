@@ -1,3 +1,4 @@
+import { GlobalStore } from '../../../state';
 
 function areBoxesEqual(box1, box2) {
   // Check if minVertex, maxVertex, and center are the same for two boxes
@@ -82,12 +83,13 @@ function mergeBoxes(box1, box2) {
   };
 }
   
-export function optimizeBoundingBoxes(boxes) {
+export async function optimizeBoundingBoxes(boxes) {
   let optimized = false;
-  const maxCount = 50000;
+  const maxCount = 10000;
   let count = 0;
   do {
     optimized = false;
+ 
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
         if (areBoxesAdjacentAndEqualData(boxes[i], boxes[j])) {
@@ -99,12 +101,19 @@ export function optimizeBoundingBoxes(boxes) {
           break; // Restart the process since boxes array has been modified
         }
       }
+      if (count % 10 === 0) {
+        await new Promise(res => setTimeout(res, 0));
+        GlobalStore.actions.setLoadingText(`Running BSP region optimization algorithm ${count} / 10000 iterations`);
+      }
       if (optimized || count++ > maxCount) {
         break;
       }
     }
+   
   } while (optimized);
-  
+  if (count < maxCount) {
+    GlobalStore.actions.setLoadingText(`Found optimal BSP region translation with ${10000 - count} iterations remaining`);
+  }
   return deduplicateBoxes(boxes);
 }
   

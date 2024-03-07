@@ -722,7 +722,7 @@ export class S3DDecoder {
         center: [leafNode.center[0], leafNode.center[2], leafNode.center[1]],
       });
     }
-    zoneMetadata.regions = optimizeBoundingBoxes(regions);
+    zoneMetadata.regions = await optimizeBoundingBoxes(regions);
 
     // Object Instances
     const objWld = this.wldFiles.find((f) => f.type === WldType.ZoneObjects);
