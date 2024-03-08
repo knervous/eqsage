@@ -51,6 +51,64 @@ class SkeletonBone {
   parent = null;
 }
 
+function evaluateGetters(obj) {
+  // If obj is not an object or is null, return it as is
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+
+  // Initialize evaluated object
+  const evaluatedObj = Array.isArray(obj) ? [] : {};
+
+  // Iterate over each property of obj
+  for (const key in obj) {
+    const descriptor = Object.getOwnPropertyDescriptor(obj, key);
+
+    // If the property is a getter, evaluate it and assign the value
+    if (descriptor && typeof descriptor.get === 'function') {
+      evaluatedObj[key] = descriptor.get.call(obj);
+    } else if (typeof obj[key] === 'object') {
+      evaluatedObj[key] = evaluateGetters(obj[key]);
+    } else {
+      evaluatedObj[key] = obj[key];
+    }
+  }
+
+  return evaluatedObj;
+}
+
+function deepCloneWithIgnore(obj, ignoreKeys = []) {
+  const visited = new WeakMap();
+
+  function clone(obj) {
+    if (visited.has(obj)) {
+      return visited.get(obj);
+    }
+    const newObj = Array.isArray(obj) ? [] : {};
+
+    visited.set(obj, newObj);
+
+    for (const key in obj) {
+      if (!obj.hasOwnProperty(key)) {
+        continue;
+      }
+
+      if (ignoreKeys.includes(key)) {
+        continue;
+      }
+
+      const descriptor = Object.getOwnPropertyDescriptor(obj, key);
+      if (descriptor && (descriptor.get || descriptor.set)) {
+        newObj[key] = descriptor.get.call(obj);
+      } else {
+        newObj[key] = typeof obj[key] === 'object' && obj[key] !== null ? clone(obj[key]) : obj[key];
+      }
+    }
+    return newObj;
+  }
+
+  return clone(obj);
+}
 export class SkeletonHierarchy extends WldFragment {
   /**
    * @type {SkeletonFlags}
@@ -84,6 +142,10 @@ export class SkeletonHierarchy extends WldFragment {
   constructor(...args) {
     super(...args);
     this.initialize();
+  }
+  serializeAnimations() {
+    const ignored = deepCloneWithIgnore(this.animations, ['wld', 'reader']);
+    return ignored;
   }
   initialize() {
     const reader = this.reader;

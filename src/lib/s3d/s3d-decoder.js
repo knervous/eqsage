@@ -68,7 +68,7 @@ const getMaterials = async (materialList, document, roughness = 0.0) => {
 
     const texture = document
       .createTexture(name)
-    // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+      // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
       .setURI(`/eq/textures/${name}`)
       .setExtras({
         name,
@@ -222,9 +222,10 @@ export class S3DDecoder {
     )) {
       track.parseTrackData();
     }
+    GlobalStore.actions.setLoadingTitle('Exporting models');
+
     const AnimationSources = {};
     for (const skeleton of wld.skeletons) {
-
       if (skeleton === null) {
         continue;
       }
@@ -233,8 +234,8 @@ export class S3DDecoder {
       const alternateModel = AnimationSources.hasOwnProperty(modelBase)
         ? AnimationSources[modelBase]
         : modelBase;
-      GlobalStore.actions.setLoadingText(`Exporting model ${ modelBase}`);
-      await new Promise(res => setTimeout(res, 0));
+      GlobalStore.actions.setLoadingText(`Exporting model ${modelBase}`);
+      await new Promise((res) => setTimeout(res, 0));
       // TODO: Alternate model bases
       wld.tracks
         .filter(
@@ -280,11 +281,12 @@ export class S3DDecoder {
         continue;
       }
 
-      //  console.warn(`WldFileCharacters: Track not assigned: ${track.name}`);
+      console.warn(`WldFileCharacters: Track not assigned: ${track.name}`);
     }
 
     for (const skeleton of wld.skeletons) {
       skeleton.buildSkeletonData(true);
+
       if (!doExport) {
         return;
       }
@@ -296,36 +298,32 @@ export class S3DDecoder {
         const buffer = document.createBuffer();
         const scene = document.createScene(scrubbedName);
         const secondary = /he\d+/.test(baseName);
-        // We need to map this to another skeleton
+
+        // Write skeleton data to json if we're a supplier of animations for other models
+        if (Object.values(animationMap).includes(baseName)) {
+          if (!(await getEQFileExists('data', `${baseName}-animations.json`))) {
+            GlobalStore.actions.setLoadingText(`Writing shared animations for ${baseName}`);
+            await writeEQFile(
+              'data',
+              `${baseName}-animations.json`,
+              JSON.stringify(skeleton.serializeAnimations())
+            );
+          }
+        }
+
+        // We need to map this to another skeleton supplied from those other models
+        // e.g. ELM maps to a lot of different
         if (!secondary && animationMap[baseName]) {
-          let existingSkeleton =
+          const existingSkeleton =
             wld.skeletons.find((s) => s.modelBase === animationMap[baseName]) ||
             this.globalWld?.skeletons.find(
               (s) => s.modelBase === animationMap[baseName]
             );
-          // We need to try to import this from global if it doesn't exist
-          if (!existingSkeleton && !this.globalWld) {
-            const globalChr = await gameController.rootFileSystemHandle
-              .getFileHandle('global_chr.s3d')
-              .then((f) => f.getFile());
-            const decoder = new S3DDecoder();
-            await decoder.processS3D(globalChr);
-            const charWld = decoder.wldFiles.find(
-              (w) => w.type === WldType.Characters
-            );
-            if (charWld) {
-              await decoder.exportModels(charWld, false);
-
-              existingSkeleton = charWld.skeletons.find(
-                (s) => s.modelBase === animationMap[baseName]
-              );
-              this.globalWld = charWld;
-            }
-          }
-          if (existingSkeleton) {
-            for (const [key, value] of Object.entries(
-              existingSkeleton.animations
-            )) {
+          const existingAnimations =
+            existingSkeleton?.animations ??
+            (await getEQFile('data', `${animationMap[baseName]}-animations.json`, 'json'));
+          if (existingAnimations) {
+            for (const [key, value] of Object.entries(existingAnimations)) {
               if (!skeleton.animations[key]) {
                 skeleton.animations[key] = {
                   ...value,
@@ -333,7 +331,10 @@ export class S3DDecoder {
                 };
               }
             }
+          } else {
+            console.warn(`Unmet dependency for animations for ${baseName}. Wanted {{ ${animationMap[baseName]} }}`);
           }
+        
         }
 
         const node = document
@@ -493,7 +494,6 @@ export class S3DDecoder {
 
         const animWriter = new S3DAnimationWriter(document);
         const skeletonNodes = animWriter.addNewSkeleton(skeleton);
-
 
         if (!secondary) {
           animWriter.applyAnimationToSkeleton(

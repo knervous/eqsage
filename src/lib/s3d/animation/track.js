@@ -78,9 +78,7 @@ export class TrackFragment extends WldFragment {
   /**
    * @type {TrackDefFragment}
    */
-  get trackDefFragment() {
-    return this.wld.fragments[this.trackDefFragmentIdx];
-  }
+  trackDefFragment = null;
   trackDefFragmentIdx = -1;
 
   isPoseAnimation = false;
@@ -98,6 +96,7 @@ export class TrackFragment extends WldFragment {
   initialize() {
     const reader = this.reader;
     this.trackDefFragmentIdx = reader.readUint32() - 1;
+    this.trackDefFragment = this.wld.fragments[this.trackDefFragmentIdx];
     const flags = new TrackFragmentFlags(reader.readUint32());
     if (flags.hasFrameMs) {
       this.frameMs = reader.readInt32();
