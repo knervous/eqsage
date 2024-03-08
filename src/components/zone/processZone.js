@@ -1,6 +1,9 @@
 import { EQFileHandle } from '../../lib/model/file-handle';
+import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { gameController } from '../../viewer/controllers/GameController';
+
+export const GLOBAL_VERSION = 1.0;
 
 async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
   if (entry.kind === 'file') {
@@ -43,13 +46,23 @@ export async function processGlobal(settings) {
     );
     await obj.initialize();
     await obj.process();
+    await writeEQFile('data', 'global.json', JSON.stringify({ version: GLOBAL_VERSION }));
     res();
   });
 }
 
 export async function processZone(zoneName, settings) {
-  console.log('Zone name', zoneName);
   GlobalStore.actions.setLoading(true);
+
+  // Preprocess globalload
+  GlobalStore.actions.setLoadingTitle('Loading Global Dependencies');
+
+  const existingMetadata = await getEQFile('data', 'global.json', 'json');
+
+  if (existingMetadata?.version !== GLOBAL_VERSION) {
+    await processGlobal(settings);
+  }
+  console.log('Zone name', zoneName);
   GlobalStore.actions.setLoadingTitle('Processing Zone');
   GlobalStore.actions.setLoadingText('Loading Zone', zoneName);
   await new Promise(async (res, rej) => {
