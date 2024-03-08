@@ -243,14 +243,14 @@ class SpawnController extends GameControllerChild {
     let count = 0;
     for (const spawn of spawns) {
       if (
-        spawn.id !== 10787 // && // Guard Mezzt
+        spawn.id !== 10787 && // Guard Mezzt
         // spawn.id !== 10706 && // Guard Rashik
         //  spawn.id !== 10811 && // Tubal Weaver
         // spawn.id !== 10783 // && // POD
-        //  spawn.id !== 10847 // connie link
+        spawn.id !== 10847 // connie link
         //  spawn.id !== 10809 // Felodious Sworddancer
       ) {
-        // continue;
+        continue;
       }
       const firstSpawn = spawn.spawnentries?.[0]?.npc_type;
       const model = raceData.find((r) => r.id === firstSpawn?.race);
