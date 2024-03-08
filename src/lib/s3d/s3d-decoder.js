@@ -234,7 +234,7 @@ export class S3DDecoder {
         ? AnimationSources[modelBase]
         : modelBase;
       GlobalStore.actions.setLoadingText(`Exporting model ${ modelBase}`);
-
+      await new Promise(res => setTimeout(res, 0));
       // TODO: Alternate model bases
       wld.tracks
         .filter(
