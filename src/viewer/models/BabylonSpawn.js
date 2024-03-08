@@ -252,7 +252,7 @@ export class BabylonSpawn {
     this.rootNode.position = eqtoBabylonVector(
       this.spawn.x,
       this.spawn.y,
-      this.spawn.z + 2
+      this.spawn.z
     );
     this.rootNode.scaling.z = scale;
     this.rootNode.scaling.x = scale;
@@ -276,7 +276,10 @@ export class BabylonSpawn {
       this.disableLoopedAnimation();
       anim.play(true);
     }
-    this.rootNode.refreshBoundingInfo();
+    setTimeout(() => {
+      this.rootNode.refreshBoundingInfo(true, true);
+    }, 1000);
+
     return true;
   }
 
