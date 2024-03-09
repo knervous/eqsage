@@ -21,6 +21,12 @@ import { Inspector } from '@babylonjs/inspector';
 import { GlobalStore } from '../../state';
 import { GLTFLoader } from '@babylonjs/loaders/glTF/2.0';
 import { getEQFile } from '../../lib/util/fileHandler';
+import { SpireApi, SpireQueryBuilder } from 'spire-api';
+import { Zones } from 'spire-api/wrappers/zones';
+import { Spawn } from 'spire-api/wrappers/spawn';
+import { Grid } from 'spire-api/wrappers/grid';
+import { Npcs } from 'spire-api/wrappers/npcs';
+
 Database.IDBStorageEnabled = true;
 SceneLoader.ShowLoadingScreen = false;
 
@@ -60,7 +66,9 @@ class EQDatabase extends Database {
     }
     const [, eq, folder, file] = url.split('/');
     if (eq === 'eq') {
-      const fileBuffer = await getEQFile(folder, file) || await getEQFile('textures', `${url}.png`);
+      const fileBuffer =
+        (await getEQFile(folder, file)) ||
+        (await getEQFile('textures', `${url}.png`));
       if (!fileBuffer) {
         console.log('No bytes', url);
         errorCallback();
@@ -68,7 +76,7 @@ class EQDatabase extends Database {
       }
       await sceneLoaded(fileBuffer);
       return;
-    } 
+    }
 
     const fileBuffer = await getEQFile('textures', `${url}.png`);
     if (!fileBuffer) {
@@ -78,7 +86,7 @@ class EQDatabase extends Database {
     }
     await sceneLoaded(fileBuffer);
     return;
-    
+
     console.log('No bytes', url);
     errorCallback();
   }
@@ -176,13 +184,15 @@ export class GameController {
           console.warn(`Unhandled image ${image.name}`);
           // Solid gray 1px png until this is solved
           const pngData = new Uint8Array([
-            0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
-            0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x68, 0x68, 0x68, 0x00,
-            0x00, 0x03, 0x04, 0x01, 0x81, 0x4b, 0xd3, 0xd2, 0x10, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e,
-            0x44, 0xae, 0x42, 0x60, 0x82
+            0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00,
+            0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+            0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde,
+            0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63,
+            0x68, 0x68, 0x68, 0x00, 0x00, 0x03, 0x04, 0x01, 0x81, 0x4b, 0xd3,
+            0xd2, 0x10, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
+            0x42, 0x60, 0x82,
           ]);
-          
+
           image._data = pngData.buffer;
           // (await getEQFile('textures', 'citywal4.png')) ?? new ArrayBuffer();
         }
@@ -208,7 +218,6 @@ export class GameController {
     } else {
       this.engine = new Engine(canvas); // await EngineFactory.CreateAsync(canvas);
       this.engineInitialized = true;
-
     }
     this.engine.setHardwareScalingLevel(1 / window.devicePixelRatio);
     this.engine.disableManifestCheck = true;
@@ -247,7 +256,6 @@ export class GameController {
       }
     }
   }
-
 
   keyDown(e) {
     switch (`${e.key}`?.toLowerCase?.()) {
@@ -310,7 +318,22 @@ export class GameController {
    * @type {Spire | null}
    */
   get Spire() {
-    return window.Spire;
+    return (
+      window.Spire ??
+      (() => {
+        return !!SpireApi.remoteUrl
+          ? {
+            SpireApi,
+            SpireQueryBuilder,
+            Zones,
+            Spawn,
+            Grid,
+            Npcs,
+          }
+          : null;
+      })() ??
+      null
+    );
   }
 }
 

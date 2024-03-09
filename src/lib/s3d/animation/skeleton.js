@@ -264,24 +264,34 @@ export class SkeletonHierarchy extends WldFragment {
       cleanedName = cleanedName.replace(this.modelBase, String.Empty);
       pieceName = cleanedName === 'string.Empty ' ? 'root' : cleanedName;
     } else {
-      if (cleanedName.length <= 3) {
-        return;
+      if (track.newModel) {
+        modelName = track.modelName;
+        animationName = track.animationName;
+        pieceName = track.name.slice(7, track.name.length).replace('_TRACK', '').toLowerCase();
+        if (pieceName === 'a') {
+          pieceName = 'root';
+        }
+      } else {
+        if (cleanedName.length <= 3) {
+          return;
+        }
+  
+        animationName = cleanedName.slice(0, 3);
+        cleanedName = cleanedName.slice(3, cleanedName.length);
+  
+        if (cleanedName.length < 3) {
+          return;
+        }
+  
+        modelName = cleanedName.slice(0, 3);
+        cleanedName = cleanedName.slice(3, cleanedName.length);
+        pieceName = cleanedName;
+  
+        if (pieceName === '') {
+          pieceName = 'root';
+        }
       }
-
-      animationName = cleanedName.slice(0, 3);
-      cleanedName = cleanedName.slice(3, cleanedName.length);
-
-      if (cleanedName.length < 3) {
-        return;
-      }
-
-      modelName = cleanedName.slice(0, 3);
-      cleanedName = cleanedName.slice(3, cleanedName.length);
-      pieceName = cleanedName;
-
-      if (pieceName === '') {
-        pieceName = 'root';
-      }
+      
     }
 
     track.setTrackData(modelName, animationName, pieceName);

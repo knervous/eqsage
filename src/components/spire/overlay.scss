@@ -3,7 +3,8 @@
         fill: #ddd !important;
         color: #ddd !important;
     }
-
+    z-index: 100000 !important;
+    position: absolute;
     .spire-left-nav-button {
         border: 1px solid gold !important;
         border-radius: 20px;
