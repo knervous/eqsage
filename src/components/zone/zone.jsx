@@ -17,7 +17,7 @@ export const BabylonZone = () => {
       if (!selectedZone) {
         return;
       }
-      await new Promise(res => setTimeout(res, 50));
+      await new Promise((res) => setTimeout(res, 50));
       console.log('Canvas ref', canvasRef);
       await gameController.loadEngine(canvasRef.current, settings.webgpu);
       await gameController.ZoneController.loadViewerScene();
@@ -46,10 +46,9 @@ export const BabylonZone = () => {
     return () => (current = false);
   }, [selectedZone]); // eslint-disable-line
 
-  return selectedZone ? (
+  return (
     <OverlayProvider>
-
-      <SpireOverlay />
+      <SpireOverlay inZone={!!selectedZone} />
       <Box
         as="canvas"
         sx={{ flexGrow: '1', position: 'fixed' }}
@@ -58,7 +57,6 @@ export const BabylonZone = () => {
         width="100vw"
         height="100vh"
       />
-
     </OverlayProvider>
-  ) : null;
+  );
 };

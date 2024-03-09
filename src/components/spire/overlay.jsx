@@ -8,13 +8,13 @@ import { ItemIcon } from './icons/item';
 import { RegionIcon } from './icons/region';
 import SettingsIcon from '@mui/icons-material/Settings';
 
-import './overlay.scss';
 import { useOverlayContext } from './provider';
 import { useCallback, useEffect } from 'react';
 import { OverlayDialogs } from './dialogs/dialogs';
 import classNames from 'classnames';
 import { useSettingsHook } from './hooks';
 import SpawnNavBar from './nav-bar/spawn-nav/spawn-nav';
+import './overlay.scss';
 
 const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
   const doToggleDialog = useCallback(() => {
@@ -51,7 +51,7 @@ const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
   );
 };
 
-export const SpireOverlay = () => {
+export const SpireOverlay = ({ inZone }) => {
   const { toggleDialog, dialogState, closeDialogs } = useOverlayContext();
   useSettingsHook();
   useEffect(() => {
@@ -80,7 +80,7 @@ export const SpireOverlay = () => {
         }}
       >
         <Stack
-          sx={{ height: 'calc(65%)' }}
+          sx={{ height: inZone ? 'calc(65%)' : '100px' }}
           direction={'column'}
           justifyContent={'space-evenly'}
           alignItems={'center'}
@@ -92,41 +92,45 @@ export const SpireOverlay = () => {
             Icon={SettingsIcon}
             toggleDialog={toggleDialog}
           />
-          <NavButton
-            dialogState={dialogState}
-            dialog="zone"
-            text={'Zone'}
-            Icon={ZoneIcon}
-            toggleDialog={toggleDialog}
-          />
-          <NavButton
-            dialogState={dialogState}
-            dialog="npc"
-            text={'Spawns'}
-            Icon={SpawnIcon}
-            toggleDialog={toggleDialog}
-          />
-          <NavButton
-            dialogState={dialogState}
-            dialog="objects"
-            text={'Objects'}
-            Icon={DoorIcon}
-            toggleDialog={toggleDialog}
-          />
-          <NavButton
-            dialogState={dialogState}
-            dialog="items"
-            text={'Items'}
-            Icon={ItemIcon}
-            toggleDialog={toggleDialog}
-          />
-          <NavButton
-            dialogState={dialogState}
-            dialog="regions"
-            text={'Regions'}
-            Icon={RegionIcon}
-            toggleDialog={toggleDialog}
-          />
+          {inZone && (
+            <>
+              <NavButton
+                dialogState={dialogState}
+                dialog="zone"
+                text={'Zone'}
+                Icon={ZoneIcon}
+                toggleDialog={toggleDialog}
+              />
+              <NavButton
+                dialogState={dialogState}
+                dialog="npc"
+                text={'Spawns'}
+                Icon={SpawnIcon}
+                toggleDialog={toggleDialog}
+              />
+              <NavButton
+                dialogState={dialogState}
+                dialog="objects"
+                text={'Objects'}
+                Icon={DoorIcon}
+                toggleDialog={toggleDialog}
+              />
+              <NavButton
+                dialogState={dialogState}
+                dialog="items"
+                text={'Items'}
+                Icon={ItemIcon}
+                toggleDialog={toggleDialog}
+              />
+              <NavButton
+                dialogState={dialogState}
+                dialog="regions"
+                text={'Regions'}
+                Icon={RegionIcon}
+                toggleDialog={toggleDialog}
+              />
+            </>
+          )}
         </Stack>
       </Box>
       <OverlayDialogs />

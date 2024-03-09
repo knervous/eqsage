@@ -11,6 +11,7 @@ export class TrackDefFragment extends WldFragment {
      * @type {Array<import('../common/bone-transform').BoneTransform>}
      */
   frames = [];
+  newModel = false;
   isAssigned = false;
   constructor(...args) {
     super(...args);
@@ -131,6 +132,27 @@ export class TrackFragment extends WldFragment {
       this.isNameParsed = true;
       return;
     }
+
+    if (/_TRACK$/.test(this.name)) {
+      const [animName] = /[A-Za-z]\d+/.exec(cleanedName) ?? [];
+      this.animationName = animName;
+      this.modelName = cleanedName.slice(4, 7);
+      this.isNameParsed = true;
+      this.newModel = true;
+      return;
+    }
+
+    // Newer models
+    if (/_\w+$/.test(cleanedName)) {
+      const [animName] = /[A-Za-z]\d+/.exec(cleanedName);
+      this.animationName = animName;
+      this.modelName = cleanedName.slice(cleanedName.length - 3, cleanedName.length);
+      this.isNameParsed = true;
+      this.newModel = true;
+      return;
+    } 
+    const r = 123;
+    
 
     this.animationName = cleanedName.slice(0, 3);
     cleanedName = cleanedName.slice(3, cleanedName.length);

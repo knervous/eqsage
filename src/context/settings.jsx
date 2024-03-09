@@ -11,6 +11,7 @@ const defaultOptions = {
   forceReload: false,
   clipPlane  : 10000,
   spawnLOD   : 500,
+  remoteUrl  : '',
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(

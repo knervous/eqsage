@@ -29,10 +29,22 @@ export async function processGlobal(settings) {
   return new Promise(async (res, rej) => {
     const handles = [];
     try {
-      for await (const fileHandle of getFilesRecursively(gameController.rootFileSystemHandle, '', new RegExp('^global(\\d+)?[_\\.].*'))) {
+      for await (const fileHandle of getFilesRecursively(gameController.rootFileSystemHandle, '', new RegExp('^global.*\\.s3d'))) {
         if (fileHandle.name.includes('global_chr')) {
           handles.push(await fileHandle.getFile()); 
         }
+
+        // if (fileHandle.name.includes('globaldam_chr2')) {
+        //   handles.push(await fileHandle.getFile()); 
+        // }
+        // if (fileHandle.name.includes('globaldam_chr')) {
+        //   handles.push(await fileHandle.getFile()); 
+        // }
+
+        // if (fileHandle.name.includes('globalgdb')) {
+        //   handles.push(await fileHandle.getFile()); 
+        // }
+      
       }
     } catch (e) {
       console.warn('Error', e, handles);

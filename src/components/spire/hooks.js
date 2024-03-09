@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useSettingsContext } from '../../context/settings';
 import { gameController } from '../../viewer/controllers/GameController';
+import { SpireApi } from 'spire-api';
 
 export const useSettingsHook = () => {
   const settings = useSettingsContext();
@@ -24,6 +25,10 @@ export const useSettingsHook = () => {
   useEffect(() => {
     gameController.ZoneController.setGlow(settings.glow);
   }, [settings.glow]);
+
+  useEffect(() => {
+    SpireApi.remoteUrl = settings.remoteUrl;
+  }, [settings.remoteUrl]);
 
   useEffect(() => {
     gameController.settings = settings;

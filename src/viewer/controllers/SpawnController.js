@@ -250,7 +250,10 @@ class SpawnController extends GameControllerChild {
         spawn.id !== 10847 // connie link
         //  spawn.id !== 10809 // Felodious Sworddancer
       ) {
-        // continue;
+        if (process.env.LOCAL_DEV === 'true') {
+          continue;
+
+        }
       }
       const firstSpawn = spawn.spawnentries?.[0]?.npc_type;
       const model = raceData.find((r) => r.id === firstSpawn?.race);
