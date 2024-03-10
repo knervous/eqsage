@@ -198,7 +198,7 @@ function SpawnNavBar() {
                 disabled={selectedIdx === -1}
                 onClick={() => {
                   window.open(
-                    `/npc/${selectedSpawn?.spawnentries?.[selectedIdx]?.npc_id}`,
+                    `${gameController.Spire.SpireApi?.remoteUrl ?? ''}/npc/${selectedSpawn?.spawnentries?.[selectedIdx]?.npc_id}`,
                     '_blank'
                   );
                 }}

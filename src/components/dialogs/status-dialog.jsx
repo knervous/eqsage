@@ -83,8 +83,8 @@ export const StatusDialog = ({
               <Link target="_blank" href="https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle/requestPermission">
                 this link
               </Link>{' '}
-              to learn more about which browsers are supported. Additionally, if you are using Spire and viewing this site over http, a workaround is required.
-              For now, a temporary mirror of Spire is available using the URL https://spire-delta.vercel.app/?remote_backend=http://YOUR_SERVER_OR_IP:PORT
+              to learn more about which browsers are supported. Additionally, if you are using Spire and viewing this site over http and not https, you will need to instead
+               visit the <Link href="https://eqsage.vercel.app">standalone Sage site</Link> and enter your remote host from the settings dialog to connect to sage.
             </Typography>
           )}
           {permissionStatus === PermissionStatusTypes.NeedRefresh && (
