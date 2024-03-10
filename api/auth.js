@@ -22,7 +22,7 @@ module.exports = (req, res) => {
   proxy.web(
     req,
     res,
-    { target: `${httpTarget}/auth/login`, changeOrigin: true, secure: false },
+    { target: `${httpTarget}`, changeOrigin: true, secure: false },
     (error) => {
       console.error('Proxy error:', error);
       res.writeHead(404, { 'Content-Type': 'text/plain' });
