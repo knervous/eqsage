@@ -168,7 +168,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
               <TableCell align="center">
                 <IconButton
                   onClick={() => {
-                    window.open(`/npc/${entry.npc_id}`, '_blank');
+                    window.open(`${gameController.Spire.SpireApi?.remoteUrl ?? ''}/npc/${entry.npc_id}`, '_blank');
                   }}
                 >
                   <OpenInNewIcon />

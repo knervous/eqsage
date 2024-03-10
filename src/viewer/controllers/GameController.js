@@ -22,6 +22,9 @@ import { GlobalStore } from '../../state';
 import { GLTFLoader } from '@babylonjs/loaders/glTF/2.0';
 import { getEQFile } from '../../lib/util/fileHandler';
 import { SpireApi, SpireQueryBuilder } from 'spire-api';
+import { Spawn2Api } from 'spire-api/api/spawn2-api';
+import { SpawngroupApi } from 'spire-api/api/spawngroup-api';
+import { SpawnentryApi } from 'spire-api/api/spawnentry-api';
 import { Zones } from 'spire-api/wrappers/zones';
 import { Spawn } from 'spire-api/wrappers/spawn';
 import { Grid } from 'spire-api/wrappers/grid';
@@ -325,6 +328,11 @@ export class GameController {
           ? {
             SpireApi,
             SpireQueryBuilder,
+            SpireApiTypes: {
+              Spawn2Api,
+              SpawnentryApi,
+              SpawngroupApi
+            },
             Zones,
             Spawn,
             Grid,
