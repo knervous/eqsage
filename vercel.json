@@ -7,12 +7,12 @@
         "memory": 1000,
         "maxDuration": 10
       },
-      "functions/auth.js": {
+      "api/auth.js": {
         "memory": 1000,
         "maxDuration": 10
       }
     },
     "rewrites": [
-        { "source": "/auth/login", "destination": "/functions/auth.js" }
+        { "source": "/auth/login", "destination": "/api/auth.js" }
       ]
   }
