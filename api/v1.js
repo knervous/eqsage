@@ -18,8 +18,8 @@ module.exports = (req, res) => {
   const httpTarget = target.startsWith('http://') || target.startsWith('https://') ? target : `http://${target}`;
   const targetUrl = queryParams ? `${httpTarget}?${queryParams}` : httpTarget;
 
-  // res.json({httpTarget, url: req.url})
-  // return;
+  res.json({ httpTarget, url: req.url });
+  return;
   // Proxy the request
   proxy.web(
     req,
