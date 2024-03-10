@@ -1,0 +1,18 @@
+{
+    "buildCommand": "npm run build",
+    "devCommand": "npm run start",
+    "installCommand": "npm install",
+    "functions": {
+      "api/v1.js": {
+        "memory": 1000,
+        "maxDuration": 10
+      },
+      "functions/auth.js": {
+        "memory": 1000,
+        "maxDuration": 10
+      }
+    },
+    "rewrites": [
+        { "source": "/auth/login", "destination": "/functions/auth.js" }
+      ]
+  }
