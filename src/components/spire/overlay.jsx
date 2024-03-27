@@ -15,6 +15,7 @@ import classNames from 'classnames';
 import { useSettingsHook } from './hooks';
 import SpawnNavBar from './nav-bar/spawn-nav/spawn-nav';
 import './overlay.scss';
+import { Compass } from './compass';
 
 const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
   const doToggleDialog = useCallback(() => {
@@ -79,6 +80,8 @@ export const SpireOverlay = ({ inZone }) => {
           zIndex  : 1000,
         }}
       >
+        {/** Compass */}
+        <Compass />
         <Stack
           sx={{ height: inZone ? 'calc(65%)' : '100px' }}
           direction={'column'}
