@@ -133,25 +133,25 @@ export class TrackFragment extends WldFragment {
       return;
     }
 
-    if (/_TRACK$/.test(this.name)) {
-      const [animName] = /[A-Za-z]\d+/.exec(cleanedName) ?? [];
-      this.animationName = animName;
-      this.modelName = cleanedName.slice(4, 7);
-      this.isNameParsed = true;
-      this.newModel = true;
-      return;
-    }
+    // if (/_TRACK$/.test(this.name)) {
+    //   const [animName] = /[A-Za-z]\d+/.exec(cleanedName) ?? [];
+    //   this.animationName = animName;
+    //   this.modelName = cleanedName.slice(4, 7);
+    //   this.isNameParsed = true;
+    //   this.newModel = true;
+    //   return;
+    // }
 
-    // Newer models
-    if (/_\w+$/.test(cleanedName)) {
-      const [animName] = /[A-Za-z]\d+/.exec(cleanedName);
-      this.animationName = animName;
-      this.modelName = cleanedName.slice(cleanedName.length - 3, cleanedName.length);
-      this.isNameParsed = true;
-      this.newModel = true;
-      return;
-    } 
-    const r = 123;
+    // // Newer models
+    // if (/_\w+$/.test(cleanedName)) {
+    //   const [animName] = /[A-Za-z]\d+/.exec(cleanedName);
+    //   this.animationName = animName;
+    //   this.modelName = cleanedName.slice(cleanedName.length - 3, cleanedName.length);
+    //   this.isNameParsed = true;
+    //   this.newModel = true;
+    //   return;
+    // } 
+    // const r = 123;
     
 
     this.animationName = cleanedName.slice(0, 3);
