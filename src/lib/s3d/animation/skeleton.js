@@ -264,7 +264,7 @@ export class SkeletonHierarchy extends WldFragment {
       cleanedName = cleanedName.replace(this.modelBase, String.Empty);
       pieceName = cleanedName === 'string.Empty ' ? 'root' : cleanedName;
     } else {
-      if (track.newModel) {
+      if (false && track.newModel) {
         modelName = track.modelName;
         animationName = track.animationName;
         pieceName = track.name.slice(7, track.name.length).replace('_TRACK', '').toLowerCase();

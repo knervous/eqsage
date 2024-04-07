@@ -300,7 +300,7 @@ export class S3DDecoder {
         const secondary = /he\d+/.test(baseName);
 
         // Write skeleton data to json if we're a supplier of animations for other models
-        if (Object.values(animationMap).includes(baseName)) {
+        if (!secondary && Object.values(animationMap).includes(baseName)) {
           if (!(await getEQFileExists('data', `${baseName}-animations.json`))) {
             GlobalStore.actions.setLoadingText(`Writing shared animations for ${baseName}`);
             await writeEQFile(

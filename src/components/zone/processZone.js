@@ -3,7 +3,7 @@ import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { gameController } from '../../viewer/controllers/GameController';
 
-export const GLOBAL_VERSION = 1.0;
+export const GLOBAL_VERSION = 1.1;
 
 async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
   if (entry.kind === 'file') {

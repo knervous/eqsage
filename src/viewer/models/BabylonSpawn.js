@@ -101,6 +101,7 @@ export class BabylonSpawn {
       await gameController.SpawnController.getAssetContainer(modelVariation);
     this.instanceContainer = assetContainer.instantiateModelsToScene();
     this.animationGroups = this.instanceContainer.animationGroups;
+
     this.animationMap = mapAnimations(this.animationGroups);
     this.rootNode = this.instanceContainer.rootNodes[0];
 
@@ -278,6 +279,7 @@ export class BabylonSpawn {
     }
     setTimeout(() => {
       this.rootNode.refreshBoundingInfo(true, true);
+      this.playAnimation();
     }, 1000);
 
     return true;
@@ -320,13 +322,14 @@ export class BabylonSpawn {
   }
 
   playAnimation(idx, _speed = 0) {
-    if (!this.rootNode.isEnabled() || this.animatingIndex === idx) {
+    if (!this.rootNode.isEnabled()) {
       return;
     }
 
     const anim =
       this.animationGroups.find((ag) => ag.name === 'Clone of p01') ??
       this.animationGroups?.[0];
+
     if (anim) {
       this.disableLoopedAnimation();
       anim.play(true);
