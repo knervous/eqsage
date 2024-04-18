@@ -11,7 +11,6 @@ import { draco, DRACO_DEFAULTS } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 import { ShaderType } from './materials/material';
 import {
-  getEQDir,
   getEQFile,
   getEQFileExists,
   writeEQFile,
@@ -19,13 +18,10 @@ import {
 import { optimizeBoundingBoxes } from './bsp/region-utils';
 import { VERSION } from '../model/file-handle';
 import { fragmentNameCleaner } from '../util/util';
-import { MeshExportHelper } from '../util/mesh-export-helper';
 import {
   S3DAnimationWriter,
   animationMap,
-  getSkeletonNameFromSkeleton,
 } from '../util/animation-helper';
-import { gameController } from '../../viewer/controllers/GameController';
 import { GlobalStore } from '../../state';
 
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({

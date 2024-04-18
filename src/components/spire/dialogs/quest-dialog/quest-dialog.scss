@@ -1,0 +1,75 @@
+.quest-editor-open {
+  display: block,
+}
+.quest-editor-closed {
+  display: none;
+}
+.quest-dialog {
+  overflow-x: hidden;
+  .MuiPaper-root, .MuiAccordionSummary-root {
+    background: transparent;
+  }
+
+  .MuiAccordionSummary-root {
+    padding: 0px !important;
+  }
+  .editor-accordion-summary {
+    flex-direction: row-reverse;
+    height: 35px;
+    min-height: 35px !important;
+  }
+  .MuiAccordionSummary-expandIconWrapper {
+    margin-right: 5px;
+    margin-left : 5px;
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+   
+  }
+  margin: 0px !important;
+  padding: 0px !important;
+  .editor-accordion {
+    
+    p {
+      font-size: 16px;
+    }
+    ul {
+      padding: 5px 0px;
+    }
+    li {
+      span {
+        font-size: 15px;
+      }
+      height: 27px;
+      padding: 2px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      &:hover {
+        background: rgba(131, 131, 233, 0.1);
+      }
+      &:active {
+        background: rgba(131, 131, 233, 0.3);
+      }
+      svg {
+        margin-right: 5px;
+      }
+    }
+
+    .editor-file-selected {
+      background: rgba(131, 131, 233, 0.5);
+    }
+
+    [role='button'] {
+     // border: 1px  rgba(131, 131, 233, 0.677) solid;
+      background: transparent;
+      padding-left: 10px;
+      border-radius: 5px;
+      &:hover {
+        background: rgba(131, 131, 136, 0.261);
+      }
+    }
+  }
+  
+}

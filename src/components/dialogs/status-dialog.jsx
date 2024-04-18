@@ -9,25 +9,27 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { gameController } from '../../viewer/controllers/GameController';
 import { PermissionStatusTypes } from '../../hooks/permissions';
 import './status-dialog.scss';
+import { useMainContext } from '../main/context';
 
 export const StatusDialog = ({
   open,
   permissionStatus,
   requestPermissions,
   onDrop,
+  fsHandle,
 }) => {
   const [_type, setType] = useState('unknown');
+  const { Spire } = useMainContext();
 
   useEffect(() => {
     setTimeout(() => {
-      if (gameController.Spire) {
+      if (Spire) {
         setType('spire');
       }
     }, 150);
-  }, []);
+  }, [Spire]);
 
   return (
     <Dialog
@@ -49,12 +51,6 @@ export const StatusDialog = ({
         Welcome to EQ Sage!
       </DialogTitle>
       <DialogContent
-        onDropCapture={(e) => {
-          console.log('ok', e);
-        }}
-        onDragOver={(e) => {
-          console.log('odo', e);
-        }}
       >
         <div>
           <Stack
@@ -94,7 +90,7 @@ export const StatusDialog = ({
                 color="text.primary"
                 gutterBottom
               >
-                Linked EQ Directory: {gameController.rootFileSystemHandle?.name}
+                Linked EQ Directory: {fsHandle?.name}
                 .
               </Typography>
               <Typography
@@ -104,7 +100,7 @@ export const StatusDialog = ({
               >
                 Your browser needs to request permission to access files for
                 decoding. In addition, decoded files will be written under{' '}
-                <b>{gameController.rootFileSystemHandle?.name}/eqsage</b> and
+                <b>{fsHandle?.name}/eqsage</b> and
                 can be safely deleted at any time.
               </Typography>
               <Button variant='outlined' sx={{ margin: '25px' }} onClick={requestPermissions}>Request Permissions</Button>

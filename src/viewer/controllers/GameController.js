@@ -21,14 +21,6 @@ import { Inspector } from '@babylonjs/inspector';
 import { GlobalStore } from '../../state';
 import { GLTFLoader } from '@babylonjs/loaders/glTF/2.0';
 import { getEQFile } from '../../lib/util/fileHandler';
-import { SpireApi, SpireQueryBuilder } from 'spire-api';
-import { Spawn2Api } from 'spire-api/api/spawn2-api';
-import { SpawngroupApi } from 'spire-api/api/spawngroup-api';
-import { SpawnentryApi } from 'spire-api/api/spawnentry-api';
-import { Zones } from 'spire-api/wrappers/zones';
-import { Spawn } from 'spire-api/wrappers/spawn';
-import { Grid } from 'spire-api/wrappers/grid';
-import { Npcs } from 'spire-api/wrappers/npcs';
 
 Database.IDBStorageEnabled = true;
 SceneLoader.ShowLoadingScreen = false;
@@ -304,44 +296,6 @@ export class GameController {
     this.SoundController.dispose();
     this.SpawnController.dispose();
     this.ItemController.dispose();
-  }
-
-  /**
-   * @typedef Spire
-   * @property {import ('../../../../spire/frontend/src/app/api/spire-api')} SpireApi
-   * @property {import ('../../../../spire/frontend/src/app/api')} SpireApiTypes
-   * @property {import ('../../../../spire/frontend/src/app/api/spire-query-builder').SpireQueryBuilder} SpireQueryBuilder
-   * @property {import ('../../../../spire/frontend/src/app/zones').Zones} Zones
-   * @property {import ('../../../../spire/frontend/src/app/spawn').Spawn} Spawn
-   * @property {import ('../../../../spire/frontend/src/app/grid').Grid} Grid
-   * @property {import ('../../../../spire/frontend/src/app/npcs').Npcs} Npcs
-   */
-
-  /**
-   * @type {Spire | null}
-   */
-  get Spire() {
-    return (
-      window.Spire ??
-      (() => {
-        return !!SpireApi.remoteUrl
-          ? {
-            SpireApi,
-            SpireQueryBuilder,
-            SpireApiTypes: {
-              Spawn2Api,
-              SpawnentryApi,
-              SpawngroupApi
-            },
-            Zones,
-            Spawn,
-            Grid,
-            Npcs,
-          }
-          : null;
-      })() ??
-      null
-    );
   }
 }
 

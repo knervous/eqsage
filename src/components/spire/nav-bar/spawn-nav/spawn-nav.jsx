@@ -14,13 +14,13 @@ import {
 import { gameController } from '../../../../viewer/controllers/GameController';
 import classNames from 'classnames';
 import './spawn-nav.scss';
-import { useMainContext } from '../../../main/main';
+import { useMainContext } from '../../../main/context';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { AddEditSpawnDialog } from './add-edit-spawn-dialog';
 
 function SpawnNavBar() {
   const [selectedSpawn, setSelectedSpawn] = useState(null);
-  const { selectedZone } = useMainContext();
+  const { selectedZone, Spire } = useMainContext();
   const [open, setOpen] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [addEditDialogOpen, setAddEditDialogOpen] = useState(false);
@@ -47,7 +47,6 @@ function SpawnNavBar() {
     gameController.SpawnController.moveSpawn(selectedSpawn);
 
     (async () => {
-      const { Spire } = gameController;
 
       const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
         ...Spire.SpireApi.cfg()
@@ -57,7 +56,7 @@ function SpawnNavBar() {
     })();
 
 
-  }, [selectedSpawn?.x, selectedSpawn?.y, selectedSpawn?.z]); // eslint-disable-line
+  }, [selectedSpawn?.x, selectedSpawn?.y, selectedSpawn?.z, Spire]); // eslint-disable-line
 
   useEffect(() => {
     setOpen(false);
@@ -198,7 +197,7 @@ function SpawnNavBar() {
                 disabled={selectedIdx === -1}
                 onClick={() => {
                   window.open(
-                    `${gameController.Spire.SpireApi?.remoteUrl ?? ''}/npc/${selectedSpawn?.spawnentries?.[selectedIdx]?.npc_id}`,
+                    `${Spire.SpireApi?.remoteUrl ?? ''}/npc/${selectedSpawn?.spawnentries?.[selectedIdx]?.npc_id}`,
                     '_blank'
                   );
                 }}
