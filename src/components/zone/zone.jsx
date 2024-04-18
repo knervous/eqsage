@@ -1,16 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { Box } from '@mui/material';
-import { useMainContext } from '../main/main';
+import { useMainContext } from '../main/context';
 import { processZone } from './processZone';
 import { gameController } from '../../viewer/controllers/GameController';
 import { SpireOverlay } from '../spire/overlay';
 import { OverlayProvider } from '../spire/provider';
-import { SettingsProvider, useSettingsContext } from '../../context/settings';
+import { useSettingsContext } from '../../context/settings';
 
 export const BabylonZone = () => {
   const canvasRef = useRef();
-  const { selectedZone } = useMainContext();
+  const { selectedZone, rootFileSystemHandle } = useMainContext();
   const settings = useSettingsContext();
   useEffect(() => {
     (async () => {
@@ -37,7 +37,7 @@ export const BabylonZone = () => {
     }
     let current = true;
     (async () => {
-      await processZone(selectedZone.short_name, settings);
+      await processZone(selectedZone.short_name, settings, rootFileSystemHandle);
       if (!current) {
         return;
       }

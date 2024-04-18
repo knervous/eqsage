@@ -24,12 +24,13 @@ async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
   }
 }
 
-export async function processGlobal(settings) {
+export async function processGlobal(settings, rootFileSystemHandle) {
+  gameController.rootFileSystemHandle = rootFileSystemHandle;
   console.log('global');
   return new Promise(async (res, rej) => {
     const handles = [];
     try {
-      for await (const fileHandle of getFilesRecursively(gameController.rootFileSystemHandle, '', new RegExp('^global.*\\.s3d'))) {
+      for await (const fileHandle of getFilesRecursively(rootFileSystemHandle, '', new RegExp('^global.*\\.s3d'))) {
         if (fileHandle.name.includes('global_chr')) {
           handles.push(await fileHandle.getFile()); 
         }
@@ -53,7 +54,7 @@ export async function processGlobal(settings) {
     const obj = new EQFileHandle(
       'global',
       handles,
-      gameController.rootFileSystemHandle,
+      rootFileSystemHandle,
       settings
     );
     await obj.initialize();
@@ -63,7 +64,8 @@ export async function processGlobal(settings) {
   });
 }
 
-export async function processZone(zoneName, settings) {
+export async function processZone(zoneName, settings, rootFileSystemHandle) {
+  gameController.rootFileSystemHandle = rootFileSystemHandle;
   GlobalStore.actions.setLoading(true);
 
   // Preprocess globalload
@@ -72,7 +74,7 @@ export async function processZone(zoneName, settings) {
   const existingMetadata = await getEQFile('data', 'global.json', 'json');
 
   if (existingMetadata?.version !== GLOBAL_VERSION) {
-    await processGlobal(settings);
+    await processGlobal(settings, rootFileSystemHandle);
   }
   console.log('Zone name', zoneName);
   GlobalStore.actions.setLoadingTitle('Processing Zone');
@@ -80,7 +82,7 @@ export async function processZone(zoneName, settings) {
   await new Promise(async (res, rej) => {
     const handles = [];
     try {
-      for await (const fileHandle of getFilesRecursively(gameController.rootFileSystemHandle, '', new RegExp(`^${zoneName}[_\\.].*`))) {
+      for await (const fileHandle of getFilesRecursively(rootFileSystemHandle, '', new RegExp(`^${zoneName}[_\\.].*`))) {
         handles.push(await fileHandle.getFile()); 
       }
     } catch (e) {
@@ -90,7 +92,7 @@ export async function processZone(zoneName, settings) {
     const obj = new EQFileHandle(
       zoneName,
       handles,
-      gameController.rootFileSystemHandle,
+      rootFileSystemHandle,
       settings
     );
     await obj.initialize();

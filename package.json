@@ -16,6 +16,7 @@
     "@emotion/styled": "^11.11.0",
     "@gltf-transform/core": "^3.10.0",
     "@gltf-transform/functions": "^3.10.0",
+    "@monaco-editor/react": "^4.6.0",
     "@mui/icons-material": "^5.15.10",
     "@mui/material": "^5.15.2",
     "@mui/x-data-grid": "^6.19.4",

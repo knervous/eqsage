@@ -23,8 +23,7 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { gameController } from '../../viewer/controllers/GameController';
-import { useMainContext } from '../main/main';
+import { useMainContext } from '../main/context';
 import * as keyval from 'idb-keyval';
 import { useConfirm } from 'material-ui-confirm';
 import { processGlobal } from '../zone/processZone';
@@ -77,7 +76,7 @@ const expansions = [
 
 export const ZoneChooserDialog = ({ open }) => {
   const [_type, setType] = useState('unknown');
-  const { selectedZone, setSelectedZone, setZoneDialogOpen } = useMainContext();
+  const { selectedZone, setSelectedZone, setZoneDialogOpen, Spire, rootFileSystemHandle } = useMainContext();
   const [zoneList, setZoneList] = useState([]);
   const settings = useSettingsContext();
   const [expansionFilter, setExpansionFilter] = useState([]);
@@ -124,15 +123,15 @@ export const ZoneChooserDialog = ({ open }) => {
       setTimeout(() => {
         autocompleteRef.current?.querySelector('input')?.focus();
       }, 0);
-      if (gameController.Spire) {
-        gameController.Spire.Zones.getZones().then(setZoneList);
+      if (Spire) {
+        Spire.Zones.getZones().then(setZoneList).catch(() => {});
       } else {
         import('../../data/zoneData.json').then((zl) =>
           setZoneList(Array.from(zl))
         );
       }
     }
-  }, [open]);
+  }, [open, Spire]);
   const confirm = useConfirm();
   useEffect(() => {
     localStorage.setItem('recent-zones', JSON.stringify(recentList));
@@ -142,7 +141,7 @@ export const ZoneChooserDialog = ({ open }) => {
     confirm({ description: 'Are you sure you want to unlink your EQ directory?', title: 'Unlink EQ Directory' })
       .then(() => {
         /* ... */
-        keyval.clear().then(() => {
+        keyval.del('eqdir').then(() => {
           window.location.reload();
         });
       })
@@ -169,12 +168,6 @@ export const ZoneChooserDialog = ({ open }) => {
         Select a Zone
       </DialogTitle>
       <DialogContent
-        onDropCapture={(e) => {
-          console.log('ok', e);
-        }}
-        onDragOver={(e) => {
-          console.log('odo', e);
-        }}
       >
         <Stack direction={'column'}>
           <FormControl
@@ -281,7 +274,7 @@ export const ZoneChooserDialog = ({ open }) => {
         {process.env.REACT_APP_LOCAL_DEV === 'true' && 
        <Button
          color='primary'
-         onClick={() => processGlobal(settings)}
+         onClick={() => processGlobal(settings, rootFileSystemHandle)}
          variant="outlined"
          sx={{ margin: '0 auto' }}
        >

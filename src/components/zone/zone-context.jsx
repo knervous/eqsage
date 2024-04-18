@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useMainContext } from '../main/main';
+import { useMainContext } from '../main/context';
 import { gameController } from '../../viewer/controllers/GameController';
 
 
@@ -7,19 +7,19 @@ const ZoneContext = React.createContext({});
 export const useZoneContext = () => React.useContext(ZoneContext);
 
 export const ZoneProvider = ({ children }) => {
-  const { selectedZone } = useMainContext();
+  const { selectedZone, Spire } = useMainContext();
   const [spawns, setSpawns] = useState([]);
 
   const loadCallback = useCallback(async () => {
-    const spawnPoints = await gameController.Spire.Spawn.getByZone(
+    const spawnPoints = await Spire.Spawn.getByZone(
       selectedZone.short_name,
       selectedZone.version
     );
 
-    const gridPoints = gameController.Spire.Grid
-      ? await gameController.Spire.Grid.getById(selectedZone.zoneidnumber)
+    const gridPoints = Spire.Grid
+      ? await Spire.Grid.getById(selectedZone.zoneidnumber)
       : await fetch(
-          `${gameController.Spire.SpireApi.getBaseV1Path()}/grid_entries?where=zoneid__${
+          `${Spire.SpireApi.getBaseV1Path()}/grid_entries?where=zoneid__${
             selectedZone.zoneidnumber
           }&orderBy=gridid.number&limit=100000`
       ).then(a => a.json());
@@ -35,18 +35,18 @@ export const ZoneProvider = ({ children }) => {
       }
     }
     setSpawns(spawnPoints);
-  }, [selectedZone]);
+  }, [selectedZone, Spire]);
 
 
   useEffect(() => {
-    if (!gameController.Spire || !selectedZone) {
+    if (!Spire || !selectedZone) {
       return;
     }
     gameController.ZoneController.addLoadCallback(loadCallback);
     return () => {
       gameController.ZoneController.removeLoadCallback(loadCallback);
     };
-  }, [loadCallback, selectedZone]);
+  }, [loadCallback, selectedZone, Spire]);
 
 
   useEffect(() => {

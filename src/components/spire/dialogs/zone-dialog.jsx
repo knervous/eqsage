@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { CommonDialog } from './common';
-import { useMainContext } from '../../main/main';
-import { gameController } from '../../../viewer/controllers/GameController';
+import { useMainContext } from '../../main/context';
 
 export const ZoneDialog = ({ onClose }) => {
   const [zoneInfo, setZoneInfo] = useState({});
-  const { selectedZone } = useMainContext();
+  const { selectedZone, Spire } = useMainContext();
   useEffect(() => {
-    if (!gameController.Spire || !selectedZone) {
+    if (!Spire || !selectedZone) {
       return;
     }
-    gameController.Spire.Zones.getZoneById(selectedZone.zoneidnumber).then(zone => {
+    Spire.Zones.getZoneById(selectedZone.zoneidnumber).then(zone => {
       setZoneInfo(zone);
     });
-  }, [selectedZone]);
+  }, [selectedZone, Spire]);
 
   return (
     <CommonDialog onClose={onClose} title={'Zone'}>

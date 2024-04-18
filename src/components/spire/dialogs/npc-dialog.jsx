@@ -18,7 +18,7 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { Button, FormControl, Stack, TextField } from '@mui/material';
 import { gameController } from '../../../viewer/controllers/GameController';
 import { Vector3 } from '@babylonjs/core';
-import { useMainContext } from '../../main/main';
+import { useMainContext } from '../../main/context';
 import { useZoneContext } from '../../zone/zone-context';
 
 export const NpcDialog = ({ onClose }) => {

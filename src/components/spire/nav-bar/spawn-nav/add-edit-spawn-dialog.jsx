@@ -16,20 +16,19 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 import { useDebouncedCallback } from 'use-debounce';
-import { gameController } from '../../../../viewer/controllers/GameController';
 import { deepClone } from '@mui/x-data-grid/utils/utils';
 import { useZoneContext } from '../../../zone/zone-context';
+import { useMainContext } from '../../../main/context';
 
 
 export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
+  const { Spire } = useMainContext();
   const [npcList, setNpcList] = useState(entries);
   const [spawnList, setSpawnList] = useState([]);
   const { loadCallback } = useZoneContext();
   const dialogClosed = useCallback(
     async (forSave) => {
       if (forSave) {
-        const { Spire } = gameController;
-
         // First list all spawn entries, then diff
         const builder = new Spire.SpireQueryBuilder();
         builder.where('spawngroupID', '=', spawn.spawngroup_id);
@@ -84,7 +83,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
       }
       onClose();
     },
-    [onClose, spawn, npcList]
+    [onClose, spawn, npcList, loadCallback, Spire]
   );
 
   useEffect(() => {
@@ -97,7 +96,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
   );
 
   const debouncedSearch = useDebouncedCallback(async (val) => {
-    const npcs = await gameController.Spire.Npcs.listNpcsByName(val);
+    const npcs = await Spire.Npcs.listNpcsByName(val);
     setSpawnList(npcs);
   }, 500);
   console.log('entries', entries);
@@ -168,7 +167,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
               <TableCell align="center">
                 <IconButton
                   onClick={() => {
-                    window.open(`${gameController.Spire.SpireApi?.remoteUrl ?? ''}/npc/${entry.npc_id}`, '_blank');
+                    window.open(`${Spire.SpireApi?.remoteUrl ?? ''}/npc/${entry.npc_id}`, '_blank');
                   }}
                 >
                   <OpenInNewIcon />

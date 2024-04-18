@@ -35,6 +35,9 @@ export const CommonDialog = ({
   hideBackdrop = true,
   disableEnforceFocus = true,
   hideButtons = false,
+  maxWidth = 'md',
+  className = '',
+  additionalButtons = null
 }) => {
   return (
     <Dialog
@@ -46,8 +49,8 @@ export const CommonDialog = ({
       open={open}
       disableEnforceFocus={disableEnforceFocus}
       fullWidth={fullWidth}
-      maxWidth="md"
-      className="ui-dialog"
+      maxWidth={maxWidth}
+      className={'ui-dialog'}
       sx={{ pointerEvents: 'none' }}
       slotProps={{ backdrop: { sx: { pointerEvents: 'none' } } }}
       hideBackdrop={hideBackdrop}
@@ -61,7 +64,7 @@ export const CommonDialog = ({
       >
         {title}
       </DialogTitle>
-      <DialogContent>{children}</DialogContent>
+      <DialogContent className={className}>{children}</DialogContent>
       {!hideButtons && (
         <DialogActions>
           {cancelButton && (
@@ -79,6 +82,7 @@ export const CommonDialog = ({
           >
             {doneText}
           </Button>
+          {additionalButtons}
         </DialogActions>
       )}
     </Dialog>

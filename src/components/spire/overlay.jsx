@@ -1,4 +1,7 @@
+import { useCallback, useEffect } from 'react';
+
 import { Box, Stack, Typography } from '@mui/material';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 import IconButton from '@mui/material/IconButton';
 import { ZoneIcon } from './icons/zone';
@@ -6,16 +9,16 @@ import { SpawnIcon } from './icons/spawn';
 import { DoorIcon } from './icons/door';
 import { ItemIcon } from './icons/item';
 import { RegionIcon } from './icons/region';
-import SettingsIcon from '@mui/icons-material/Settings';
-
+import { QuestIcon } from './icons/quest';
 import { useOverlayContext } from './provider';
-import { useCallback, useEffect } from 'react';
 import { OverlayDialogs } from './dialogs/dialogs';
 import classNames from 'classnames';
 import { useSettingsHook } from './hooks';
 import SpawnNavBar from './nav-bar/spawn-nav/spawn-nav';
-import './overlay.scss';
 import { Compass } from './compass';
+
+import './overlay.scss';
+
 
 const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
   const doToggleDialog = useCallback(() => {
@@ -113,6 +116,13 @@ export const SpireOverlay = ({ inZone }) => {
               />
               <NavButton
                 dialogState={dialogState}
+                dialog="quests"
+                text={'Quests'}
+                Icon={QuestIcon}
+                toggleDialog={toggleDialog}
+              />
+              <NavButton
+                dialogState={dialogState}
                 dialog="objects"
                 text={'Objects'}
                 Icon={DoorIcon}
@@ -125,6 +135,7 @@ export const SpireOverlay = ({ inZone }) => {
                 Icon={ItemIcon}
                 toggleDialog={toggleDialog}
               />
+
               <NavButton
                 dialogState={dialogState}
                 dialog="regions"

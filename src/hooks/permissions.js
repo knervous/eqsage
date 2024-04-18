@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { clear, get, set } from 'idb-keyval';
-import { gameController } from '../viewer/controllers/GameController';
+import { get, set, del } from 'idb-keyval';
 
 export const PermissionStatusTypes = {
   ApiUnavailable: -1,
@@ -12,51 +11,52 @@ export const PermissionStatusTypes = {
 const apiSupported =
   typeof window.FileSystemHandle?.prototype?.queryPermission === 'function';
 
-export const usePermissions = () => {
+export const usePermissions = (name = 'eqdir') => {
+  const [fsHandle, setFsHandle] = useState(null);
   const [permissionStatus, setPermissionStatus] = useState(
     PermissionStatusTypes.NeedEQDir
   );
 
+
   const checkHandlePermissions = useCallback(async () => {
-    if (!gameController.rootFileSystemHandle) {
+    if (!fsHandle) {
       return;
     }
     if (
-      (await gameController.rootFileSystemHandle.requestPermission({
+      (await fsHandle.requestPermission({
         mode: 'readwrite',
       })) === 'granted'
     ) {
       setPermissionStatus(PermissionStatusTypes.Ready);
     }
-  }, []);
+  }, [fsHandle]);
 
   useEffect(() => {
     if (!apiSupported) {
       return;
     }
     (async () => {
-      const eqdir = await get('eqdir');
-      if (!eqdir) {
+      const persistedDir = await get(name);
+      if (!persistedDir) {
         setPermissionStatus(PermissionStatusTypes.NeedEQDir);
         return;
       }
-      gameController.rootFileSystemHandle = eqdir;
-
+      setFsHandle(persistedDir);
       setPermissionStatus(
-        (await gameController.rootFileSystemHandle.queryPermission({
+        (await persistedDir.queryPermission({
           mode: 'readwrite',
         })) === 'granted'
           ? PermissionStatusTypes.Ready
           : PermissionStatusTypes.NeedRefresh
       );
     })();
-  }, []);
+  }, [name]);
 
   const onDrop = useCallback(async (e) => {
     if (e?.kind === 'directory') {
-      await clear();
-      await set('eqdir', e);
-      gameController.rootFileSystemHandle = e;
+      await del(name);
+      await set(name, e);
+      setFsHandle(e);
       setPermissionStatus(PermissionStatusTypes.NeedRefresh);
       return;
     }
@@ -74,9 +74,9 @@ export const usePermissions = () => {
             console.log('Handle', handle);
             if (handle.kind === 'file') {
             } else if (handle.kind === 'directory') {
-              await clear();
-              await set('eqdir', handle);
-              gameController.rootFileSystemHandle = handle;
+              await del(name);
+              await set(name, handle);
+              setFsHandle(handle);
               setPermissionStatus(PermissionStatusTypes.NeedRefresh);
             }
           })
@@ -87,11 +87,12 @@ export const usePermissions = () => {
     }
     e.preventDefault();
     e.stopPropagation();
-  }, []);
+  }, [name]);
 
   return [
     apiSupported ? permissionStatus : PermissionStatusTypes.ApiUnavailable,
     onDrop,
     checkHandlePermissions,
+    fsHandle
   ];
 };

@@ -11,7 +11,6 @@ import {
   DRACO_DEFAULTS
 } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
-import { gameController } from '../../viewer/controllers/GameController';
 import { mat4, quat, vec3 } from 'gl-matrix';
 import { Zone, ZoneData } from './zone/zone';
 import { Model } from './model/model';
