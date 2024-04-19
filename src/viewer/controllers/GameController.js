@@ -208,6 +208,9 @@ export class GameController {
     this.canvas = canvas;
     if (navigator.gpu && webgpu) {
       this.engine = new WebGPUEngine(canvas);
+      if (window.define) {
+        window.define.amd = undefined;
+      }
       await this.engine.initAsync();
       this.engineInitialized = true;
     } else {
