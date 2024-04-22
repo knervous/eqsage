@@ -19,71 +19,79 @@ import { useDebouncedCallback } from 'use-debounce';
 import { deepClone } from '@mui/x-data-grid/utils/utils';
 import { useZoneContext } from '../../../zone/zone-context';
 import { useMainContext } from '../../../main/context';
+import { useAlertContext } from '../../../../context/alerts';
 
 
 export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
   const { Spire } = useMainContext();
+  const { openAlert } = useAlertContext();
   const [npcList, setNpcList] = useState(entries);
   const [spawnList, setSpawnList] = useState([]);
   const { loadCallback } = useZoneContext();
   const dialogClosed = useCallback(
     async (forSave) => {
       if (forSave) {
-        // First list all spawn entries, then diff
-        const builder = new Spire.SpireQueryBuilder();
-        builder.where('spawngroupID', '=', spawn.spawngroup_id);
-        const spawnEntryApi = new Spire.SpireApiTypes.SpawnentryApi(
-          ...Spire.SpireApi.cfg()
-        );
-        const existingSpawnEntries = await spawnEntryApi.listSpawnentries(
-          builder.get()
-        );
-
-        for (const existing of existingSpawnEntries.data) {
-          // Existed before and doesn't now, we need to delete
-          const matched = npcList.find(
-            (entry) => entry.npc_id === existing.npc_id
+        try {
+     
+          // First list all spawn entries, then diff
+          const builder = new Spire.SpireQueryBuilder();
+          builder.where('spawngroupID', '=', spawn.spawngroup_id);
+          const spawnEntryApi = new Spire.SpireApiTypes.SpawnentryApi(
+            ...Spire.SpireApi.cfg()
           );
-          if (!matched) {
-            const builder = new Spire.SpireQueryBuilder();
-            builder.where('npcID', '=', existing.npc_id);
-            await spawnEntryApi.deleteSpawnentry(
-              { id: spawn.spawngroup_id },
-              { query: builder.get() }
+          const existingSpawnEntries = await spawnEntryApi.listSpawnentries(
+            builder.get()
+          );
+
+          for (const existing of existingSpawnEntries.data) {
+          // Existed before and doesn't now, we need to delete
+            const matched = npcList.find(
+              (entry) => entry.npc_id === existing.npc_id
             );
-          } else {
-            // Or see if there's a diff and update
-            const cloneMatch = deepClone(matched);
-            delete cloneMatch.npc_type;
-            if (JSON.stringify(cloneMatch) !== JSON.stringify(existing)) {
+            if (!matched) {
               const builder = new Spire.SpireQueryBuilder();
               builder.where('npcID', '=', existing.npc_id);
-              await spawnEntryApi.updateSpawnentry(
-                { id: spawn.spawngroup_id, spawnentry: cloneMatch },
+              await spawnEntryApi.deleteSpawnentry(
+                { id: spawn.spawngroup_id },
                 { query: builder.get() }
               );
+            } else {
+            // Or see if there's a diff and update
+              const cloneMatch = deepClone(matched);
+              delete cloneMatch.npc_type;
+              if (JSON.stringify(cloneMatch) !== JSON.stringify(existing)) {
+                const builder = new Spire.SpireQueryBuilder();
+                builder.where('npcID', '=', existing.npc_id);
+                await spawnEntryApi.updateSpawnentry(
+                  { id: spawn.spawngroup_id, spawnentry: cloneMatch },
+                  { query: builder.get() }
+                );
+              }
             }
           }
-        }
 
-        for (const existing of npcList) {
+          for (const existing of npcList) {
           // Existed now and didn't before, we need to create
-          const matched = existingSpawnEntries.data.find(
-            (entry) => entry.npc_id === existing.npc_id
-          );
-          if (!matched) {
-            await spawnEntryApi.createSpawnentry({
-              id        : spawn.spawngroup_id,
-              spawnentry: existing,
-            });
+            const matched = existingSpawnEntries.data.find(
+              (entry) => entry.npc_id === existing.npc_id
+            );
+            if (!matched) {
+              await spawnEntryApi.createSpawnentry({
+                id        : spawn.spawngroup_id,
+                spawnentry: existing,
+              });
+            }
           }
-        }
+          openAlert('Updated spawn entries');
 
-        loadCallback();
+          loadCallback();
+        } catch (e) {
+          openAlert('Failed to update spawn entries', 'warning');
+        }
       }
       onClose();
     },
-    [onClose, spawn, npcList, loadCallback, Spire]
+    [onClose, spawn, npcList, loadCallback, Spire, openAlert]
   );
 
   useEffect(() => {
@@ -99,7 +107,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
     const npcs = await Spire.Npcs.listNpcsByName(val);
     setSpawnList(npcs);
   }, 500);
-  console.log('entries', entries);
+  
   return (
     <CommonDialog
       onClose={dialogClosed}

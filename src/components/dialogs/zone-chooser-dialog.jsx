@@ -222,7 +222,7 @@ export const ZoneChooserDialog = ({ open }) => {
               }}
               options={filteredZoneList.map((zone, idx) => {
                 return {
-                  label: `${zone.long_name} - ${zone.short_name}`,
+                  label: `${zone.long_name} - ${zone.short_name} ${zone.version > 0 ? `[v${zone.version}]` : ''}`.trim(),
                   id   : idx,
                   key  : `${zone.id}-${zone.zoneidnumber}`,
                 };
@@ -236,7 +236,7 @@ export const ZoneChooserDialog = ({ open }) => {
               {recentList.map((zone) => (
                 <Chip
                   key={`chip-${zone.id}`}
-                  label={zone.long_name}
+                  label={`${zone.long_name} ${zone.version > 0 ? `[v${zone.version}]` : ''}`.trim()}
                   variant="outlined"
                   onClick={() => selectAndExit(zone)}
                   onDelete={() => {
