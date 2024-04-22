@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -23,15 +23,25 @@ import { QuestEditor } from './quest-editor';
 
 import './quest-dialog.scss';
 
+// Module scope only load on the first show
+let shown = false;
+
 export const QuestDialog = ({ onClose, open }) => {
   const [permissionStatus, onDrop, requestPermissions, fsHandle] =
     usePermissions('dotnet_quests');
   const [demo, setDemo] = useState(false);
+  const [, forceRender] = useState({});
   const confirm = useConfirm();
   const ready = useMemo(
     () => permissionStatus === PermissionStatusTypes.Ready,
     [permissionStatus]
   );
+  useEffect(() => {
+    if (open && !shown) {
+      shown = true;
+      forceRender({});
+    }
+  }, [open]);
   return (
     <Dialog
       onKeyDown={(e) => {
@@ -72,7 +82,7 @@ export const QuestDialog = ({ onClose, open }) => {
             spacing={1}
           ></Stack>
           {/** Has permissions */}
-          {<QuestEditor demo={demo} fsHandle={fsHandle} ready={ready} />}
+          {shown && <QuestEditor demo={demo} fsHandle={fsHandle} ready={ready} />}
           {!demo && permissionStatus === PermissionStatusTypes.ApiUnavailable && (
             <Typography
               sx={{ fontSize: 17, marginBottom: 2 }}

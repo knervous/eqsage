@@ -17,9 +17,12 @@ import './spawn-nav.scss';
 import { useMainContext } from '../../../main/context';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { AddEditSpawnDialog } from './add-edit-spawn-dialog';
+import { useAlertContext } from '../../../../context/alerts';
 
 function SpawnNavBar() {
   const [selectedSpawn, setSelectedSpawn] = useState(null);
+  const [initialSpawn, setInitialSpawn] = useState(null);
+  const { openAlert } = useAlertContext();
   const { selectedZone, Spire } = useMainContext();
   const [open, setOpen] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -44,6 +47,9 @@ function SpawnNavBar() {
     if (!selectedSpawn) {
       return;
     }
+    if (initialSpawn.x === selectedSpawn.x && initialSpawn.y === selectedSpawn.y && initialSpawn.z === selectedSpawn.z) {
+      return;
+    }
     gameController.SpawnController.moveSpawn(selectedSpawn);
 
     (async () => {
@@ -51,12 +57,17 @@ function SpawnNavBar() {
       const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
         ...Spire.SpireApi.cfg()
       );
-      await spawn2Api.updateSpawn2({ id: selectedSpawn.id, spawn2: selectedSpawn });
-  
+      try {
+        await spawn2Api.updateSpawn2({ id: selectedSpawn.id, spawn2: selectedSpawn });
+        openAlert(`Updated ${selectedSpawn.name}`);
+      } catch (e) {
+        openAlert(`Failed to update ${selectedSpawn.name}`, 'warning');
+      }
+      
     })();
 
 
-  }, [selectedSpawn?.x, selectedSpawn?.y, selectedSpawn?.z, Spire]); // eslint-disable-line
+  }, [selectedSpawn?.x, selectedSpawn?.y, selectedSpawn?.z, Spire, initialSpawn]); // eslint-disable-line
 
   useEffect(() => {
     setOpen(false);
@@ -69,6 +80,7 @@ function SpawnNavBar() {
       gameController.SpawnController.showSpawnPath(spawn?.grid ?? []);
       const s = JSON.parse(JSON.stringify(spawn));
       setSelectedSpawn(s);
+      setInitialSpawn(s);
       setAddEditDialogOpen(false);
       setSelectedIdx(0);
       setOpen(true);
