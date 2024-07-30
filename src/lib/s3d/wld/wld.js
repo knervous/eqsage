@@ -125,7 +125,7 @@ export class Wld {
     if (this.name.endsWith("_chr.wld")) {
       return WldType.Characters;
     }
-    if (this.name.startsWith("gequip.wld")) {
+    if (this.name.startsWith("gequip")) {
       return WldType.Equipment;
     }
 

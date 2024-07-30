@@ -1,7 +1,5 @@
 // Assuming glMatrix is already imported and available
 import { vec3, mat4 } from 'gl-matrix';
-import { Mesh } from '../s3d/mesh/mesh';
-import { SkeletonHierarchy } from '../s3d/animation/skeleton';
 
 export class MeshExportHelper {
   /**

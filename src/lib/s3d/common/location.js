@@ -1,3 +1,4 @@
+/* eslint-disable */
 export class Location {
   x = 0;
   y = 0;

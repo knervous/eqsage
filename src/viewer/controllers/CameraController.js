@@ -1,11 +1,16 @@
-import { UniversalCamera, Vector3 } from '@babylonjs/core';
+import {
+  ArcRotateCamera,
+  Tools,
+  UniversalCamera,
+  Vector3,
+} from '@babylonjs/core';
 import { GameControllerChild } from './GameControllerChild';
 import { eqtoBabylonVector } from '../util/vector';
 
-class CameraController extends GameControllerChild { 
+class CameraController extends GameControllerChild {
   /**
-   * @type {import('@babylonjs/core/Cameras').UniversalCamera}
-*/
+   * @type {import('@babylonjs/core/Cameras').UniversalCamera | import('@babylonjs/core/Cameras').ArcRotateCamera}
+   */
   camera = null;
   isLocked = false;
   speedModified = false;
@@ -27,22 +32,22 @@ class CameraController extends GameControllerChild {
     document.removeEventListener(
       'pointerlockchange',
       this.onChangePointerLock,
-      false,
+      false
     );
     document.removeEventListener(
       'mspointerlockchange',
       this.onChangePointerLock,
-      false,
+      false
     );
     document.removeEventListener(
       'mozpointerlockchange',
       this.onChangePointerLock,
-      false,
+      false
     );
     document.removeEventListener(
       'webkitpointerlockchange',
       this.onChangePointerLock,
-      false,
+      false
     );
     document.removeEventListener('keydown', this.keyDownHandler);
     document.exitPointerLock();
@@ -67,7 +72,10 @@ class CameraController extends GameControllerChild {
     const zoomDirection = delta > 0 ? -1 : 1; // Determine the direction to zoom
 
     // Calculate the new position
-    const forward = this.camera.getTarget().subtract(this.camera.position).normalize();
+    const forward = this.camera
+      .getTarget()
+      .subtract(this.camera.position)
+      .normalize();
     forward.scaleInPlace(zoomSpeed * zoomDirection);
 
     // Update the camera position
@@ -77,18 +85,18 @@ class CameraController extends GameControllerChild {
     event.preventDefault();
   }
 
-  swapCharacterSelectView (view) {
+  swapCharacterSelectView(view) {
     this.camera.position.set(view.position.x, view.position.y, view.position.z);
     this.camera.rotation.set(view.rotation.x, view.rotation.y, view.rotation.z);
   }
 
   onChangePointerLock = () => {
     const controlEnabled =
-        document.mozPointerLockElement ||
-        document.webkitPointerLockElement ||
-        document.msPointerLockElement ||
-        document.pointerLockElement ||
-        null;
+      document.mozPointerLockElement ||
+      document.webkitPointerLockElement ||
+      document.msPointerLockElement ||
+      document.pointerLockElement ||
+      null;
     if (!controlEnabled) {
       this.isLocked = false;
     } else {
@@ -96,7 +104,7 @@ class CameraController extends GameControllerChild {
     }
   };
 
-  keyDownHandler = e => {
+  keyDownHandler = (e) => {
     if (e.key === ' ') {
       this.camera.position.y += 5;
     }
@@ -106,7 +114,7 @@ class CameraController extends GameControllerChild {
     }
   };
 
-  keyUpHandler = e => {
+  keyUpHandler = (e) => {
     if (e.key === 'Shift' && this.speedModified) {
       this.speedModified = false;
       this.camera.speed /= 3;
@@ -134,10 +142,26 @@ class CameraController extends GameControllerChild {
       document.exitPointerLock();
     }
   }
+
+  createModelCamera = () => {
+    this.camera = new ArcRotateCamera(
+      '__camera__',
+      Tools.ToRadians(45),
+      Tools.ToRadians(45),
+      10,
+      new Vector3(-15, 5, 0.6),
+      this.currentScene
+    );
+
+    this.camera.attachControl(this.canvas);
+    this.camera.panningSensibility = 1000;
+    this.camera.wheelPrecision = 25;
+  };
+
   /**
-   * 
+   *
    * @param {import('@babylonjs/core').Vector3} position
-   * @returns 
+   * @returns
    */
   createCamera = (position) => {
     if (!position) {
@@ -149,7 +173,11 @@ class CameraController extends GameControllerChild {
       position = new Vector3(x, y, z);
     }
     position.y += 2;
-    this.camera = new UniversalCamera('__camera__', position, this.currentScene);
+    this.camera = new UniversalCamera(
+      '__camera__',
+      position,
+      this.currentScene
+    );
     this.camera.setTarget(new Vector3(1, 10, 1));
     this.camera.touchAngularSensibility = 5000;
 
@@ -165,18 +193,26 @@ class CameraController extends GameControllerChild {
     document.addEventListener('keydown', this.keyDownHandler.bind(this));
     document.addEventListener('keyup', this.keyUpHandler.bind(this));
     this.canvas.addEventListener('wheel', this.scrollHandler.bind(this));
-    
-    document.addEventListener('pointerlockchange', this.onChangePointerLock, false);
-    document.addEventListener('mspointerlockchange', this.onChangePointerLock, false);
+
+    document.addEventListener(
+      'pointerlockchange',
+      this.onChangePointerLock,
+      false
+    );
+    document.addEventListener(
+      'mspointerlockchange',
+      this.onChangePointerLock,
+      false
+    );
     document.addEventListener(
       'mozpointerlockchange',
       this.onChangePointerLock,
-      false,
+      false
     );
     document.addEventListener(
       'webkitpointerlockchange',
       this.onChangePointerLock,
-      false,
+      false
     );
   };
 }

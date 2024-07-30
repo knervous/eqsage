@@ -1,4 +1,3 @@
-import { quat, vec4 } from 'gl-matrix';
 
 export class BoneTransform {
   /**

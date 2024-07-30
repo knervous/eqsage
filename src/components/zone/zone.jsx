@@ -7,20 +7,25 @@ import { gameController } from '../../viewer/controllers/GameController';
 import { SpireOverlay } from '../spire/overlay';
 import { OverlayProvider } from '../spire/provider';
 import { useSettingsContext } from '../../context/settings';
+import { ExporterOverlay } from '../exporter/overlay';
 
 export const BabylonZone = () => {
   const canvasRef = useRef();
-  const { selectedZone, rootFileSystemHandle } = useMainContext();
+  const { selectedZone, rootFileSystemHandle, modelExporter, modelExporterLoaded, setModelExporterLoaded } = useMainContext();
   const settings = useSettingsContext();
   useEffect(() => {
     (async () => {
-      if (!selectedZone) {
+      if (!selectedZone && !modelExporter) {
         return;
       }
       await new Promise((res) => setTimeout(res, 50));
-      console.log('Canvas ref', canvasRef);
       await gameController.loadEngine(canvasRef.current, settings.webgpu);
-      await gameController.ZoneController.loadViewerScene();
+      if (!modelExporter) {
+        await gameController.ZoneController.loadViewerScene();
+      } else {
+        await gameController.ModelController.initializeModelExporter();
+        setModelExporterLoaded(true);
+      }
       window.addEventListener('resize', gameController.resize);
       window.addEventListener('keydown', gameController.keyDown);
     })();
@@ -29,26 +34,29 @@ export const BabylonZone = () => {
       window.removeEventListener('resize', gameController.resize);
       window.removeEventListener('keydown', gameController.keyDown);
     };
-  }, [selectedZone, settings?.webgpu]);
+  }, [selectedZone, settings?.webgpu, modelExporter, setModelExporterLoaded]);
 
   useEffect(() => {
-    if (!selectedZone) {
+    if (!selectedZone && !modelExporter) {
       return;
     }
     let current = true;
     (async () => {
-      await processZone(selectedZone.short_name, settings, rootFileSystemHandle);
-      if (!current) {
-        return;
+      if (!modelExporter) {
+        await processZone(selectedZone.short_name, settings, rootFileSystemHandle);
+        if (!current) {
+          return;
+        }
+        gameController.ZoneController.loadModel(selectedZone.short_name);
       }
-      gameController.ZoneController.loadModel(selectedZone.short_name);
     })();
     return () => (current = false);
-  }, [selectedZone]); // eslint-disable-line
+  }, [selectedZone, modelExporter]); // eslint-disable-line
 
   return (
     <OverlayProvider>
       <SpireOverlay inZone={!!selectedZone} />
+      {modelExporter && modelExporterLoaded && <ExporterOverlay />}
       <Box
         as="canvas"
         sx={{ flexGrow: '1', position: 'fixed' }}

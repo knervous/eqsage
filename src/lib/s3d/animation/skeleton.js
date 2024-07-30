@@ -1,10 +1,9 @@
-
+/* eslint-disable */
 import { WldFragment } from '../wld/wld-fragment';
 import { fragmentNameCleaner } from '../../util/util';
 import { Animation } from './animation';
 import { Mesh, MeshReference } from '../mesh/mesh';
 import * as glMat from 'gl-matrix';
-import { TrackFragment } from './track';
 
 const vec3 = glMat.vec3;
 const mat4 = glMat.mat4;

@@ -16,7 +16,7 @@ export const GlobalStore = configureStore({
   preloadedState: defaultState,
   reducer,
 });
-
+window.GlobalStore = GlobalStore;
 
 GlobalStore.actions = getActions();
 

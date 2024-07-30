@@ -1,7 +1,7 @@
 import React, { createContext, useState, useCallback, useContext } from 'react';
-import Button from '@mui/material/Button';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import { gameController } from '../viewer/controllers/GameController';
 
 export const AlertContext = createContext({});
 export const useAlertContext = () => useContext(AlertContext);
@@ -23,6 +23,8 @@ export const AlertProvider = ({ children }) => {
     setMessage(message);
     setSeverity(severity);
   }, []);
+
+  gameController.openAlert = openAlert;
 
   return (
     <AlertContext.Provider

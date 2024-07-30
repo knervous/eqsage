@@ -11,8 +11,7 @@ import {
 } from '@mui/material';
 import { CommonDialog } from './common';
 import { useSettingsContext } from '../../../context/settings';
-import { useDebouncedCallback, useThrottledCallback } from 'use-debounce';
-import { Zones } from 'spire-api/wrappers/zones';
+import { useDebouncedCallback } from 'use-debounce';
 import { UserContext } from 'spire-api';
 export const SettingsDialog = ({ onClose }) => {
   const {
@@ -37,7 +36,7 @@ export const SettingsDialog = ({ onClose }) => {
         console.log('user', a);
         setTestState('Succeeded');
       })
-      .catch((e) => {
+      .catch((_e) => {
         setTestState('Failed');
       });
   }, []);
@@ -47,7 +46,7 @@ export const SettingsDialog = ({ onClose }) => {
         console.log('login', a);
         setLoginState(a ? 'Logged in' : 'Failed Login');
       })
-      .catch((e) => {
+      .catch((_e) => {
         setLoginState('Failed Login');
       });
   }, [user, password]);

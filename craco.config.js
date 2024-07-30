@@ -1,5 +1,7 @@
 const CracoSwcPlugin = require('craco-swc');
 const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
+const CircularDependencyPlugin = require('circular-dependency-plugin');
+
 const TerserPlugin = require('terser-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
@@ -21,7 +23,14 @@ module.exports = {
     // };
 
     // Other devServer customizations can go here
-
+    devServerConfig.hot = true;
+    devServerConfig.client = {
+      logging: 'info', // You can set this to 'info', 'warn', 'error', or 'none'
+      overlay: {
+        warnings: true,
+        errors  : true,
+      },
+    };
     return devServerConfig;
   },
   plugins: [
@@ -52,7 +61,12 @@ module.exports = {
 
           config.output.chunkFilename = 'static/js/eqsage-[name].[contenthash:8].chunk.js';
           config.output.filename = 'static/js/eqsage-[name].[contenthash:8].js';
-          
+          config.plugins.push(
+            new CircularDependencyPlugin({
+              exclude    : /node_modules/,
+              failOnError: true,
+            }),
+          );
           config.plugins.push(
             new CopyPlugin({
               patterns: [

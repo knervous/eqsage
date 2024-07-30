@@ -1,10 +1,12 @@
 import {
   Color3,
   Mesh,
+  PBRMaterial,
   PointLight,
   PointerEventTypes,
   SceneLoader,
   StandardMaterial,
+  Texture,
   TransformNode,
   Vector3,
 } from '@babylonjs/core';
@@ -14,6 +16,7 @@ import { GameControllerChild } from './GameControllerChild';
 import { BabylonSpawn } from '../models/BabylonSpawn';
 import { MeshBuilder } from 'babylonjs';
 import { GlobalStore } from '../../state';
+import { GLTF2Export } from '@babylonjs/serializers';
 
 /**
  * @typedef {import('@babylonjs/core').AssetContainer} AssetContainer
@@ -199,16 +202,308 @@ class SpawnController extends GameControllerChild {
         undefined,
         '.glb'
       ).catch(() =>
-        SceneLoader.LoadAssetContainerAsync(
-          '/eq/models/',
-          secondary ? 'humhe00.glb' : 'hum.glb',
-          this.currentScene,
-          undefined,
-          '.glb'
-        )
+        secondary
+          ? null
+          : SceneLoader.LoadAssetContainerAsync(
+            '/eq/models/',
+            'hum.glb',
+            this.currentScene,
+            undefined,
+            '.glb'
+          )
       );
     }
     return this.assetContainers[modelName];
+  }
+
+  getObjectAssetContainer(objectName, path = 'objects') {
+    if (!this.assetContainers[objectName]) {
+      this.assetContainers[objectName] = SceneLoader.LoadAssetContainerAsync(
+        `/eq/${path}/`,
+        `${objectName}.glb`,
+        this.currentScene,
+        undefined,
+        '.glb'
+      ).catch(() => {}
+      );
+    }
+    return this.assetContainers[objectName];
+  }
+
+  secondaryHelm = (name) => {
+    return [
+      'bam',
+      'baf',
+      'erm',
+      'erf',
+      'elf',
+      'elm',
+      'gnf',
+      'gnm',
+      'trf',
+      'trm',
+      'hum',
+      'huf',
+      'daf',
+      'dam',
+      'dwf',
+      'dwm',
+      'haf',
+      'ikf',
+      'ikm',
+      'ham',
+      'hif',
+      'him',
+      'hof',
+      'hom',
+      'ogm',
+      'ogf',
+      'gia',
+      'yak',
+      'kem',
+      'kef',
+      'tri',
+      'tun',
+    ].some((l) => name.startsWith(l));
+  };
+
+  skipTextureSwap(modelName) {
+    return ['tri', 'tun'].some((l) => modelName.startsWith(l));
+  }
+
+  wearsRobe(modelName) {
+    return [
+      'daf01',
+      'dam01',
+      'erf01',
+      'erm01',
+      'gnf01',
+      'gnm01',
+      'huf01',
+      'hum01',
+      'ikf01',
+      'ikm01',
+      'hif01',
+      'him01',
+    ].includes(modelName);
+  }
+
+  async exportModel() {
+    GLTF2Export.GLBAsync(this.currentScene, this.modelExport?.modelName, {
+      shouldExportNode(node) {
+        while (node.parent) {
+          node = node.parent;
+        }
+        return node.id === 'model_export';
+      },
+    }).then((glb) => {
+      glb.downloadFiles();
+    });
+  }
+
+  async addObject(modelName, path) {
+    if (this.modelExport) {
+      this.modelExport.rootNode.dispose();
+      this.modelExport.animationGroups.forEach((a) => a.dispose());
+      this.modelExport.skeleton?.dispose?.();
+    }
+    const assetContainer = await this.getObjectAssetContainer(modelName, path);
+    if (!assetContainer) {
+      console.warn(`Cannot instantiate ${modelName}`);
+      return;
+    }
+    const instanceContainer = assetContainer.instantiateModelsToScene();
+    const animationGroups = instanceContainer.animationGroups;
+    animationGroups.forEach((ag) => {
+      ag.name = ag.name.replace('Clone of ', '');
+    });
+    let rootNode = instanceContainer.rootNodes[0];
+    if (!rootNode) {
+      console.log('No root node for container model', modelName);
+      return;
+    }
+    rootNode.id = 'model_export';
+    rootNode.name = modelName;
+    rootNode.position.setAll(0);
+    rootNode.scaling.set(1, 1, 1);
+    rootNode.rotationQuaternion = null;
+    rootNode.rotation.setAll(0);
+
+    const instanceSkeleton = instanceContainer.skeletons[0];
+    const skeletonRoot = rootNode.getChildren(undefined, true)[0];
+    const merged = Mesh.MergeMeshes(
+      rootNode.getChildMeshes(false),
+      true,
+      true,
+      undefined,
+      true,
+      true
+    );
+
+    if (merged) {
+      skeletonRoot.parent = merged;
+      skeletonRoot.skeleton = instanceSkeleton;
+      if (skeletonRoot.skeleton) {
+        skeletonRoot.skeleton.name = 'export_model_skeleton';
+      }
+      rootNode.dispose();
+      rootNode = merged;
+      rootNode.skeleton = skeletonRoot.skeleton;
+      rootNode.id = 'model_export';
+      rootNode.name = modelName;
+    }
+    this.CameraController.camera.setTarget(rootNode.position);
+    rootNode.scaling.z = -1;
+
+    this.modelExport = {
+      modelName,
+      rootNode,
+      animationGroups,
+      skeleton: skeletonRoot.skeleton,
+    };
+    return this.modelExport;
+  }
+
+  async addExportModel(modelName, headIdx = 0, texture = -1) {
+    this.modelName = modelName;
+    if (this.modelExport) {
+      this.modelExport.rootNode.dispose();
+      this.modelExport.animationGroups.forEach((a) => a.dispose());
+      this.modelExport.skeleton?.dispose?.();
+    }
+
+    const assetContainer =
+      await window.gameController.SpawnController.getAssetContainer(modelName);
+    const instanceContainer = assetContainer.instantiateModelsToScene();
+    const animationGroups = instanceContainer.animationGroups;
+    animationGroups.forEach((ag) => {
+      ag.name = ag.name.replace('Clone of ', '');
+    });
+    let rootNode = instanceContainer.rootNodes[0];
+    if (!rootNode) {
+      console.log('No root node for container model', modelName);
+      return;
+    }
+    rootNode.id = 'model_export';
+    rootNode.name = modelName;
+    rootNode.position.setAll(0);
+    rootNode.scaling.set(1, 1, 1);
+    rootNode.rotationQuaternion = null;
+    rootNode.rotation.setAll(0);
+
+    const instanceSkeleton = instanceContainer.skeletons[0];
+    const skeletonRoot = rootNode.getChildren(undefined, true)[0];
+
+    const variation = headIdx.toString().padStart(2, '0') ?? '00';
+    const container = await this.getAssetContainer(
+      `${rootNode.name.slice(0, 3)}he${variation}`,
+      true
+    );
+    let sec = null;
+    if (container) {
+      try {
+        const secondaryModel = container.instantiateModelsToScene();
+        const secondaryRootNode = secondaryModel.rootNodes[0];
+
+        secondaryRootNode.getChildMeshes().forEach((m) => {
+          m.parent = rootNode;
+        });
+        sec = secondaryModel;
+      } catch (e) {
+        console.warn('Err', e);
+      }
+    }
+
+    const merged = Mesh.MergeMeshes(
+      rootNode.getChildMeshes(false),
+      true,
+      true,
+      undefined,
+      true,
+      true
+    );
+
+    sec?.dispose();
+
+    if (merged) {
+      skeletonRoot.parent = merged;
+      skeletonRoot.skeleton = instanceSkeleton;
+      skeletonRoot.skeleton.name = 'export_model_skeleton';
+      rootNode.dispose();
+      rootNode = merged;
+      rootNode.skeleton = skeletonRoot.skeleton;
+      rootNode.id = 'model_export';
+      rootNode.name = modelName;
+    }
+
+    /**
+     * @type {MultiMaterial}
+     */
+    const multiMat = merged.material;
+    if (this.wearsRobe(modelName)) {
+      texture += 10;
+    }
+    if (texture !== -1 && !this.skipTextureSwap(modelName)) {
+      for (const [idx, mat] of Object.entries(multiMat.subMaterials)) {
+        if (!mat?._albedoTexture) {
+          continue;
+        }
+
+        const isVariationTexture = texture >= 10;
+        let text = isVariationTexture ? texture - 10 : texture;
+        if (mat.name.startsWith('clk')) {
+          text += 4;
+        } else if (this.wearsRobe(modelName)) {
+          continue;
+        }
+        const prefix = mat.name.slice(0, mat.name.length - 4);
+        const suffix = mat.name.slice(mat.name.length - 4, mat.name.length);
+        const textVer = suffix.slice(0, 2);
+        const textNum = suffix.slice(2, 4);
+
+        const thisText = text.toString().padStart(2, '0');
+
+        const newFullName = `${prefix}${thisText}${textNum}`;
+        if (
+          newFullName.includes(`he${thisText}`) &&
+          this.secondaryHelm(modelName)
+        ) {
+          continue;
+        }
+
+        if (thisText !== textVer) {
+          const existing = window.gameController.currentScene.materials
+            .flat()
+            .find((m) => m.name === newFullName);
+          if (existing) {
+            multiMat.subMaterials[idx] = existing;
+          } else {
+            const newMat = new PBRMaterial(newFullName);
+            newMat.metallic = 0;
+            newMat.roughness = 1;
+            newMat._albedoTexture = new Texture(
+              newFullName,
+              window.gameController.currentScene,
+              mat._albedoTexture.noMipMap,
+              mat._albedoTexture.invertY,
+              mat._albedoTexture.samplingMode
+            );
+            multiMat.subMaterials[idx] = newMat;
+          }
+        }
+      }
+    }
+
+    this.CameraController.camera.setTarget(rootNode.position);
+    rootNode.scaling.z = -1;
+
+    this.modelExport = {
+      modelName,
+      rootNode,
+      animationGroups,
+      skeleton: skeletonRoot.skeleton,
+    };
+    return this.modelExport;
   }
 
   async addSpawn(modelName, models) {
@@ -252,7 +547,6 @@ class SpawnController extends GameControllerChild {
       ) {
         if (process.env.LOCAL_DEV === 'true') {
           continue;
-
         }
       }
       const firstSpawn = spawn.spawnentries?.[0]?.npc_type;
@@ -268,7 +562,7 @@ class SpawnController extends GameControllerChild {
       count++;
       spawnList[realModel].push({
         ...firstSpawn,
-        ...spawn
+        ...spawn,
       });
     }
 
@@ -292,7 +586,7 @@ class SpawnController extends GameControllerChild {
 
   setSpawnLOD(value) {
     /**
-     * @type {[BabylonSpawn]} 
+     * @type {[BabylonSpawn]}
      */
     const allSpawns = Object.values(this.spawns);
     for (const spawn of allSpawns) {
@@ -310,15 +604,15 @@ class SpawnController extends GameControllerChild {
    *
    * @param {BabylonSpawn} spawn
    */
-  enableSpawn(spawn) {}
+  enableSpawn(_spawn) {}
 
   /**
    *
    * @param {BabylonSpawn} spawn
    */
-  disableSpawn(spawn) {}
+  disableSpawn(_spawn) {}
 
-  updateSpawns(position) {}
+  updateSpawns(_position) {}
 }
 
 export const spawnController = new SpawnController();

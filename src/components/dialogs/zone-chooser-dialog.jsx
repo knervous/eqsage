@@ -11,7 +11,6 @@ import {
   Checkbox,
   Chip,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
@@ -26,8 +25,7 @@ import {
 import { useMainContext } from '../main/context';
 import * as keyval from 'idb-keyval';
 import { useConfirm } from 'material-ui-confirm';
-import { processGlobal } from '../zone/processZone';
-import { useSettingsContext } from '../../context/settings';
+import { expansions } from '../../lib/model/constants';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -40,45 +38,11 @@ const MenuProps = {
   },
 };
 
-const expansions = [
-  'Original',
-  'The Ruins of Kunark',
-  'The Scars of Velious',
-  'The Shadows of Luclin',
-  'The Planes of Power',
-  'The Legacy of Ykesha',
-  'Lost Dungeons of Norrath',
-  'Gates of Discord',
-  'Omens of War',
-  'Dragons of Norrath',
-  'Depths of Darkhollow',
-  'Prophecy of Ro',
-  'The Serpent\'s Spine',
-  'The Buried Sea',
-  'Secrets of Faydwer',
-  'Seeds of Destruction',
-  'Underfoot',
-  'House of Thule',
-  'Veil of Alaris',
-  'Rain of Fear',
-  'Call of the Forsaken',
-  'The Darkened Sea',
-  'The Broken Mirror',
-  'Empires of Kunark',
-  'Ring of Scale',
-  'The Burning Lands',
-  'Torment of Velious',
-  'Claws of Veeshan',
-  'Terror of Luclin',
-  'Night of Shadows',
-  'Laurion\'s Song',
-];
 
 export const ZoneChooserDialog = ({ open }) => {
-  const [_type, setType] = useState('unknown');
-  const { selectedZone, setSelectedZone, setZoneDialogOpen, Spire, rootFileSystemHandle } = useMainContext();
+  const [_type, _setType] = useState('unknown');
+  const { selectedZone, setSelectedZone, setZoneDialogOpen, Spire, setModelExporter, setZones } = useMainContext();
   const [zoneList, setZoneList] = useState([]);
-  const settings = useSettingsContext();
   const [expansionFilter, setExpansionFilter] = useState([]);
   const [zone, setZone] = useState(null);
   const [recentList, setRecentList] = useState(() =>
@@ -124,7 +88,7 @@ export const ZoneChooserDialog = ({ open }) => {
         autocompleteRef.current?.querySelector('input')?.focus();
       }, 0);
       if (Spire) {
-        Spire.Zones.getZones().then(setZoneList).catch(() => {});
+        Spire.Zones.getZones().then(setZoneList).catch(() => { });
       } else {
         import('../../data/zoneData.json').then((zl) =>
           setZoneList(Array.from(zl))
@@ -132,6 +96,9 @@ export const ZoneChooserDialog = ({ open }) => {
       }
     }
   }, [open, Spire]);
+
+  useEffect(() => setZones(zoneList), [zoneList, setZones]);
+  
   const confirm = useConfirm();
   useEffect(() => {
     localStorage.setItem('recent-zones', JSON.stringify(recentList));
@@ -148,7 +115,7 @@ export const ZoneChooserDialog = ({ open }) => {
       .catch(() => {
         /* ... */
       });
-  
+
   };
 
   return (
@@ -249,18 +216,29 @@ export const ZoneChooserDialog = ({ open }) => {
         </Stack>
       </DialogContent>
 
+      <Stack direction={'column'}>
+        <Button
+          color='primary'
+          onClick={() => selectAndExit(zone)}
+          disabled={!zone}
+          variant="outlined"
+          sx={{ margin: '5px auto' }}
+        >
+        Select Zone
+        </Button>
 
-      <Button
-        color='primary'
-        onClick={() => selectAndExit(zone)}
-        disabled={!zone}
-        variant="outlined"
-        sx={{ margin: '0 auto' }}
-      >
-            Select Zone
-      </Button>
-
-      <DialogActions>
+        <Button
+          disabled={selectedZone?.short_name}
+          color='primary'
+          onClick={() => {
+            setModelExporter(true);
+            setZoneDialogOpen(false);
+          }}
+          variant="outlined"
+          sx={{ margin: '5px auto' }}
+        >
+        Model Exporter
+        </Button>
         {!selectedZone && <Button
           onClick={unlinkDir}
           variant="outlined"
@@ -268,21 +246,23 @@ export const ZoneChooserDialog = ({ open }) => {
         >
           Unlink EQ Directory
         </Button>}
-        
+      </Stack>
+      
 
-
-        {process.env.REACT_APP_LOCAL_DEV === 'true' && 
-       <Button
-         color='primary'
-         onClick={() => processGlobal(settings, rootFileSystemHandle)}
-         variant="outlined"
-         sx={{ margin: '0 auto' }}
-       >
-           Process Global
-       </Button>
-        }
-     
-      </DialogActions>
+      {/* <DialogActions>
+       
+        <Button
+          color='primary'
+          onClick={async () => {
+            await processGlobal(settings, rootFileSystemHandle, true);
+            await processEquip(settings, rootFileSystemHandle, true);
+          }}
+          variant="outlined"
+          sx={{ margin: '0 auto' }}
+        >
+          Process Global
+        </Button>
+      </DialogActions> */}
     </Dialog>
   );
 };

@@ -1,4 +1,3 @@
-import { gameController } from '../../viewer/controllers/GameController';
 
 async function* getDirFiles(entry, path = '') {
   if (entry.kind === 'file') {
@@ -14,10 +13,17 @@ async function* getDirFiles(entry, path = '') {
   }
 }
 
-export async function getFiles(entry) {
+export async function getFiles(entry, filter = undefined, forName = false) {
   const files = [];
   for await (const file of getDirFiles(entry)) {
-    files.push(file);
+    const push = () => files.push(forName ? file.name : file);
+    if (filter && typeof filter === 'function') {
+      if (filter(file.name)) {
+        push();
+      }
+    } else {
+      push();
+    }
   }
   return files;
 }
@@ -32,12 +38,12 @@ const handles = {
  * @returns {Promise<FileSystemDirectoryHandle>}
  */
 export const getEQDir = async (name) => {
-  if (!gameController.rootFileSystemHandle) {
+  if (!window.gameController.rootFileSystemHandle) {
     return;
   }
   try {
     const eqsageDir = cachedDirHandle ||
-    await gameController.rootFileSystemHandle.getDirectoryHandle('eqsage', {
+    await window.gameController.rootFileSystemHandle.getDirectoryHandle('eqsage', {
       create: true,
     });
     cachedDirHandle = eqsageDir;

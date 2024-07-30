@@ -3,6 +3,7 @@ import '@babylonjs/loaders/glTF';
 import { cameraController } from './CameraController';
 import { lightController } from './LightController';
 import { skyController } from './SkyController';
+import { modelController } from './ModelController';
 import { musicController } from './MusicController';
 import { soundController } from './SoundController';
 import { spawnController } from './SpawnController';
@@ -30,7 +31,7 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 });
 
 class EQDatabase extends Database {
-  async loadImage(url, image, ...rest) {
+  async loadImage(url, image, ..._rest) {
     if (url.startsWith('http')) {
       const res = await fetch(url).then((a) => a.arrayBuffer());
       image.src = URL.createObjectURL(
@@ -44,7 +45,7 @@ class EQDatabase extends Database {
     );
   }
 
-  open(success, failure) {
+  open(success, _failure) {
     success();
   }
   async loadFile(
@@ -80,10 +81,9 @@ class EQDatabase extends Database {
       return;
     }
     await sceneLoaded(fileBuffer);
-    return;
 
-    console.log('No bytes', url);
-    errorCallback();
+    // console.log('No bytes', url);
+    // errorCallback();
   }
 }
 
@@ -118,6 +118,7 @@ export class GameController {
   GuiController = guiController;
   ItemController = itemController;
   ZoneController = zoneController;
+  ModelController = modelController;
 
   constructor() {
     this.CameraController.setGameController(this);
@@ -129,6 +130,7 @@ export class GameController {
     this.GuiController.setGameController(this);
     this.ItemController.setGameController(this);
     this.ZoneController.setGameController(this);
+    this.ModelController.setGameController(this);
 
     this.keyDown = this.keyDown.bind(this);
     this.resize = this.resize.bind(this);
@@ -198,7 +200,7 @@ export class GameController {
   }
 
   get currentScene() {
-    return zoneController.scene;
+    return zoneController.scene ?? modelController.scene;
   }
 
   async loadEngine(canvas, webgpu = false) {
@@ -258,7 +260,7 @@ export class GameController {
   keyDown(e) {
     switch (`${e.key}`?.toLowerCase?.()) {
       case 'i': {
-        if (!zoneController.scene) {
+        if (!this.currentScene) {
           break;
         }
         if (Inspector.IsVisible) {

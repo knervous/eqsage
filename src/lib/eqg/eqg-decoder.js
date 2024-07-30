@@ -5,21 +5,19 @@ import { imageProcessor } from '../util/image/image-processor';
 import { Accessor, Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import {
-  resample,
   draco,
-  textureCompress,
   DRACO_DEFAULTS
 } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 import { mat4, quat, vec3 } from 'gl-matrix';
 import { Zone, ZoneData } from './zone/zone';
 import { Model } from './model/model';
-import { getEQFile, getEQFileExists, writeEQFile } from '../util/fileHandler';
+import { getEQFileExists, writeEQFile } from '../util/fileHandler';
 import { Eco } from './eco/eco';
-import { VERSION } from '../model/file-handle';
+import { VERSION } from '../model/constants';
 
 // Function to rotate a position by a quaternion
-function rotatePositionByQuaternion(position, rotationQuat) {
+export function rotatePositionByQuaternion(position, rotationQuat) {
   const rotatedPosition = vec3.create();
   vec3.transformQuat(rotatedPosition, position, rotationQuat);
   return rotatedPosition;
@@ -223,7 +221,7 @@ export class EQGDecoder {
       }
     }
 
-    for (const [key, mod] of Object.entries(this.models)) {
+    for (const [_key, mod] of Object.entries(this.models)) {
       for (const mat of mod.geometry.mats) {
         if (materials[mat.name]) {
           continue;
@@ -653,7 +651,7 @@ export class EQGDecoder {
       zoneMetadata.regions.push(region.parseRegion());
     }
 
-    for (const [key, mod] of Object.entries(this.models)) {
+    for (const [_key, mod] of Object.entries(this.models)) {
       for (const mat of mod.geometry.mats) {
         if (materials[mat.name]) {
           continue;

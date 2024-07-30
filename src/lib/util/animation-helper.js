@@ -1,12 +1,8 @@
-import {
-  Accessor,
-  AnimationChannel,
-  Document,
-  Node,
-} from "@gltf-transform/core"; // eslint-disable-line
+/* eslint-disable */
+
 import { SkeletonHierarchy } from "../s3d/animation/skeleton"; // eslint-disable-line
 import { Animation } from '../s3d/animation/animation';
-import { quat, vec3, vec4 } from 'gl-matrix';
+import { quat, vec3 } from 'gl-matrix';
 
 export const animationMap = {
   hum: 'elm',

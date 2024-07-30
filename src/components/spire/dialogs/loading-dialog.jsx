@@ -30,7 +30,6 @@ export const LoadingDialog = () => {
       >
         <DialogTitle className="ui-dialog-title">{loadingTitle}</DialogTitle>
         <DialogContent>
-          {' '}
           <Box
             sx={{
               display       : 'flex',

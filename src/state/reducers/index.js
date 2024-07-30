@@ -1,4 +1,3 @@
-import { GlobalStore } from '../store';
 import { getThunkActions } from '../thunkActions';
 import * as gameState from './gameState';
 import * as loginState from './loginState';
@@ -25,7 +24,7 @@ export const getActions = () => {
     thunkActions,
     ...Object.entries(actions).map(([name, func]) => ({
       [name] () {
-        GlobalStore.dispatch(func.call(context, ...arguments));
+        window.GlobalStore.dispatch(func.call(context, ...arguments));
       }
     }))
   );

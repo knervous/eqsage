@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { WldFragment } from '../wld/wld-fragment';
 
 export class MaterialList extends WldFragment {

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { vec3 } from 'gl-matrix';
 
 export const heightWithinQuad = (p1, p2, p3, p4, x, y) => {

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 import { useMainContext } from '../main/context';
+import { gameController } from '../../viewer/controllers/GameController';
 import './overlay.scss';
 
 export const BabylonZoneOverlay = () => {
@@ -13,22 +14,54 @@ export const BabylonZoneOverlay = () => {
     return () => window.removeEventListener('resize', listener);
   }, []);
   return selectedZone ? (
-    <Box ref={ref} sx={{ position: 'fixed', zIndex: 10, width: 'auto', left: `calc(50vw - ${(ref.current?.clientWidth ?? 0) / 2}px)` }}>
-      <Typography
-        className='text-outline'
-        sx={{
-          color    : 'white',
-          margin   : '10px auto',
-          textAlign: 'center',
-        }}
-        variant="h5"
+    <Box
+      ref={ref}
+      sx={{
+        position: 'fixed',
+        zIndex  : 10,
+        width   : 'auto',
+        left    : `calc(50vw - ${(ref.current?.clientWidth ?? 0) / 2}px)`,
+      }}
+    >
+      <Stack
+        sx={{ height: '45px' }}
+        direction="row"
+        justifyContent={'center'}
+        alignItems="center"
       >
-        {selectedZone.long_name}
-      </Typography>
-      <Typography
+        <Typography
+          className="text-outline"
+          sx={{
+            color     : 'white',
+            margin    : '10px auto',
+            textAlign : 'center',
+            lineHeight: '1.6',
+          }}
+          variant="h5"
+        >
+          {selectedZone.long_name}
+        </Typography>
+        <Typography
+          onClick={() => {
+            gameController.ZoneController.exportZone(selectedZone.short_name);
+          }}
+          className="zone-overlay-text text-outline clickable"
+          sx={{
+            userSelect: 'none',
+            margin    : '10px 5px',
+            paddingTop: '2px',
+            textAlign : 'center',
+          }}
+          color="text.secondary"
+          variant="h6"
+        >
+          [Export GLB]
+        </Typography>
+      </Stack>
 
+      <Typography
         onClick={() => setZoneDialogOpen(true)}
-        className='zone-overlay-text text-outline clickable'
+        className="zone-overlay-text text-outline clickable"
         sx={{
           userSelect: 'none',
           margin    : '5px auto',
@@ -46,9 +79,8 @@ export const BabylonZoneOverlay = () => {
             setZoneDialogOpen(false);
             setSelectedZone(selectedZone);
           }, 1);
-            
-        } }
-        className='zone-overlay-text text-outline clickable'
+        }}
+        className="zone-overlay-text text-outline clickable"
         sx={{
           userSelect: 'none',
           margin    : '5px auto',

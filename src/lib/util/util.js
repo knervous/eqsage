@@ -1,8 +1,3 @@
-import { SkeletonHierarchy } from '../s3d/animation/skeleton';
-import { TrackDefFragment, TrackFragment } from '../s3d/animation/track';
-import { Material } from '../s3d/materials/material';
-import { MaterialList } from '../s3d/materials/material-list';
-import { Mesh } from '../s3d/mesh/mesh';
 
 /**
  * @param {import('./typed-array-reader').TypedArrayReader} reader 
@@ -26,18 +21,20 @@ export const decodeString = (reader, size) => {
  */
 export const fragmentNameCleaner = (fragment, toLower = true) => {
   const typeMap = {
-    [MaterialList]     : '_MP',
-    [Material]         : '_MDF',
-    [Mesh]             : '_DMSPRITEDEF',
+    'MaterialList'     : '_MP',
+    'Material'         : '_MDF',
+    'Mesh'             : '_DMSPRITEDEF',
     // [LegacyMesh] : '_DMSPRITEDEF'
-    [SkeletonHierarchy]: '_HS_DEF',
-    [TrackDefFragment] : '_TRACKDEF',
-    [TrackFragment]    : '_TRACK',
+    'SkeletonHierarchy': '_HS_DEF',
+    'TrackDefFragment' : '_TRACKDEF',
+    'TrackFragment'    : '_TRACK',
     // [ParticleCloud] : '_PCD';
   };
   let cleanedName = fragment.name;
-  if (typeMap[fragment.constructor]) {
-    cleanedName = cleanedName.replace(typeMap[fragment.constructor], '');
+  if (typeMap[fragment.constructor?.name]) {
+    cleanedName = cleanedName.replace(typeMap[fragment.constructor.name], '');
+  } else {
+    console.warn('Not mapped', fragment.constructor.name);
   }
 
   if (toLower) {
