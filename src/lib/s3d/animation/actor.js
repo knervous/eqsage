@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Location } from '../common/location';
 import { WldFragment } from '../wld/wld-fragment';
 

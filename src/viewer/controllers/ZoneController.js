@@ -4,7 +4,7 @@ import {
   Tools,
   Texture,
   Scene,
-  HemisphericLight,
+  
   MeshBuilder,
   StandardMaterial,
   CubeTexture,
@@ -13,13 +13,8 @@ import {
   Mesh,
   TransformNode,
   GlowLayer,
-  DynamicTexture,
-  ParticleSystem,
   Color4,
   PointerEventTypes,
-  Quaternion,
-  Matrix,
-  VertexBuffer,
   PointLight,
 } from '@babylonjs/core';
 
@@ -30,9 +25,8 @@ import {
   recurseTreeFromKnownNode,
 } from '../../lib/s3d/bsp/region-utils';
 import { getEQFile } from '../../lib/util/fileHandler';
-import { BabylonSpawn } from '../models/BabylonSpawn';
-import raceData from '../common/raceData.json';
 import { GlobalStore } from '../../state';
+import { GLTF2Export } from '@babylonjs/serializers';
 
 class ZoneController extends GameControllerChild {
   /**
@@ -98,6 +92,18 @@ class ZoneController extends GameControllerChild {
 
     this.zoneLoaded = false;
   }
+  exportZone(name) {
+    GLTF2Export.GLBAsync(this.scene, name, {
+      shouldExportNode(node) {
+        while (node.parent) {
+          node = node.parent;
+        }
+        return node.name === 'zone' || node.name === 'static-objects';
+      },
+    }).then((glb) => {
+      glb.downloadFiles();
+    });
+  }
 
   loadViewerScene() {
     this.dispose();
@@ -126,21 +132,16 @@ class ZoneController extends GameControllerChild {
           }
         }
       }
-      
     };
-    this.ambientLight = new HemisphericLight(
-      '__ambient_light__',
-      new Vector3(0, -0, 0),
-      this.scene
-    );
     this.regionMaterial = new StandardMaterial('region-material', this.scene);
 
     this.regionMaterial.alpha = 0.3;
     this.regionMaterial.diffuseColor = new Color3(0, 127, 65); // Red color
     this.regionMaterial.emissiveColor = new Color4(0, 127, 65, 0.3); // Red color
 
-    // Default intensity is 1. Let's dim the light a small amount
-    this.ambientLight.intensity = 1.5;
+    const hdrTexture = CubeTexture.CreateFromPrefilteredData('https://playground.babylonjs.com/textures/environment.env', this.scene);
+    this.scene.environmentTexture = hdrTexture;
+    this.scene.environmentIntensity = 1.0;
 
     // Click events
     this.scene.onPointerObservable.add(this.onClick.bind(this));
@@ -350,7 +351,6 @@ class ZoneController extends GameControllerChild {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(`Loading ${name}`);
     GlobalStore.actions.setLoadingText(`Loading ${name} zone`);
-    console.log('load model', name);
     if (!(await this.loadViewerScene())) {
       return;
     }

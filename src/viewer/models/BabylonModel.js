@@ -123,6 +123,7 @@ export class BabylonSpawn {
     const instanceSkeleton = this.instanceContainer.skeletons[0];
     const skeletonRoot = this.rootNode.getChildren(undefined, true)[0];
 
+
     const secondaryMeshes = this.rootNode.getChildTransformNodes()[0]?.metadata?.gltf?.extras?.secondaryMeshes ?? 0;
   
     // Secondary mesh
@@ -135,7 +136,6 @@ export class BabylonSpawn {
       try {
         secondaryModel.rootNodes[0].getChildMeshes()?.forEach(m => {
           this.rootNode.addChild(m);
-          m.parent = this.rootNode;
         });
 
 
@@ -197,9 +197,6 @@ export class BabylonSpawn {
           const textNum = suffix.slice(2, 4);
 
           const thisText = text.toString().padStart(2, '0');
-          if (thisText.includes(`he${thisText}`)) {
-            continue;
-          }
 
           const newFullName = `${prefix}${thisText}${textNum}`;
           if (thisText !== textVer) {

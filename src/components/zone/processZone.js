@@ -3,7 +3,7 @@ import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { gameController } from '../../viewer/controllers/GameController';
 
-export const GLOBAL_VERSION = 1.1;
+export const GLOBAL_VERSION = 1.3;
 
 async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
   if (entry.kind === 'file') {
@@ -24,32 +24,27 @@ async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
   }
 }
 
-export async function processGlobal(settings, rootFileSystemHandle) {
+export async function processGlobal(settings, rootFileSystemHandle, standalone = false) {
   gameController.rootFileSystemHandle = rootFileSystemHandle;
-  console.log('global');
-  return new Promise(async (res, rej) => {
+  if (standalone) {
+    GlobalStore.actions.setLoading(true);
+
+    // Preprocess globalload
+    GlobalStore.actions.setLoadingTitle('Loading Global Dependencies');
+  }
+  return new Promise(async (res) => {
     const handles = [];
     try {
       for await (const fileHandle of getFilesRecursively(rootFileSystemHandle, '', new RegExp('^global.*\\.s3d'))) {
-        if (fileHandle.name.includes('global_chr')) {
+        if (/global(?:\d+)?_chr/.test(fileHandle.name) || fileHandle.name.includes('global_obj')) {
           handles.push(await fileHandle.getFile()); 
         }
-
-        // if (fileHandle.name.includes('globaldam_chr2')) {
-        //   handles.push(await fileHandle.getFile()); 
-        // }
-        // if (fileHandle.name.includes('globaldam_chr')) {
-        //   handles.push(await fileHandle.getFile()); 
-        // }
-
-        // if (fileHandle.name.includes('globalgdb')) {
-        //   handles.push(await fileHandle.getFile()); 
-        // }
       
       }
     } catch (e) {
       console.warn('Error', e, handles);
     }
+    console.log(`Loading handles: ${handles.map(h => h.name)}`);
 
     const obj = new EQFileHandle(
       'global',
@@ -60,11 +55,54 @@ export async function processGlobal(settings, rootFileSystemHandle) {
     await obj.initialize();
     await obj.process();
     await writeEQFile('data', 'global.json', JSON.stringify({ version: GLOBAL_VERSION }));
+    if (standalone) {
+      gameController.openAlert('Done processing global');
+
+      GlobalStore.actions.setLoading(false);
+    }
     res();
   });
 }
 
-export async function processZone(zoneName, settings, rootFileSystemHandle) {
+export async function processEquip(settings, rootFileSystemHandle, standalone = false) {
+  gameController.rootFileSystemHandle = rootFileSystemHandle;
+  if (standalone) {
+    GlobalStore.actions.setLoading(true);
+
+    // Preprocess globalload
+    GlobalStore.actions.setLoadingTitle('Loading Global Equipment');
+  }
+  return new Promise(async (res) => {
+    const handles = [];
+    try {
+      for await (const fileHandle of getFilesRecursively(rootFileSystemHandle, '', new RegExp('^gequip.*\\.s3d'))) {
+        if (fileHandle.name.includes('gequip')) {
+          handles.push(await fileHandle.getFile()); 
+        }
+      }
+    } catch (e) {
+      console.warn('Error', e, handles);
+    }
+
+    const obj = new EQFileHandle(
+      'gequip',
+      handles,
+      rootFileSystemHandle,
+      settings
+    );
+    await obj.initialize();
+    await obj.process();
+    await writeEQFile('data', 'gequip.json', JSON.stringify({ version: GLOBAL_VERSION }));
+    if (standalone) {
+      gameController.openAlert('Done processing gequip');
+
+      GlobalStore.actions.setLoading(false);
+    }
+    res();
+  });
+}
+
+export async function processZone(zoneName, settings, rootFileSystemHandle, _onlyChr = false) {
   gameController.rootFileSystemHandle = rootFileSystemHandle;
   GlobalStore.actions.setLoading(true);
 
@@ -77,12 +115,15 @@ export async function processZone(zoneName, settings, rootFileSystemHandle) {
     await processGlobal(settings, rootFileSystemHandle);
   }
   console.log('Zone name', zoneName);
-  GlobalStore.actions.setLoadingTitle('Processing Zone');
+  GlobalStore.actions.setLoadingTitle(`Processing Zone ${zoneName}`);
   GlobalStore.actions.setLoadingText('Loading Zone', zoneName);
-  await new Promise(async (res, rej) => {
+  await new Promise(async (res) => {
     const handles = [];
     try {
       for await (const fileHandle of getFilesRecursively(rootFileSystemHandle, '', new RegExp(`^${zoneName}[_\\.].*`))) {
+        // if (onlyChr && !(fileHandle.name.includes('_chr') || fileHandle.name.includes('_obj'))) {
+        //   continue;
+        // }
         handles.push(await fileHandle.getFile()); 
       }
     } catch (e) {

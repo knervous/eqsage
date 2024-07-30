@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { vec3 } from 'gl-matrix';
 import { TypedArrayReader } from '../../util/typed-array-reader';
 import { heightWithinQuad } from '../common/util';

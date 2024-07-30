@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { Color } from '../common/color';
 import { WldFragment } from '../wld/wld-fragment';
 

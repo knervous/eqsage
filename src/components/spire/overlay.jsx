@@ -18,6 +18,7 @@ import SpawnNavBar from './nav-bar/spawn-nav/spawn-nav';
 import { Compass } from './compass';
 
 import './overlay.scss';
+import { useMainContext } from '../main/context';
 
 
 const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
@@ -57,6 +58,7 @@ const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
 
 export const SpireOverlay = ({ inZone }) => {
   const { toggleDialog, dialogState, closeDialogs } = useOverlayContext();
+  const { modelExporter } = useMainContext();
   useSettingsHook();
   useEffect(() => {
     const keyHandler = (e) => {
@@ -67,7 +69,7 @@ export const SpireOverlay = ({ inZone }) => {
     window.addEventListener('keydown', keyHandler);
     return () => window.removeEventListener('keydown', keyHandler);
   }, [closeDialogs]);
-  return (
+  return modelExporter ? null : (
     <>
       {/**
        * Left Nav Bar
@@ -78,8 +80,8 @@ export const SpireOverlay = ({ inZone }) => {
           height  : '100vh',
           width   : '100px',
           position: 'absolute',
-          top     : 0,
-          left    : 0,
+          top     : modelExporter ? '-15px' : 0,
+          left    : modelExporter ? '300px' : 0,
           zIndex  : 1000,
         }}
       >

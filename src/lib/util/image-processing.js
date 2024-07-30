@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 // import Jimp from 'jimp';
 import dxt from 'dxt-js';
 

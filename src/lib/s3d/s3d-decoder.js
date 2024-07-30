@@ -1,13 +1,13 @@
+/* eslint-disable */
 import zlib from 'pako';
 import { Buffer } from 'buffer';
 import { Wld, WldType } from './wld/wld';
 import { TypedArrayReader } from '../util/typed-array-reader';
 import { imageProcessor } from '../util/image/image-processor';
 import { Accessor, WebIO } from '@gltf-transform/core';
-import { mat4, quat, vec4 } from 'gl-matrix';
+import { mat4 } from 'gl-matrix';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
-import { draco, DRACO_DEFAULTS } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 import { ShaderType } from './materials/material';
 import {
@@ -16,7 +16,7 @@ import {
   writeEQFile,
 } from '../util/fileHandler';
 import { optimizeBoundingBoxes } from './bsp/region-utils';
-import { VERSION } from '../model/file-handle';
+import { VERSION } from '../model/constants';
 import { fragmentNameCleaner } from '../util/util';
 import {
   S3DAnimationWriter,
@@ -48,7 +48,7 @@ const getMaterials = async (materialList, document, roughness = 0.0) => {
     const gltfMaterial = document
       .createMaterial()
       .setDoubleSided(false)
-      .setRoughnessFactor(0)
+      .setRoughnessFactor(1)
       .setMetallicFactor(0)
       .setName(name);
     if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {
@@ -63,8 +63,8 @@ const getMaterials = async (materialList, document, roughness = 0.0) => {
     }
 
     const texture = document
-      .createTexture(name)
-      // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+      .createTexture(name.toLowerCase())
+       .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
       .setURI(`/eq/textures/${name}`)
       .setExtras({
         name,
@@ -113,6 +113,7 @@ export class S3DDecoder {
    * @type {[Wld]}
    */
   wldFiles = [];
+  gequip = false;
 
   constructor(fileHandle) {
     this.#fileHandle = fileHandle;
@@ -212,7 +213,7 @@ export class S3DDecoder {
    *
    * @param {Wld} wld
    */
-  async exportModels(wld, doExport = true) {
+  async exportModels(wld, doExport = true, path = 'models') {
     for (const track of wld.tracks.filter(
       (t) => !t.isPoseAnimation && !t.isNameParsed
     )) {
@@ -309,7 +310,7 @@ export class S3DDecoder {
 
         // We need to map this to another skeleton supplied from those other models
         // e.g. ELM maps to a lot of different
-        if (!secondary && animationMap[baseName]) {
+        if (animationMap[baseName]) {
           const existingSkeleton =
             wld.skeletons.find((s) => s.modelBase === animationMap[baseName]) ||
             this.globalWld?.skeletons.find(
@@ -320,6 +321,9 @@ export class S3DDecoder {
             (await getEQFile('data', `${animationMap[baseName]}-animations.json`, 'json'));
           if (existingAnimations) {
             for (const [key, value] of Object.entries(existingAnimations)) {
+              if (secondary) {
+                continue;
+              }
               if (!skeleton.animations[key]) {
                 skeleton.animations[key] = {
                   ...value,
@@ -490,15 +494,15 @@ export class S3DDecoder {
 
         const animWriter = new S3DAnimationWriter(document);
         const skeletonNodes = animWriter.addNewSkeleton(skeleton);
-
+        animWriter.applyAnimationToSkeleton(
+          skeleton,
+          'pos',
+          true,
+          true,
+          skeletonNodes
+        );
         if (!secondary) {
-          animWriter.applyAnimationToSkeleton(
-            skeleton,
-            'pos',
-            true,
-            true,
-            skeletonNodes
-          );
+          
           for (const animationKey of Object.keys(skeleton.animations)) {
             animWriter.applyAnimationToSkeleton(
               skeleton,
@@ -517,13 +521,13 @@ export class S3DDecoder {
 
         node.setMesh(gltfMesh).setSkin(skin).addChild(skeletonNodes[0]);
 
-        await document.transform(
-          // Compress mesh geometry with Draco.
-          draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
-        );
+        // await document.transform(
+        //   // Compress mesh geometry with Draco.
+        //   draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+        // );
         const bytes = await io.writeBinary(document);
 
-        await writeEQFile('models', `${baseName}.glb`, bytes);
+        await writeEQFile(path, `${baseName}.glb`, bytes);
       }
     }
   }
@@ -532,12 +536,14 @@ export class S3DDecoder {
    *
    * @param {Wld} wld
    */
-  async exportObjects(wld) {
+  async exportObjects(wld, path = 'objects') {
+   
+
     for (let i = 0; i < wld.meshes.length; i++) {
       const mesh = wld.meshes[i];
       const material = mesh.materialList;
       const scrubbedName = material.name.split('_')[0].toLowerCase();
-      if (await getEQFileExists('objects', `${scrubbedName}.glb`)) {
+      if (await getEQFileExists(path, `${scrubbedName}.glb`)) {
         continue;
       }
       const document = new Document(scrubbedName);
@@ -661,13 +667,13 @@ export class S3DDecoder {
           .setAttribute('TEXCOORD_0', primUv);
       }
 
-      await document.transform(
-        // Compress mesh geometry with Draco.
-        draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
-      );
+      // await document.transform(
+      //   // Compress mesh geometry with Draco.
+      //   draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+      // );
       const bytes = await io.writeBinary(document);
 
-      await writeEQFile('objects', `${scrubbedName}.glb`, bytes);
+      await writeEQFile(path, `${scrubbedName}.glb`, bytes);
     }
   }
 
@@ -741,10 +747,10 @@ export class S3DDecoder {
         }
       }
     }
-    await document.transform(
-      // Compress mesh geometry with Draco.
-      draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
-    );
+    // await document.transform(
+    //   // Compress mesh geometry with Draco.
+    //   draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+    // );
 
     // Object instances
     await writeEQFile(
@@ -876,10 +882,10 @@ export class S3DDecoder {
         .setAttribute('NORMAL', primNormals)
         .setAttribute('TEXCOORD_0', primUv);
     }
-    await document.transform(
-      // Compress mesh geometry with Draco.
-      draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
-    );
+    // await document.transform(
+    //   // Compress mesh geometry with Draco.
+    //   draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+    // );
     const bytes = await io.writeBinary(document);
     const zoneName = `${wld.name.replace('wld', 'glb')}`;
 
@@ -908,6 +914,9 @@ export class S3DDecoder {
           await this.exportModels(wld);
           break;
         case WldType.Equipment:
+          await this.exportModels(wld, true, 'items');
+          await this.exportObjects(wld, 'items');
+
           break;
         case WldType.Lights:
           break;
@@ -924,6 +933,9 @@ export class S3DDecoder {
     console.log('process', this.#fileHandle.name);
     imageProcessor.initializeWorkers();
     const micro = performance.now();
+    if (this.#fileHandle.name.startsWith('gequip')) {
+      this.gequip = true;
+    }
     for (const file of this.#fileHandle.fileHandles) {
       const extension = file.name.split('.').pop();
       switch (extension) {

@@ -1,10 +1,9 @@
-import { FILE_TYPE } from './constants';
+import { FILE_TYPE, VERSION } from './constants';
 import { S3DDecoder } from '../s3d/s3d-decoder';
 import { Document } from '@gltf-transform/core';
 import { EQGDecoder } from '../eqg/eqg-decoder';
 import { getEQFile } from '../util/fileHandler';
 
-export const VERSION = 1.91;
 
 export class EQFileHandle {
   /**

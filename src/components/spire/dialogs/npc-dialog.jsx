@@ -9,7 +9,6 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 
@@ -40,7 +39,7 @@ export const NpcDialog = ({ onClose }) => {
     const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
       ...Spire.SpireApi.cfg()
     );
-    const spawnGroupApi = new Spire.SpireApiTypes.SpawngroupApi(
+    const _spawnGroupApi = new Spire.SpireApiTypes.SpawngroupApi(
       ...Spire.SpireApi.cfg()
     );
     // First create spawn group

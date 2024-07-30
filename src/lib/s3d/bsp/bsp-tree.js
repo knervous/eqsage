@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { decodeString } from '../../util/util';
 import { WldFragment } from '../wld/wld-fragment';
 import { vec3 } from 'gl-matrix';

@@ -1,4 +1,3 @@
-import { TrackDefFragment } from './track';
 
 export class Animation {
   animModelBase = '';

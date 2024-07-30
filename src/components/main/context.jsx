@@ -32,6 +32,9 @@ export const MainProvider = ({ children }) => {
   const [selectedZone, setSelectedZone] = useState(null);
   const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [modelExporter, setModelExporter] = useState(false);
+  const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
+  const [zones, setZones] = useState([]);
 
   useEffect(() => {
     setStatusDialogOpen(permissionStatus !== PermissionStatusTypes.Ready);
@@ -39,6 +42,14 @@ export const MainProvider = ({ children }) => {
       setZoneDialogOpen(true);
     }
   }, [permissionStatus, selectedZone]);
+
+  useEffect(() => {
+    window.gameController.rootFileSystemHandle = rootFileSystemHandle;
+  }, [rootFileSystemHandle]);
+
+  useEffect(() => {
+    window.gameController.modelExporter = true;
+  }, [modelExporter]);
 
   const Spire = useMemo(
     () =>
@@ -76,7 +87,13 @@ export const MainProvider = ({ children }) => {
         setZoneDialogOpen,
         statusDialogOpen,
         setStatusDialogOpen,
+        modelExporter,
+        setModelExporter,
+        modelExporterLoaded, 
+        setModelExporterLoaded,
         rootFileSystemHandle,
+        zones,
+        setZones,
         Spire,
         onDrop,
         requestPermissions,
