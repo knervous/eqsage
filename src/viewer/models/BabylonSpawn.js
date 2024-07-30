@@ -130,18 +130,21 @@ export class BabylonSpawn {
     if (secondaryMeshes > 0) {
       const variation = this.spawnEntry.helmtexture?.toString().padStart(2, '0') ?? '00';
       const container = await window.gameController.SpawnController.getAssetContainer(`${this.modelName}he${variation}`, true);
-      const secondaryModel = container.instantiateModelsToScene();
-      secModel = secondaryModel;
-      try {
-        secondaryModel.rootNodes[0].getChildMeshes()?.forEach(m => {
-          this.rootNode.addChild(m);
-          m.parent = this.rootNode;
-        });
-
-
-      } catch (e) {
-
+      if (container) {
+        const secondaryModel = container.instantiateModelsToScene();
+        secModel = secondaryModel;
+        try {
+          secondaryModel.rootNodes[0].getChildMeshes()?.forEach(m => {
+            this.rootNode.addChild(m);
+            m.parent = this.rootNode;
+          });
+  
+  
+        } catch (e) {
+  
+        }
       }
+    
       // this.rootNode.addChild(secondaryModel.rootNodes[0].getChildMeshes()[0]);
       // if (secondaryModel.rootNodes.length) {
       //   this.rootNode.addChild(secondaryModel.rootNodes[0].getChildMeshes()[0]);
