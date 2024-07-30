@@ -27,6 +27,9 @@ import {
 import { getEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { GLTF2Export } from '@babylonjs/serializers';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { WebIO } from '@gltf-transform/core';
+import { dedup, prune, textureCompress } from '@gltf-transform/functions';
 
 class ZoneController extends GameControllerChild {
   /**
@@ -93,6 +96,10 @@ class ZoneController extends GameControllerChild {
     this.zoneLoaded = false;
   }
   exportZone(name) {
+    GlobalStore.actions.setLoading(true);
+    GlobalStore.actions.setLoadingTitle(`Exporting zone ${name}`);
+    GlobalStore.actions.setLoadingText('LOADING, PLEASE WAIT...');
+
     GLTF2Export.GLBAsync(this.scene, name, {
       shouldExportNode(node) {
         while (node.parent) {
@@ -100,8 +107,32 @@ class ZoneController extends GameControllerChild {
         }
         return node.name === 'zone' || node.name === 'static-objects';
       },
-    }).then((glb) => {
-      glb.downloadFiles();
+      shouldExportAnimation() {
+        return false;
+      },
+      
+    }).then(async (glb) => {
+      GlobalStore.actions.setLoadingTitle(`Optimizing ${name}`);
+      GlobalStore.actions.setLoadingText('Applying GLB optimizations');
+      const blob = Object.values(glb.glTFFiles)[0];
+      const arr = new Uint8Array(await blob.arrayBuffer());
+      const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+      const doc = await io.readBinary(arr);
+      await doc.transform(
+        dedup(),
+        prune(),
+        textureCompress({
+          targetFormat: 'webp',
+        }));
+      const bin = await io.writeBinary(doc);
+      const assetBlob = new Blob([bin]);
+      const assetUrl = URL.createObjectURL(assetBlob);
+      const link = document.createElement('a');
+      link.href = assetUrl;
+      link.download = `${name}.glb`;
+      link.click();
+    }).finally(() => {
+      GlobalStore.actions.setLoading(false);
     });
   }
 

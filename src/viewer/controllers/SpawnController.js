@@ -10,6 +10,9 @@ import {
   TransformNode,
   Vector3,
 } from '@babylonjs/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { WebIO } from '@gltf-transform/core';
+
 import raceData from '../common/raceData.json';
 
 import { GameControllerChild } from './GameControllerChild';
@@ -17,6 +20,7 @@ import { BabylonSpawn } from '../models/BabylonSpawn';
 import { MeshBuilder } from 'babylonjs';
 import { GlobalStore } from '../../state';
 import { GLTF2Export } from '@babylonjs/serializers';
+import { dedup, prune, textureCompress } from '@gltf-transform/functions';
 
 /**
  * @typedef {import('@babylonjs/core').AssetContainer} AssetContainer
@@ -289,6 +293,9 @@ class SpawnController extends GameControllerChild {
   }
 
   async exportModel() {
+    GlobalStore.actions.setLoading(true);
+    GlobalStore.actions.setLoadingTitle(`Exporting model ${this.modelExport?.modelName}`);
+    GlobalStore.actions.setLoadingText('LOADING, PLEASE WAIT...');
     GLTF2Export.GLBAsync(this.currentScene, this.modelExport?.modelName, {
       shouldExportNode(node) {
         while (node.parent) {
@@ -296,8 +303,28 @@ class SpawnController extends GameControllerChild {
         }
         return node.id === 'model_export';
       },
-    }).then((glb) => {
-      glb.downloadFiles();
+    }).then(async (glb) => {
+      GlobalStore.actions.setLoadingTitle(`Optimizing model ${this.modelExport?.modelName}`);
+      GlobalStore.actions.setLoadingText('Applying GLB optimizations');
+      const blob = Object.values(glb.glTFFiles)[0];
+      const arr = new Uint8Array(await blob.arrayBuffer());
+      const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+      const doc = await io.readBinary(arr);
+      await doc.transform(
+        dedup(),
+        prune(),
+        textureCompress({
+          targetFormat: 'webp',
+        }));
+      const bin = await io.writeBinary(doc);
+      const assetBlob = new Blob([bin]);
+      const assetUrl = URL.createObjectURL(assetBlob);
+      const link = document.createElement('a');
+      link.href = assetUrl;
+      link.download = `${this.modelExport?.modelName}.glb`;
+      link.click();
+    }).finally(() => {
+      GlobalStore.actions.setLoading(false);
     });
   }
 
