@@ -12,6 +12,8 @@ export class MeshReference extends WldFragmentReference {
 }
 
 export class Mesh extends WldFragment {
+  static ClassName = 'Mesh';
+
   materialListIdx = -1;
   /**
    * @type {import('../materials/material-list').MaterialList}
