@@ -357,7 +357,8 @@ export const ExporterOverlay = () => {
                     if (
                       !filteredZoneList.some(
                         (fz) => fz.short_name === z.short_name
-                      )
+                      ) || z.short_name.includes('tutorial')
+                      
                     ) {
                       continue;
                     }

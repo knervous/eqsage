@@ -272,7 +272,7 @@ class SpawnController extends GameControllerChild {
   };
 
   skipTextureSwap(modelName) {
-    return ['tri', 'tun', 'els'].some((l) => modelName.startsWith(l));
+    return ['tri', 'tun', 'els', 'rhi', 'ogs'].some((l) => modelName.startsWith(l));
   }
 
   wearsRobe(modelName) {
