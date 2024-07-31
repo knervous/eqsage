@@ -102,6 +102,7 @@ export const ExporterOverlayRightNav = ({
           count++;
         }
       });
+      console.log('count', count);
       setHeadCount(count);
       if (wearsRobe) {
         setTextures([0, 1, 2, 3, 4, 5, 6]);

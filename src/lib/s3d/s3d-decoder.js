@@ -307,7 +307,7 @@ export class S3DDecoder {
             );
           }
         }
-        if (await getEQFileExists(path, `${scrubbedName}.glb`)) {
+        if (await getEQFileExists(path, `${baseName}.glb`)) {
           continue;
         }
 
