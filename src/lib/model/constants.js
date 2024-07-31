@@ -686,7 +686,7 @@ export const modelDefinitions = {
   dml        : 'Iksar Skeleton Dervish',
   drf        : 'Drachnid Female',
   drm        : 'Drachnid Male',
-  els        : 'Boat',
+  els        : 'Boat 2',
   fdr        : 'Fae Drake',
   fef        : 'Felwithe Citizen Female',
   fem        : 'Felwithe Citizen Male',
@@ -731,9 +731,19 @@ export const modelDefinitions = {
   vst        : 'Venril Sathir',
   wur        : 'Wurm',
   xal        : 'Xalgoz',
-
-
-
+  sea        : 'Seahorse',
+  trn        : 'Evil Treant',
+  wyv        : 'Wyvern',
+  rhi        : 'Rhino',
+  ogs        : 'Boat 3',
+  bwd        : 'Dragon 2',
+  isc        : 'Skorpikis',
+  suc        : 'Succulent/Cactus',
+  stc        : 'Sabertooth Cat',
+  ccd        : 'Clockwork Dragon',
+  cst        : 'Treasure Chest',
+  dr2        : 'Dragon 3',
+  gd3        : 'Phara Dar'
 
 };
 export const VERSION = 1.92;
