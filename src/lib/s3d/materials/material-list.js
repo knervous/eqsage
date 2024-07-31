@@ -2,7 +2,7 @@
 import { WldFragment } from '../wld/wld-fragment';
 
 export class MaterialList extends WldFragment {
-  static ClassName = 'MaterialList';
+  ClassName = 'MaterialList';
   materialListIndices = [];
   /**
    * @type {Array<import('./material').Material>}

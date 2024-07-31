@@ -109,7 +109,7 @@ function deepCloneWithIgnore(obj, ignoreKeys = []) {
   return clone(obj);
 }
 export class SkeletonHierarchy extends WldFragment {
-  static ClassName = 'SkeletonHierarchy';
+  ClassName = 'SkeletonHierarchy';
 
   /**
    * @type {SkeletonFlags}
