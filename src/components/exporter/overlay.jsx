@@ -17,7 +17,7 @@ import { OverlayDialogs } from './dialogs/dialogs';
 import { processEquip, processGlobal, processZone } from '../zone/processZone';
 import { useSettingsContext } from '../../context/settings';
 import { useMainContext } from '../main/context';
-import { getEQDir, getFiles } from '../../lib/util/fileHandler';
+import { deleteEqFolder, getEQDir, getFiles } from '../../lib/util/fileHandler';
 import { gameController } from '../../viewer/controllers/GameController';
 import { ExporterOverlayRightNav } from './right-nav';
 import { useExpansionList } from '../common/expansions';
@@ -275,6 +275,7 @@ export const ExporterOverlay = () => {
               sx={{ margin: '2.5px auto', width: '100%' }}
               color="primary"
               onClick={async () => {
+                await deleteEqFolder('data');
                 await processGlobal(settings, rootFileSystemHandle, true);
                 refreshModelFiles();
               }}

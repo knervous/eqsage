@@ -122,7 +122,7 @@ class ZoneController extends GameControllerChild {
         dedup(),
         prune(),
         textureCompress({
-          targetFormat: 'webp',
+          targetFormat: this.gc.settings.imgCompression,
         }));
       const bin = await io.writeBinary(doc);
       const assetBlob = new Blob([bin]);

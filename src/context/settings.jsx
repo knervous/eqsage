@@ -4,14 +4,16 @@ export const SettingsContext = createContext({});
 export const useSettingsContext = () => useContext(SettingsContext);
 
 const defaultOptions = {
-  flySpeed   : 2,
-  showRegions: true,
-  glow       : true,
-  webgpu     : false,
-  forceReload: false,
-  clipPlane  : 10000,
-  spawnLOD   : 500,
-  remoteUrl  : '',
+  flySpeed      : 2,
+  showRegions   : true,
+  glow          : true,
+  webgpu        : false,
+  forceReload   : false,
+  singleWorker  : false,
+  imgCompression: 'png',
+  clipPlane     : 10000,
+  spawnLOD      : 500,
+  remoteUrl     : '',
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(
