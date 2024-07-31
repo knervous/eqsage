@@ -310,11 +310,12 @@ class SpawnController extends GameControllerChild {
       const arr = new Uint8Array(await blob.arrayBuffer());
       const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
       const doc = await io.readBinary(arr);
+      console.log('set', this.gc.settings);
       await doc.transform(
         dedup(),
         prune(),
         textureCompress({
-          targetFormat: 'webp',
+          targetFormat: this.gc.settings.imgCompression,
         }));
       const bin = await io.writeBinary(doc);
       const assetBlob = new Blob([bin]);

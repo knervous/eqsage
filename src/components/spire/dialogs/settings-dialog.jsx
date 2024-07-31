@@ -4,6 +4,8 @@ import {
   Checkbox,
   FormControl,
   FormControlLabel,
+  MenuItem,
+  Select,
   Slider,
   Stack,
   TextField,
@@ -21,6 +23,8 @@ export const SettingsDialog = ({ onClose }) => {
     glow,
     webgpu = false,
     forceReload = false,
+    singleWorker = false,
+    imgCompression = 'png',
     clipPlane = 10000,
     spawnLOD = 500,
     remoteUrl = '',
@@ -140,6 +144,18 @@ export const SettingsDialog = ({ onClose }) => {
       <FormControlLabel
         control={
           <Checkbox
+            checked={singleWorker}
+            onChange={({ target: { checked } }) =>
+              setOption('singleWorker', checked)
+            }
+          />
+        }
+        label="Single Worker Thread"
+      />
+      <br />
+      <FormControlLabel
+        control={
+          <Checkbox
             checked={forceReload}
             onChange={({ target: { checked } }) =>
               setOption('forceReload', checked)
@@ -148,6 +164,19 @@ export const SettingsDialog = ({ onClose }) => {
         }
         label="Force zone reload"
       />
+      <br />
+      <FormControl size={'small'}>
+        <Typography sx={{ margin: '3px 0' }}>Export Image Compression</Typography>
+        <Select
+          onChange={(e) => setOption('imgCompression', e.target.value)}
+          value={imgCompression}
+        >
+          <MenuItem value={'webp'}>webp</MenuItem>
+          <MenuItem value={'png'}>png</MenuItem>
+          <MenuItem value={'jpeg'}>jpeg</MenuItem>
+          <MenuItem value={'avif'}>avif</MenuItem>
+        </Select>
+      </FormControl>
       {!window.Spire && (
         <>
           <FormControl sx={{ margin: '15px 0px' }} fullWidth>

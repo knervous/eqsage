@@ -28,6 +28,23 @@ export async function getFiles(entry, filter = undefined, forName = false) {
   return files;
 }
 
+async function deleteFolderRecursively(handle) {
+  for await (const [name, entry] of handle.entries()) {
+    if (entry.kind === 'file') {
+      await handle.removeEntry(name);
+    } else if (entry.kind === 'directory') {
+      await deleteFolderRecursively(entry);
+      await handle.removeEntry(name, { recursive: true });
+    }
+  }
+}
+export async function deleteEqFolder(name) {
+  const dir = await getEQDir(name);
+  if (dir) {
+    await deleteFolderRecursively(dir);
+  }
+}
+
 let cachedDirHandle = null;
 const handles = {
 
