@@ -288,8 +288,8 @@ export class GameController {
   }
 
   dispose() {
-    if (zoneController.scene) {
-      zoneController.scene.dispose();
+    if (this.currentScene) {
+      this.currentScene.dispose();
     }
     this.ZoneController.dispose();
     this.aabbTree = null;

@@ -128,6 +128,9 @@ export class Wld {
     if (this.name.startsWith("gequip")) {
       return WldType.Equipment;
     }
+    if (this.name.endsWith('_amr.s3d')) {
+      return WldType.Equipment;
+    }
 
     // Default return zone
     return WldType.Zone;

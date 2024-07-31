@@ -307,6 +307,9 @@ export class S3DDecoder {
             );
           }
         }
+        if (await getEQFileExists(path, `${scrubbedName}.glb`)) {
+          continue;
+        }
 
         // We need to map this to another skeleton supplied from those other models
         // e.g. ELM maps to a lot of different

@@ -83,7 +83,7 @@ export const ExporterOverlayRightNav = ({
   const [head, setHead] = useState(0);
   const [headCount, setHeadCount] = useState(0);
   const [texture, setTexture] = useState(0);
-  const [textureCount, setTextureCount] = useState(0);
+  const [textures, setTextures] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -104,7 +104,7 @@ export const ExporterOverlayRightNav = ({
       });
       setHeadCount(count);
       if (wearsRobe) {
-        setTextureCount(7);
+        setTextures([0, 1, 2, 3, 4, 5, 6]);
       } else {
         const textureDir = await getEQDir('textures');
         if (textureDir) {
@@ -113,13 +113,15 @@ export const ExporterOverlayRightNav = ({
             (name) => name.startsWith(babylonModel.modelName),
             true
           );
-          let variations = 0;
+          const variations = [];
           for (const f of files) {
-            if (/ch\d{2}01/.test(f)) {
-              variations++;
+            const chestRegex = /ch(\d{2})01/;
+            if (chestRegex.test(f)) {
+              const [, n] = chestRegex.exec(f); 
+              variations.push(+n);
             }
           }
-          setTextureCount(variations);
+          setTextures(variations.sort((a, b) => a > b ? 1 : -1));
         }
       }
     })();
@@ -211,7 +213,7 @@ export const ExporterOverlayRightNav = ({
             value={texture}
             onChange={(e) => setTexture(e.target.value)}
           >
-            {Array.from({ length: textureCount }).map((_, idx) => (
+            {textures.map((idx) => (
               <MenuItem value={idx} label={idx}>
                 Texture {idx + 1}
               </MenuItem>

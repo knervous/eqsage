@@ -39,7 +39,7 @@ class ImageProcessor {
    * @property {ArrayBuffer} data
    */
 
-  initializeWorkers(workers = navigator.hardwareConcurrency ?? 4) {
+  initializeWorkers(workers = Math.min(4, navigator.hardwareConcurrency ?? 4)) {
     this.clearWorkers();
     for (let i = 0; i < workers; i++) {
       const worker = new Worker(new URL('./worker', import.meta.url));

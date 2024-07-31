@@ -80,6 +80,12 @@ export async function processEquip(settings, rootFileSystemHandle, standalone = 
           handles.push(await fileHandle.getFile()); 
         }
       }
+
+      for await (const fileHandle of getFilesRecursively(rootFileSystemHandle, '', new RegExp('^global.*_amr\\.s3d'))) {
+        if (fileHandle.name.includes('_amr.s3d')) {
+          handles.push(await fileHandle.getFile());
+        }
+      }
     } catch (e) {
       console.warn('Error', e, handles);
     }
