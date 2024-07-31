@@ -8,10 +8,14 @@ import {
   Button,
   Divider,
   FormControl,
+  IconButton,
+  Stack,
   TextField,
   Typography,
 } from '@mui/material';
 import Joyride from 'react-joyride';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 import { useOverlayContext } from '../spire/provider';
 import { OverlayDialogs } from './dialogs/dialogs';
@@ -25,45 +29,70 @@ import { useExpansionList } from '../common/expansions';
 import { useAlertContext } from '../../context/alerts';
 import { modelDefinitions } from '../../lib/model/constants';
 import { ExporterHeader } from './overlay-header';
+import itemMap from './items.json';
 
 import './overlay.scss';
+import { useConfirm } from 'material-ui-confirm';
 
 const models = new Proxy(modelDefinitions, {
   get(target, prop, _receiver) {
     if (target[prop]) {
       return `[${prop}] ${target[prop]}`;
     }
-    return !prop || prop === 'null' ? '' : `[unknown] ${prop}`;
+    return !prop || prop === 'null' ? '' : `[${prop}] unknown`;
+  },
+});
+
+const items = new Proxy(itemMap, {
+  get(target, prop, _receiver) {
+    const t = target[prop.slice(2, prop.length)];
+    if (t) {
+      return `[${prop}] ${t}`;
+    }
+    return !prop || prop === 'null' ? '' : `[${prop}] unknown`;
   },
 });
 const steps = [
   {
-    title  : 'Model Processing',
-    content: 'Start here by processing global model files (global_chr.s3d) and equipment files (gequip.s3d) to populate lists for Models and Items',
-    target : '#joyride-start',
+    title: 'Model Processing',
+    content:
+      'Start here by processing global model files (global_chr.s3d) to populate lists for PC and NPC models',
+    target: '#joyride-models',
   },
   {
-    title  : 'Zone Processing',
-    content: 'Additionally, zones may contain models and objects not included in global files. Experiment with different zones to populate additional models and objects, e.g. Mistmoore will contain models for Vampires.',
-    target : '#joyride-1',
+    title: 'Equipment Processing',
+    content:
+      'Processing equipment will load items and additional armor packs (e.g. Velious armor).',
+    target: '#joyride-equipment',
+  },
+  {
+    title: 'Zone Processing',
+    content:
+      'Additionally, zones may contain models and objects not included in global files. Experiment with different zones to populate additional models and objects, e.g. Mistmoore will contain models for Vampires.',
+    target: '#joyride-zone',
   },
 ];
 export const ExporterOverlay = () => {
   const { closeDialogs } = useOverlayContext();
-  const { rootFileSystemHandle, zones } = useMainContext();
+  const { rootFileSystemHandle, zones, setModelExporter, setZoneDialogOpen } =
+    useMainContext();
+  const settings = useSettingsContext();
+  const { openAlert } = useAlertContext();
+  const { ExpansionList, filteredZoneList } = useExpansionList({ zones });
+
   const [modelFiles, setModelFiles] = useState([]);
   const [objectFiles, setObjectFiles] = useState([]);
   const [itemFiles, setItemFiles] = useState([]);
-  const [selectedModel, setSelectedModel] = useState('');
   const [babylonModel, setBabylonModel] = useState('');
+  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedModelIdx, setSelectedModelIdx] = useState(-1);
   const [selectedObject, setSelectedObject] = useState('');
+  const [selectedObjectIdx, setSelectedObjectIdx] = useState(-1);
   const [selectedItem, setSelectedItem] = useState('');
+  const [selectedItemIdx, setSelectedItemIdx] = useState(-1);
   const [run, setRun] = useState(true);
   const showBeaconAgain = () => {
     setRun(false);
-    // setTimeout(() => {
-    //   setRun(true);
-    // }, 1);
   };
   const handleCallback = (state) => {
     if (state.action === 'reset') {
@@ -71,9 +100,6 @@ export const ExporterOverlay = () => {
     }
   };
 
-  const settings = useSettingsContext();
-  const { openAlert } = useAlertContext();
-  const { ExpansionList, filteredZoneList } = useExpansionList({ zones });
   const modelOptions = useMemo(() => {
     return modelFiles
       .map((model, idx) => {
@@ -111,9 +137,10 @@ export const ExporterOverlay = () => {
     return itemFiles
       .map((obj, idx) => {
         const itemLabel = `${obj.name.replace('.glb', '')}`;
+        const label = items[itemLabel];
         return {
           model: itemLabel,
-          label: itemLabel,
+          label,
           id   : idx,
           key  : idx,
         };
@@ -121,9 +148,13 @@ export const ExporterOverlay = () => {
       .filter(Boolean)
       .sort((a, b) => (a.label > b.label ? 1 : -1));
   }, [itemFiles]);
+  const confirm = useConfirm();
 
   useEffect(() => {
-    setRun(modelOptions.length === 0, objectOptions.length === 0 && itemOptions.length === 0);
+    setRun(
+      modelOptions.length === 0,
+      objectOptions.length === 0 && itemOptions.length === 0
+    );
   }, [modelOptions, objectOptions, itemOptions]);
   const refreshModelFiles = async () => {
     const modelDir = await getEQDir('models');
@@ -176,6 +207,15 @@ export const ExporterOverlay = () => {
     ) {
       setSelectedModel(modelOptions[0].model);
     }
+    if (!selectedModel) {
+      setSelectedModelIdx(-1);
+    }
+    if (!selectedItem) {
+      setSelectedItemIdx(-1);
+    }
+    if (!selectedObject) {
+      setSelectedObjectIdx(-1);
+    }
   }, [modelOptions, selectedModel, selectedObject, selectedItem]);
 
   useEffect(() => {
@@ -195,6 +235,27 @@ export const ExporterOverlay = () => {
       setBabylonModel
     );
   }, [selectedItem]);
+
+  const setModel = async (name) => {
+    setSelectedObject(null);
+    setSelectedItem(null);
+    setSelectedModel(name);
+    setSelectedModelIdx(modelOptions.findIndex((m) => m.model === name));
+  };
+
+  const setObject = async (name) => {
+    setSelectedObject(name);
+    setSelectedItem(null);
+    setSelectedModel(null);
+    setSelectedObjectIdx(objectOptions.findIndex((m) => m.model === name));
+  };
+
+  const setItem = async (name) => {
+    setSelectedObject(null);
+    setSelectedItem(name);
+    setSelectedModel(null);
+    setSelectedItemIdx(itemOptions.findIndex((m) => m.model === name));
+  };
   return (
     <>
       <Joyride steps={steps} run={run} callback={handleCallback} />
@@ -202,115 +263,20 @@ export const ExporterOverlay = () => {
         <Typography variant="h6" sx={{ textAlign: 'center' }}>
           EQ Sage Model Exporter
         </Typography>
+        <Button
+          color="primary"
+          sx={{ margin: '0px auto', width: '100%' }}
+          onClick={async () => {
+            gameController.dispose();
+            setModelExporter(false);
+            setZoneDialogOpen(true);
+          }}
+        >
+          Back to Home
+        </Button>
         <Divider sx={{ margin: '5px' }} />
-        <Typography sx={{ fontSize: '17px', marginTop: '15px' }}>
-          Models ({modelOptions.length})
-        </Typography>
-        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
-          <Autocomplete
-            value={models[selectedModel]}
-            size="small"
-            sx={{ margin: '15px 0', maxWidth: '270px' }}
-            isOptionEqualToValue={(option, value) => option.key === value.key}
-            onChange={async (e, values) => {
-              if (!values) {
-                return;
-              }
-              setSelectedObject(null);
-              setSelectedItem(null);
-              setSelectedModel(values.model);
-            }}
-            renderOption={(props, option) => {
-              return (
-                <li {...props} key={option.key}>
-                  {option.label}
-                </li>
-              );
-            }}
-            options={modelOptions}
-            renderInput={(params) => (
-              <TextField {...params} model="Select Model" />
-            )}
-          />
-        </FormControl>
-        <Divider sx={{ margin: '5px' }} />
-        <Typography sx={{ fontSize: '17px', marginTop: '15px' }}>
-          Objects ({objectOptions.length})
-        </Typography>
-        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
-          <Autocomplete
-            value={selectedObject}
-            size="small"
-            sx={{ margin: '15px 0', maxWidth: '270px' }}
-            isOptionEqualToValue={(option, value) => option.key === value.key}
-            onChange={async (e, values) => {
-              if (!values) {
-                return;
-              }
-              setSelectedModel(null);
-              setSelectedItem(null);
-              setSelectedObject(values.model);
-            }}
-            renderOption={(props, option) => {
-              return (
-                <li {...props} key={option.key}>
-                  {option.label}
-                </li>
-              );
-            }}
-            options={objectOptions}
-            renderInput={(params) => (
-              <TextField {...params} model="Select Object" />
-            )}
-          />
-        </FormControl>
-        <Divider sx={{ margin: '5px' }} />
-        <Typography sx={{ fontSize: '17px', marginTop: '15px' }}>
-          Items ({itemOptions.length})
-        </Typography>
-        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
-          <Autocomplete
-            value={selectedItem}
-            size="small"
-            sx={{ margin: '15px 0', maxWidth: '270px' }}
-            isOptionEqualToValue={(option, value) => option.key === value.key}
-            onChange={async (e, values) => {
-              if (!values) {
-                return;
-              }
-              setSelectedModel(null);
-              setSelectedObject(null);
-              setSelectedItem(values.model);
-            }}
-            renderOption={(props, option) => {
-              return (
-                <li {...props} key={option.key}>
-                  {option.label}
-                </li>
-              );
-            }}
-            options={itemOptions}
-            renderInput={(params) => (
-              <TextField {...params} model="Select Item" />
-            )}
-          />
-        </FormControl>
-        <Button color="primary" sx={{ margin: '0 auto', width: '100%' }} onClick={async () => {
-          await deleteEqFolder('data');
-          await deleteEqFolder('items');
-          await deleteEqFolder('models');
-          await deleteEqFolder('objects');
-          await deleteEqFolder('zones');
-          setSelectedItem(null);
-          setSelectedModel(null);
-          setSelectedObject(null);
-          setBabylonModel(null);
-          refreshModelFiles();
-          gameController.currentScene.getMeshById('model_export')?.dispose();
-        }}>Purge All Data</Button>
-
         <Accordion defaultExpanded>
-          <AccordionSummary id="joyride-start">
+          <AccordionSummary id="joyride-models">
             <Typography>Global Processor</Typography>
           </AccordionSummary>
           <AccordionDetails>
@@ -327,6 +293,7 @@ export const ExporterOverlay = () => {
               Process Models
             </Button>
             <Button
+              id="joyride-equipment"
               sx={{ margin: '2.5px auto', width: '100%' }}
               color="primary"
               onClick={async () => {
@@ -340,73 +307,298 @@ export const ExporterOverlay = () => {
           </AccordionDetails>
         </Accordion>
         <Accordion defaultExpanded>
-          <AccordionSummary id="joyride-1">
+          <AccordionSummary id="joyride-zone">
             <Typography>Zone Processor</Typography>
           </AccordionSummary>
+          <Autocomplete
+            size="small"
+            sx={{ margin: '0px 0', maxWidth: '270px' }}
+            isOptionEqualToValue={(option, value) =>
+              option?.key === value?.key
+            }
+            onChange={async (e, values) => {
+              if (!values) {
+                return;
+              }
+              await processZone(
+                values.short_name,
+                settings,
+                rootFileSystemHandle,
+                true
+              );
+              await refreshModelFiles();
+            }}
+            renderOption={(props, option) => {
+              return (
+                <li {...props} key={option.key}>
+                  {option.label}
+                </li>
+              );
+            }}
+            options={filteredZoneList.map((z) => ({
+              label     : `[${z.short_name}] ${z.long_name}`,
+              key       : `${z.id}-${z.zoneidnumber}`,
+              short_name: z.short_name,
+            }))}
+            renderInput={(params) => (
+              <TextField {...params} label="Individual Zone" />
+            )}
+          />
           <AccordionDetails>
             <ExpansionList />
             <Button
               color="primary"
-              onClick={async () => {
-                for (const z of zones) {
-                  if (
-                    !filteredZoneList.some(
-                      (fz) => fz.short_name === z.short_name
-                    )
-                  ) {
-                    continue;
+              onClick={() => {
+                confirm({
+                  description: `You're about to process ${filteredZoneList.length} zones. This may take awhile. Be sure to keep this browser tab open and visible. To stop processing, simply refresh the page.`,
+                  title      : 'Process Zones',
+                }).then(async () => {
+                  for (const z of zones) {
+                    if (
+                      !filteredZoneList.some(
+                        (fz) => fz.short_name === z.short_name
+                      )
+                    ) {
+                      continue;
+                    }
+                    await processZone(
+                      z.short_name,
+                      settings,
+                      rootFileSystemHandle,
+                      true
+                    );
+                    await refreshModelFiles();
+                    openAlert(`Exported ${z.short_name} - ${z.long_name}`);
                   }
-                  await processZone(
-                    z.short_name,
-                    settings,
-                    rootFileSystemHandle,
-                    true
-                  );
-                  await refreshModelFiles();
-                }
-                openAlert('Done processing zones');
+                  openAlert('Done processing zones');
+
+                }).catch(() => {
+
+                });
+               
               }}
               variant="outlined"
               sx={{ margin: '0 auto', width: '100%' }}
             >
-              Process Zones ({filteredZoneList.length})
+              Process Filtered Zones ({filteredZoneList.length})
             </Button>
-            <Autocomplete
-              size="small"
-              sx={{ margin: '15px 0', maxWidth: '270px' }}
-              isOptionEqualToValue={(option, value) =>
-                option?.key === value?.key
-              }
-              onChange={async (e, values) => {
-                if (!values) {
-                  return;
-                }
-                await processZone(
-                  values.short_name,
-                  settings,
-                  rootFileSystemHandle,
-                  true
-                );
-                await refreshModelFiles();
-              }}
-              renderOption={(props, option) => {
-                return (
-                  <li {...props} key={option.key}>
-                    {option.label}
-                  </li>
-                );
-              }}
-              options={filteredZoneList.map((z) => ({
-                label     : `[${z.short_name}] ${z.long_name}`,
-                key       : z.short_name,
-                short_name: z.short_name,
-              }))}
-              renderInput={(params) => (
-                <TextField {...params} label="Individual Zone" />
-              )}
-            />
+           
           </AccordionDetails>
         </Accordion>
+        <Divider sx={{ margin: '5px' }} />
+        <Stack direction="row">
+          <Typography sx={{ fontSize: '17px', marginTop: '15px' }}>
+            Models ({modelOptions.length})
+          </Typography>
+          <Stack direction="row" sx={{ position: 'absolute', right: '5px' }}>
+            <IconButton
+              disabled={selectedModelIdx < 1}
+              onClick={() => {
+                const optionIdx = modelOptions.findIndex(
+                  (m) => m.model === selectedModel
+                );
+                if (optionIdx >= 0) {
+                  const option = modelOptions[optionIdx - 1];
+                  setModel(option.model);
+                }
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <IconButton
+              disabled={selectedModelIdx === modelOptions.length - 1}
+              onClick={() => {
+                const optionIdx = modelOptions.findIndex(
+                  (m) => m.model === selectedModel
+                );
+
+                const option = modelOptions[optionIdx + 1];
+                setModel(option.model);
+              }}
+            >
+              <ArrowForwardIcon />
+            </IconButton>
+          </Stack>
+        </Stack>
+
+        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
+          <Autocomplete
+            value={models[selectedModel]}
+            size="small"
+            sx={{ margin: '5px 0', maxWidth: '270px' }}
+            isOptionEqualToValue={(option, value) => option.key === value.key}
+            onChange={async (e, values) => {
+              if (!values) {
+                return;
+              }
+              setModel(values.model);
+            }}
+            renderOption={(props, option) => {
+              return (
+                <li {...props} key={option.key}>
+                  {option.label}
+                </li>
+              );
+            }}
+            options={modelOptions}
+            renderInput={(params) => (
+              <TextField {...params} model="Select Model" />
+            )}
+          />
+        </FormControl>
+        <Divider sx={{ margin: '5px' }} />
+
+        <Stack direction="row">
+          <Typography sx={{ fontSize: '17px', marginTop: '15px' }}>
+            Objects ({objectOptions.length})
+          </Typography>
+          <Stack direction="row" sx={{ position: 'absolute', right: '5px' }}>
+            <IconButton
+              disabled={selectedObjectIdx < 1}
+              onClick={() => {
+                const optionIdx = objectOptions.findIndex(
+                  (m) => m.model === selectedObject
+                );
+                if (optionIdx >= 0) {
+                  const option = objectOptions[optionIdx - 1];
+                  setObject(option.model);
+                }
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <IconButton
+              disabled={selectedObjectIdx === objectOptions.length - 1}
+              onClick={() => {
+                const optionIdx = objectOptions.findIndex(
+                  (m) => m.model === selectedObject
+                );
+
+                const option = objectOptions[optionIdx + 1];
+                setObject(option.model);
+              }}
+            >
+              <ArrowForwardIcon />
+            </IconButton>
+          </Stack>
+        </Stack>
+
+        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
+          <Autocomplete
+            value={selectedObject}
+            size="small"
+            sx={{ margin: '5px 0', maxWidth: '270px' }}
+            isOptionEqualToValue={(option, value) => option.key === value.key}
+            onChange={async (e, values) => {
+              if (!values) {
+                return;
+              }
+              setObject(values.model);
+            }}
+            renderOption={(props, option) => {
+              return (
+                <li {...props} key={option.key}>
+                  {option.label}
+                </li>
+              );
+            }}
+            options={objectOptions}
+            renderInput={(params) => (
+              <TextField {...params} model="Select Object" />
+            )}
+          />
+        </FormControl>
+        <Divider sx={{ margin: '5px' }} />
+
+        <Stack direction="row">
+          <Typography sx={{ fontSize: '17px', marginTop: '15px' }}>
+            Items ({itemOptions.length})
+          </Typography>
+          <Stack direction="row" sx={{ position: 'absolute', right: '5px' }}>
+            <IconButton
+              disabled={selectedItemIdx < 1}
+              onClick={() => {
+                const optionIdx = itemOptions.findIndex(
+                  (m) => m.model === selectedItem
+                );
+                if (optionIdx >= 0) {
+                  const option = itemOptions[optionIdx - 1];
+                  setItem(option.model);
+                }
+              }}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+            <IconButton
+              disabled={selectedItemIdx === itemOptions.length - 1}
+              onClick={() => {
+                const optionIdx = itemOptions.findIndex(
+                  (m) => m.model === selectedItem
+                );
+
+                const option = itemOptions[optionIdx + 1];
+                setItem(option.model);
+              }}
+            >
+              <ArrowForwardIcon />
+            </IconButton>
+          </Stack>
+        </Stack>
+        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
+          <Autocomplete
+            value={items[selectedItem]}
+            size="small"
+            sx={{ margin: '5px 0', maxWidth: '270px' }}
+            isOptionEqualToValue={(option, value) => option.key === value.key}
+            onChange={async (e, values) => {
+              if (!values) {
+                return;
+              }
+              setItem(values.model);
+            }}
+            renderOption={(props, option) => {
+              return (
+                <li {...props} key={option.key}>
+                  {option.label}
+                </li>
+              );
+            }}
+            options={itemOptions}
+            renderInput={(params) => (
+              <TextField {...params} model="Select Item" />
+            )}
+          />
+        </FormControl>
+        <Divider sx={{ margin: '5px' }} />
+
+        <Button
+          color="primary"
+          sx={{ margin: '0 auto', width: '100%' }}
+          onClick={() => {
+            confirm({
+              description: 'Are you sure you want to purge eqsage data?',
+              title      : 'Purge EQ Sage Folders',
+            })
+              .then(async () => {
+                await deleteEqFolder('data');
+                await deleteEqFolder('items');
+                await deleteEqFolder('models');
+                await deleteEqFolder('objects');
+                await deleteEqFolder('zones');
+                setSelectedItem(null);
+                setSelectedModel(null);
+                setSelectedObject(null);
+                setBabylonModel(null);
+                refreshModelFiles();
+                gameController.currentScene
+                  .getMeshById('model_export')
+                  ?.dispose();
+              })
+              .catch(() => {});
+          }}
+        >
+          Purge All Data
+        </Button>
       </Box>
       <ExporterHeader
         name={
@@ -414,7 +606,7 @@ export const ExporterOverlay = () => {
             ? models[selectedModel]
             : selectedObject
               ? selectedObject
-              : selectedItem ?? ''
+              : items[selectedItem] ?? ''
         }
       />
       <OverlayDialogs />

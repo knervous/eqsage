@@ -272,7 +272,7 @@ class SpawnController extends GameControllerChild {
   };
 
   skipTextureSwap(modelName) {
-    return ['tri', 'tun'].some((l) => modelName.startsWith(l));
+    return ['tri', 'tun', 'els'].some((l) => modelName.startsWith(l));
   }
 
   wearsRobe(modelName) {
@@ -330,13 +330,30 @@ class SpawnController extends GameControllerChild {
   }
 
   async addObject(modelName, path) {
+    GlobalStore.actions.setLoading(true);
+    GlobalStore.actions.setLoadingTitle(`Loading ${ modelName}`);
+    GlobalStore.actions.setLoadingText('Loading, please wait...');
     if (this.modelExport) {
       this.modelExport.rootNode.dispose();
       this.modelExport.animationGroups.forEach((a) => a.dispose());
       this.modelExport.skeleton?.dispose?.();
     }
+    this.currentScene.meshes.forEach(m => {
+      if (m.id === 'model_export') {
+        m.dispose();
+      }
+    });
+    this.currentScene.animationGroups.forEach(ag => {
+      ag.dispose();
+    });
+    this.currentScene.skeletons.forEach(s => {
+      s.dispose();
+    });
+
     const assetContainer = await this.getObjectAssetContainer(modelName, path);
     if (!assetContainer) {
+      GlobalStore.actions.setLoading(false);
+
       console.warn(`Cannot instantiate ${modelName}`);
       return;
     }
@@ -348,6 +365,7 @@ class SpawnController extends GameControllerChild {
     let rootNode = instanceContainer.rootNodes[0];
     if (!rootNode) {
       console.log('No root node for container model', modelName);
+      GlobalStore.actions.setLoading(false);
       return;
     }
     rootNode.id = 'model_export';
@@ -389,16 +407,32 @@ class SpawnController extends GameControllerChild {
       animationGroups,
       skeleton: skeletonRoot.skeleton,
     };
+    GlobalStore.actions.setLoading(false);
     return this.modelExport;
   }
 
   async addExportModel(modelName, headIdx = 0, texture = -1) {
+    const wearsRobe = this.wearsRobe(modelName);
+    GlobalStore.actions.setLoading(true);
+    GlobalStore.actions.setLoadingTitle(`Loading ${ modelName}`);
+    GlobalStore.actions.setLoadingText('Loading, please wait...');
     this.modelName = modelName;
     if (this.modelExport) {
       this.modelExport.rootNode.dispose();
       this.modelExport.animationGroups.forEach((a) => a.dispose());
       this.modelExport.skeleton?.dispose?.();
     }
+    this.currentScene.meshes.forEach(m => {
+      if (m.id === 'model_export') {
+        m.dispose();
+      }
+    });
+    this.currentScene.animationGroups.forEach(ag => {
+      ag.dispose();
+    });
+    this.currentScene.skeletons.forEach(s => {
+      s.dispose();
+    });
 
     const assetContainer =
       await window.gameController.SpawnController.getAssetContainer(modelName);
@@ -410,6 +444,7 @@ class SpawnController extends GameControllerChild {
     let rootNode = instanceContainer.rootNodes[0];
     if (!rootNode) {
       console.log('No root node for container model', modelName);
+      GlobalStore.actions.setLoading(false);
       return;
     }
     rootNode.id = 'model_export';
@@ -468,7 +503,7 @@ class SpawnController extends GameControllerChild {
      * @type {MultiMaterial}
      */
     const multiMat = merged.material;
-    if (this.wearsRobe(modelName)) {
+    if (wearsRobe) {
       texture += 10;
     }
     if (texture !== -1 && !this.skipTextureSwap(modelName)) {
@@ -477,11 +512,11 @@ class SpawnController extends GameControllerChild {
           continue;
         }
 
-        const isVariationTexture = texture >= 10;
+        const isVariationTexture = wearsRobe && texture >= 10;
         let text = isVariationTexture ? texture - 10 : texture;
         if (mat.name.startsWith('clk')) {
           text += 4;
-        } else if (this.wearsRobe(modelName)) {
+        } else if (wearsRobe) {
           continue;
         }
         const prefix = mat.name.slice(0, mat.name.length - 4);
@@ -531,6 +566,7 @@ class SpawnController extends GameControllerChild {
       animationGroups,
       skeleton: skeletonRoot.skeleton,
     };
+    GlobalStore.actions.setLoading(false);
     return this.modelExport;
   }
 

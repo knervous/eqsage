@@ -26,6 +26,7 @@ import { useMainContext } from '../main/context';
 import * as keyval from 'idb-keyval';
 import { useConfirm } from 'material-ui-confirm';
 import { expansions } from '../../lib/model/constants';
+import { gameController } from '../../viewer/controllers/GameController';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -228,11 +229,15 @@ export const ZoneChooserDialog = ({ open }) => {
         </Button>
 
         <Button
-          disabled={selectedZone?.short_name}
           color='primary'
           onClick={() => {
+            gameController.dispose();
+            setSelectedZone(null);
             setModelExporter(true);
-            setZoneDialogOpen(false);
+            setTimeout(() => {
+              setZoneDialogOpen(false);
+            }, 500);
+            
           }}
           variant="outlined"
           sx={{ margin: '5px auto' }}

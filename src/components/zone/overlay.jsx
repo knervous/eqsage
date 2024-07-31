@@ -13,6 +13,11 @@ export const BabylonZoneOverlay = () => {
     window.addEventListener('resize', listener);
     return () => window.removeEventListener('resize', listener);
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => forceRender({}), 500);
+    return () => clearInterval(interval);
+  }, []);
   return selectedZone ? (
     <Box
       ref={ref}

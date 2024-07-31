@@ -32,7 +32,7 @@ export const fragmentNameCleaner = (fragment, toLower = true) => {
   };
   let cleanedName = fragment.name;
   if (typeMap[fragment.constructor?.name]) {
-    cleanedName = cleanedName.replace(typeMap[fragment.constructor.name], '');
+    cleanedName = cleanedName.replace(typeMap[fragment.constructor.name], '').replace(typeMap[fragment.constructor.name].toLowerCase(), '');
   } else {
     console.warn('Not mapped', fragment.constructor.name);
   }

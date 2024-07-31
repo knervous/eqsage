@@ -205,7 +205,7 @@ export class EQGDecoder {
           .createMaterial(tex.name)
           .setDoubleSided(false)
         //  .setExtension('KHR_materials_unlit')
-          .setRoughnessFactor(0)
+          .setRoughnessFactor(1)
           .setMetallicFactor(0);
         const detailText = tex.detailMap.replace('.dds', '');
         const _normalText = tex.normalMap.replace('.dds', '');
@@ -231,7 +231,7 @@ export class EQGDecoder {
           .createMaterial(mat.name)
           .setDoubleSided(false)
         //  .setExtension('KHR_materials_unlit')
-          .setRoughnessFactor(0)
+          .setRoughnessFactor(1)
           .setMetallicFactor(0);
 
         for (const prop of mat.properties) {
@@ -493,7 +493,7 @@ export class EQGDecoder {
         .createMaterial(mat.name)
         .setDoubleSided(false)
       //  .setExtension('KHR_materials_unlit')
-        .setRoughnessFactor(0)
+        .setRoughnessFactor(1)
         .setMetallicFactor(0);
 
       for (const prop of mat.properties) {
@@ -661,7 +661,7 @@ export class EQGDecoder {
           .createMaterial(mat.name)
           .setDoubleSided(false)
         //   .setExtension('KHR_materials_unlit')
-          .setRoughnessFactor(0)
+          .setRoughnessFactor(1)
           .setMetallicFactor(0);
 
         for (const prop of mat.properties) {

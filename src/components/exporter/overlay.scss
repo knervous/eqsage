@@ -1,5 +1,7 @@
 .exporter-left-nav,
 .exporter-right-nav {
+  max-width: 100vh;
+  overflow-y: scroll;
   background-image: url("../../components/images/super_fancy_bg.png");
   position: fixed;
   background-repeat: repeat;
