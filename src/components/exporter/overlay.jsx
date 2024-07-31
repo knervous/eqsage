@@ -11,6 +11,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import Joyride from 'react-joyride';
 
 import { useOverlayContext } from '../spire/provider';
 import { OverlayDialogs } from './dialogs/dialogs';
@@ -35,7 +36,18 @@ const models = new Proxy(modelDefinitions, {
     return !prop || prop === 'null' ? '' : `[unknown] ${prop}`;
   },
 });
-
+const steps = [
+  {
+    title  : 'Model Processing',
+    content: 'Start here by processing global model files (global_chr.s3d) and equipment files (gequip.s3d) to populate lists for Models and Items',
+    target : '#joyride-start',
+  },
+  {
+    title  : 'Zone Processing',
+    content: 'Additionally, zones may contain models and objects not included in global files. Experiment with different zones to populate additional models and objects, e.g. Mistmoore will contain models for Vampires.',
+    target : '#joyride-1',
+  },
+];
 export const ExporterOverlay = () => {
   const { closeDialogs } = useOverlayContext();
   const { rootFileSystemHandle, zones } = useMainContext();
@@ -46,6 +58,18 @@ export const ExporterOverlay = () => {
   const [babylonModel, setBabylonModel] = useState('');
   const [selectedObject, setSelectedObject] = useState('');
   const [selectedItem, setSelectedItem] = useState('');
+  const [run, setRun] = useState(true);
+  const showBeaconAgain = () => {
+    setRun(false);
+    // setTimeout(() => {
+    //   setRun(true);
+    // }, 1);
+  };
+  const handleCallback = (state) => {
+    if (state.action === 'reset') {
+      showBeaconAgain();
+    }
+  };
 
   const settings = useSettingsContext();
   const { openAlert } = useAlertContext();
@@ -97,6 +121,10 @@ export const ExporterOverlay = () => {
       .filter(Boolean)
       .sort((a, b) => (a.label > b.label ? 1 : -1));
   }, [itemFiles]);
+
+  useEffect(() => {
+    setRun(modelOptions.length === 0, objectOptions.length === 0 && itemOptions.length === 0);
+  }, [modelOptions, objectOptions, itemOptions]);
   const refreshModelFiles = async () => {
     const modelDir = await getEQDir('models');
     if (modelDir) {
@@ -169,6 +197,7 @@ export const ExporterOverlay = () => {
   }, [selectedItem]);
   return (
     <>
+      <Joyride steps={steps} run={run} callback={handleCallback} />
       <Box className="exporter-left-nav" onKeyDown={(e) => e.stopPropagation()}>
         <Typography variant="h6" sx={{ textAlign: 'center' }}>
           EQ Sage Model Exporter
@@ -266,8 +295,22 @@ export const ExporterOverlay = () => {
             )}
           />
         </FormControl>
+        <Button color="primary" sx={{ margin: '0 auto', width: '100%' }} onClick={async () => {
+          await deleteEqFolder('data');
+          await deleteEqFolder('items');
+          await deleteEqFolder('models');
+          await deleteEqFolder('objects');
+          await deleteEqFolder('zones');
+          setSelectedItem(null);
+          setSelectedModel(null);
+          setSelectedObject(null);
+          setBabylonModel(null);
+          refreshModelFiles();
+          gameController.currentScene.getMeshById('model_export')?.dispose();
+        }}>Purge All Data</Button>
+
         <Accordion defaultExpanded>
-          <AccordionSummary>
+          <AccordionSummary id="joyride-start">
             <Typography>Global Processor</Typography>
           </AccordionSummary>
           <AccordionDetails>
@@ -297,7 +340,7 @@ export const ExporterOverlay = () => {
           </AccordionDetails>
         </Accordion>
         <Accordion defaultExpanded>
-          <AccordionSummary>
+          <AccordionSummary id="joyride-1">
             <Typography>Zone Processor</Typography>
           </AccordionSummary>
           <AccordionDetails>
