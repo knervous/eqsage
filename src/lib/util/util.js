@@ -31,7 +31,7 @@ export const fragmentNameCleaner = (fragment, toLower = true) => {
     // [ParticleCloud] : '_PCD';
   };
   let cleanedName = fragment.name;
-  if (typeMap[fragment.constructor?.name]) {
+  if (typeMap[fragment.constructor?.name] || typeMap[fragment.constructor?.name?.toLowerCase()]) {
     cleanedName = cleanedName.replace(typeMap[fragment.constructor.name], '').replace(typeMap[fragment.constructor.name].toLowerCase(), '');
   } else {
     console.warn('Not mapped', fragment.constructor.name);
