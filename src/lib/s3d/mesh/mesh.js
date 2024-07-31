@@ -12,7 +12,7 @@ export class MeshReference extends WldFragmentReference {
 }
 
 export class Mesh extends WldFragment {
-  static ClassName = 'Mesh';
+  ClassName = 'Mesh';
 
   materialListIdx = -1;
   /**

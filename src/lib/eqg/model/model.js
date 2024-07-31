@@ -38,7 +38,7 @@ export class MaterialProperty {
   valueS = '';
 }
 export class Material {
-  static ClassName = 'Material';
+  ClassName = 'Material';
 
   name = '';
   shader = '';

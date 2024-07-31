@@ -7,7 +7,7 @@ const vec3 = glMat.vec3;
 const quat = glMat.quat;
 
 export class TrackDefFragment extends WldFragment {
-  static ClassName = 'TrackDefFragment';
+  ClassName = 'TrackDefFragment';
 
   /**
      * @type {Array<import('../common/bone-transform').BoneTransform>}
@@ -73,7 +73,7 @@ class TrackFragmentFlags {
 
 
 export class TrackFragment extends WldFragment {
-  static ClassName = 'TrackFragment';
+  ClassName = 'TrackFragment';
 
   /**
      * @type {Array<import('../common/bone-transform').BoneTransform>}
