@@ -228,8 +228,7 @@ class SpawnController extends GameControllerChild {
         this.currentScene,
         undefined,
         '.glb'
-      ).catch(() => {}
-      );
+      ).catch(() => {});
     }
     return this.assetContainers[objectName];
   }
@@ -272,7 +271,9 @@ class SpawnController extends GameControllerChild {
   };
 
   skipTextureSwap(modelName) {
-    return ['tri', 'tun', 'els', 'rhi', 'ogs'].some((l) => modelName.startsWith(l));
+    return ['tri', 'tun', 'els', 'rhi', 'ogs', 'aelobject02'].some((l) =>
+      modelName.startsWith(l)
+    );
   }
 
   wearsRobe(modelName) {
@@ -294,7 +295,9 @@ class SpawnController extends GameControllerChild {
 
   async exportModel() {
     GlobalStore.actions.setLoading(true);
-    GlobalStore.actions.setLoadingTitle(`Exporting model ${this.modelExport?.modelName}`);
+    GlobalStore.actions.setLoadingTitle(
+      `Exporting model ${this.modelExport?.modelName}`
+    );
     GlobalStore.actions.setLoadingText('LOADING, PLEASE WAIT...');
     GLTF2Export.GLBAsync(this.currentScene, this.modelExport?.modelName, {
       shouldExportNode(node) {
@@ -303,50 +306,55 @@ class SpawnController extends GameControllerChild {
         }
         return node.id === 'model_export';
       },
-    }).then(async (glb) => {
-      GlobalStore.actions.setLoadingTitle(`Optimizing model ${this.modelExport?.modelName}`);
-      GlobalStore.actions.setLoadingText('Applying GLB optimizations');
-      const blob = Object.values(glb.glTFFiles)[0];
-      const arr = new Uint8Array(await blob.arrayBuffer());
-      const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
-      const doc = await io.readBinary(arr);
-      console.log('set', this.gc.settings);
-      await doc.transform(
-        dedup(),
-        prune(),
-        textureCompress({
-          targetFormat: this.gc.settings.imgCompression,
-        }));
-      const bin = await io.writeBinary(doc);
-      const assetBlob = new Blob([bin]);
-      const assetUrl = URL.createObjectURL(assetBlob);
-      const link = document.createElement('a');
-      link.href = assetUrl;
-      link.download = `${this.modelExport?.modelName}.glb`;
-      link.click();
-    }).finally(() => {
-      GlobalStore.actions.setLoading(false);
-    });
+    })
+      .then(async (glb) => {
+        GlobalStore.actions.setLoadingTitle(
+          `Optimizing model ${this.modelExport?.modelName}`
+        );
+        GlobalStore.actions.setLoadingText('Applying GLB optimizations');
+        const blob = Object.values(glb.glTFFiles)[0];
+        const arr = new Uint8Array(await blob.arrayBuffer());
+        const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+        const doc = await io.readBinary(arr);
+        console.log('set', this.gc.settings);
+        await doc.transform(
+          dedup(),
+          prune(),
+          textureCompress({
+            targetFormat: this.gc.settings.imgCompression,
+          })
+        );
+        const bin = await io.writeBinary(doc);
+        const assetBlob = new Blob([bin]);
+        const assetUrl = URL.createObjectURL(assetBlob);
+        const link = document.createElement('a');
+        link.href = assetUrl;
+        link.download = `${this.modelExport?.modelName}.glb`;
+        link.click();
+      })
+      .finally(() => {
+        GlobalStore.actions.setLoading(false);
+      });
   }
 
   async addObject(modelName, path) {
     GlobalStore.actions.setLoading(true);
-    GlobalStore.actions.setLoadingTitle(`Loading ${ modelName}`);
+    GlobalStore.actions.setLoadingTitle(`Loading ${modelName}`);
     GlobalStore.actions.setLoadingText('Loading, please wait...');
     if (this.modelExport) {
       this.modelExport.rootNode.dispose();
       this.modelExport.animationGroups.forEach((a) => a.dispose());
       this.modelExport.skeleton?.dispose?.();
     }
-    this.currentScene.meshes.forEach(m => {
+    this.currentScene.meshes.forEach((m) => {
       if (m.id === 'model_export') {
         m.dispose();
       }
     });
-    this.currentScene.animationGroups.forEach(ag => {
+    this.currentScene.animationGroups.forEach((ag) => {
       ag.dispose();
     });
-    this.currentScene.skeletons.forEach(s => {
+    this.currentScene.skeletons.forEach((s) => {
       s.dispose();
     });
 
@@ -411,10 +419,51 @@ class SpawnController extends GameControllerChild {
     return this.modelExport;
   }
 
-  async addExportModel(modelName, headIdx = 0, texture = -1) {
+  async createItem(item) {
+    try {
+      const container = await this.getObjectAssetContainer(item, 'items');
+
+      if (!container) {
+        console.log('Did not load item model', item);
+        return;
+      }
+
+      const instanceContainer = container.instantiateModelsToScene();
+      instanceContainer.animationGroups?.forEach((ag) =>
+        this.currentScene.removeAnimationGroup(ag)
+      );
+      let rootNode = instanceContainer.rootNodes[0];
+      const merged = Mesh.MergeMeshes(
+        rootNode.getChildMeshes(false),
+        false,
+        true,
+        undefined,
+        true,
+        true
+      );
+      if (merged) {
+        rootNode.dispose();
+        rootNode = merged;
+        rootNode.skeleton = container.skeletons[0];
+      }
+      return rootNode;
+    } catch (e) {
+      console.warn(e);
+      return null;
+    }
+  }
+
+  async addExportModel(
+    modelName,
+    headIdx = 0,
+    texture = -1,
+    primary = null,
+    secondary = null,
+    secondaryPoint = 0
+  ) {
     const wearsRobe = this.wearsRobe(modelName);
     GlobalStore.actions.setLoading(true);
-    GlobalStore.actions.setLoadingTitle(`Loading ${ modelName}`);
+    GlobalStore.actions.setLoadingTitle(`Loading ${modelName}`);
     GlobalStore.actions.setLoadingText('Loading, please wait...');
     this.modelName = modelName;
     if (this.modelExport) {
@@ -422,15 +471,15 @@ class SpawnController extends GameControllerChild {
       this.modelExport.animationGroups.forEach((a) => a.dispose());
       this.modelExport.skeleton?.dispose?.();
     }
-    this.currentScene.meshes.forEach(m => {
+    this.currentScene.meshes.forEach((m) => {
       if (m.id === 'model_export') {
         m.dispose();
       }
     });
-    this.currentScene.animationGroups.forEach(ag => {
+    this.currentScene.animationGroups.forEach((ag) => {
       ag.dispose();
     });
-    this.currentScene.skeletons.forEach(s => {
+    this.currentScene.skeletons.forEach((s) => {
       s.dispose();
     });
 
@@ -559,6 +608,57 @@ class SpawnController extends GameControllerChild {
 
     this.CameraController.camera.setTarget(rootNode.position);
     rootNode.scaling.z = -1;
+
+    if (primary) {
+      const primaryHeld = await this.createItem(primary);
+      if (primaryHeld) {
+        const transformNode = skeletonRoot
+          .getChildTransformNodes()
+          .find((a) => a.name.includes('r_point'));
+        const primaryBone = skeletonRoot.skeleton.bones.find(
+          (b) => b.name === 'r_point'
+        );
+        if (primaryBone && transformNode) {
+          primaryHeld.attachToBone(primaryBone);
+          primaryHeld.parent = transformNode;
+          primaryHeld.rotationQuaternion = null;
+          primaryHeld.rotation.setAll(0);
+          primaryHeld.scaling.setAll(1);
+          primaryHeld.scaling.x = -1;
+          primaryHeld.name = primary;
+          primaryHeld.skeleton = skeletonRoot.skeleton;
+        } else {
+          primaryHeld.dispose();
+        }
+      }
+    }
+
+    if (secondary) {
+      const secondaryHeld = await this.createItem(secondary);
+      if (secondaryHeld) {
+        const secondaryBone = skeletonRoot.skeleton.bones.find((b) =>
+          (b.name === secondaryPoint) === 0 ? 'l_point' : 'shield_point'
+        );
+        const transformNode = rootNode
+          .getChildTransformNodes()
+          .find((a) =>
+            a.name.includes(secondaryPoint === 0 ? 'l_point' : 'shield_point')
+          );
+        // Some item type check here for shield_point
+        if (secondaryBone && transformNode) {
+          secondaryHeld.attachToBone(secondaryBone);
+          secondaryHeld.parent = transformNode;
+          secondaryHeld.rotationQuaternion = null;
+          secondaryHeld.rotation.setAll(0);
+
+          secondaryHeld.scaling.setAll(1);
+          secondaryHeld.scaling.x = -1;
+          secondaryHeld.name = secondary;
+        } else {
+          secondaryHeld.dispose();
+        }
+      }
+    }
 
     this.modelExport = {
       modelName,

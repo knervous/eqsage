@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Autocomplete,
   Box,
   Divider,
   FormControl,
   FormLabel,
   MenuItem,
   Select,
+  TextField,
   Typography,
 } from '@mui/material';
 import { useDebouncedCallback } from 'use-debounce';
@@ -15,6 +17,7 @@ import { gameController } from '../../viewer/controllers/GameController';
 import { getEQDir, getFiles } from '../../lib/util/fileHandler';
 
 import './overlay.scss';
+import { items } from './constants';
 
 const animationDefinitions = {
   pos: 'None',
@@ -76,6 +79,7 @@ export const ExporterOverlayRightNav = ({
   modelFiles = [],
   setBabylonModel,
   type,
+  itemOptions
 }) => {
   const [animation, setAnimation] = useState(
     babylonModel.animationGroups?.[0]?.name
@@ -84,12 +88,16 @@ export const ExporterOverlayRightNav = ({
   const [headCount, setHeadCount] = useState(0);
   const [texture, setTexture] = useState(0);
   const [textures, setTextures] = useState([]);
+  const [primary, setPrimary] = useState(null);
+  const [secondary, setSecondary] = useState(null);
 
   useEffect(() => {
     (async () => {
       setTexture(0);
       setHead(0);
       setAnimation('pos');
+      setPrimary(null);
+      setSecondary(null);
       let count = 0;
       const wearsRobe = gameController.SpawnController.wearsRobe(
         babylonModel.modelName
@@ -148,7 +156,9 @@ export const ExporterOverlayRightNav = ({
       gameController.SpawnController.addExportModel(
         babylonModel.modelName,
         head,
-        texture
+        texture,
+        primary,
+        secondary
       ).then(setBabylonModel);
     } else if (type === 1) {
       gameController.SpawnController.addObject(babylonModel.modelName).then(
@@ -168,6 +178,8 @@ export const ExporterOverlayRightNav = ({
     setBabylonModel,
     debouncedAdd,
     type,
+    primary,
+    secondary
   ]);
 
   const animations = useMemo(() => {
@@ -206,6 +218,21 @@ export const ExporterOverlayRightNav = ({
           </Select>
         </FormControl>
         <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
+          <FormLabel id="animation-group">Animation</FormLabel>
+          <Select
+            aria-labelledby="animation-group"
+            name="animation-group"
+            value={animation}
+            onChange={(e) => setAnimation(e.target.value)}
+          >
+            {animations.map((ag) => (
+              <MenuItem value={ag.name} label={ag.name}>
+                {animationNames[ag.name]}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
           <FormLabel id="head-group">Texture</FormLabel>
           <Select
             aria-labelledby="head-group"
@@ -220,20 +247,58 @@ export const ExporterOverlayRightNav = ({
             ))}
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
-          <FormLabel id="animation-group">Animation</FormLabel>
-          <Select
-            aria-labelledby="animation-group"
-            name="animation-group"
-            value={animation}
-            onChange={(e) => setAnimation(e.target.value)}
-          >
-            {animations.map((ag) => (
-              <MenuItem value={ag.name} label={ag.name}>
-                {animationNames[ag.name]}
-              </MenuItem>
-            ))}
-          </Select>
+       
+        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
+          <FormLabel id="primary-group">Primary</FormLabel>
+          <Autocomplete
+            value={primary ? items[primary] : ''}
+            size="small"
+            sx={{ margin: '5px 0', maxWidth: '270px' }}
+            isOptionEqualToValue={(option, value) => option.key === value.key}
+            onChange={async (e, values) => {
+              if (!values) {
+                return;
+              }
+              setPrimary(values.model);
+            }}
+            renderOption={(props, option) => {
+              return (
+                <li {...props} key={option.key}>
+                  {option.label}
+                </li>
+              );
+            }}
+            options={itemOptions}
+            renderInput={(params) => (
+              <TextField {...params} model="Select Primary" />
+            )}
+          />
+        </FormControl>
+        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
+          <FormLabel id="secondary-group">Secondary</FormLabel>
+          <Autocomplete
+            value={secondary ? items[secondary] : ''}
+            size="small"
+            sx={{ margin: '5px 0', maxWidth: '270px' }}
+            isOptionEqualToValue={(option, value) => option.key === value.key}
+            onChange={async (e, values) => {
+              if (!values) {
+                return;
+              }
+              setSecondary(values.model);
+            }}
+            renderOption={(props, option) => {
+              return (
+                <li {...props} key={option.key}>
+                  {option.label}
+                </li>
+              );
+            }}
+            options={itemOptions}
+            renderInput={(params) => (
+              <TextField {...params} model="Select Secondary" />
+            )}
+          />
         </FormControl>
       </Box>
       <OverlayDialogs />
