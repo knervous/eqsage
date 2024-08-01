@@ -525,6 +525,7 @@ class SpawnController extends GameControllerChild {
         console.warn('Err', e);
       }
     }
+    console.log('Skeleton', instanceSkeleton);
 
     const merged = Mesh.MergeMeshes(
       rootNode.getChildMeshes(false),
@@ -635,8 +636,9 @@ class SpawnController extends GameControllerChild {
     if (secondary) {
       const secondaryHeld = await this.createItem(secondary);
       if (secondaryHeld) {
+    
         const secondaryBone = skeletonRoot.skeleton.bones.find((b) =>
-          (b.name === secondaryPoint) === 0 ? 'l_point' : 'shield_point'
+          b.name === (secondaryPoint === 0 ? 'l_point' : 'shield_point')
         );
         const transformNode = rootNode
           .getChildTransformNodes()
