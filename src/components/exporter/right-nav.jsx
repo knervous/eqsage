@@ -4,11 +4,13 @@ import {
   Box,
   Divider,
   FormControl,
+  FormControlLabel,
   FormLabel,
   MenuItem,
   Select,
   TextField,
   Typography,
+  Checkbox,
 } from '@mui/material';
 import { useDebouncedCallback } from 'use-debounce';
 
@@ -79,7 +81,7 @@ export const ExporterOverlayRightNav = ({
   modelFiles = [],
   setBabylonModel,
   type,
-  itemOptions
+  itemOptions,
 }) => {
   const [animation, setAnimation] = useState(
     babylonModel.animationGroups?.[0]?.name
@@ -90,7 +92,7 @@ export const ExporterOverlayRightNav = ({
   const [textures, setTextures] = useState([]);
   const [primary, setPrimary] = useState(null);
   const [secondary, setSecondary] = useState(null);
-
+  const [asShield, setAsShield] = useState(false);
   useEffect(() => {
     (async () => {
       setTexture(0);
@@ -98,6 +100,7 @@ export const ExporterOverlayRightNav = ({
       setAnimation('pos');
       setPrimary(null);
       setSecondary(null);
+      setAsShield(false);
       let count = 0;
       const wearsRobe = gameController.SpawnController.wearsRobe(
         babylonModel.modelName
@@ -125,11 +128,11 @@ export const ExporterOverlayRightNav = ({
           for (const f of files) {
             const chestRegex = /ch(\d{2})01/;
             if (chestRegex.test(f)) {
-              const [, n] = chestRegex.exec(f); 
+              const [, n] = chestRegex.exec(f);
               variations.push(+n);
             }
           }
-          setTextures(variations.sort((a, b) => a > b ? 1 : -1));
+          setTextures(variations.sort((a, b) => (a > b ? 1 : -1)));
         }
       }
     })();
@@ -158,7 +161,8 @@ export const ExporterOverlayRightNav = ({
         head,
         texture,
         primary,
-        secondary
+        secondary,
+        asShield ? 1 : 0
       ).then(setBabylonModel);
     } else if (type === 1) {
       gameController.SpawnController.addObject(babylonModel.modelName).then(
@@ -179,7 +183,8 @@ export const ExporterOverlayRightNav = ({
     debouncedAdd,
     type,
     primary,
-    secondary
+    secondary,
+    asShield,
   ]);
 
   const animations = useMemo(() => {
@@ -197,7 +202,10 @@ export const ExporterOverlayRightNav = ({
   }, [babylonModel?.animationGroups]);
   return (
     <>
-      <Box onKeyDown={e => e.stopPropagation()} className="exporter-right-nav">
+      <Box
+        onKeyDown={(e) => e.stopPropagation()}
+        className="exporter-right-nav"
+      >
         <Typography variant="h6" sx={{ textAlign: 'center' }}>
           Model
         </Typography>
@@ -247,7 +255,7 @@ export const ExporterOverlayRightNav = ({
             ))}
           </Select>
         </FormControl>
-       
+
         <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
           <FormLabel id="primary-group">Primary</FormLabel>
           <Autocomplete
@@ -298,6 +306,17 @@ export const ExporterOverlayRightNav = ({
             renderInput={(params) => (
               <TextField {...params} model="Select Secondary" />
             )}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                value={asShield}
+                onChange={() => setAsShield((v) => !v)}
+              >
+                Shield Point
+              </Checkbox>
+            }
+            label="Shield Point"
           />
         </FormControl>
       </Box>
