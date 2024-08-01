@@ -626,7 +626,6 @@ class SpawnController extends GameControllerChild {
           primaryHeld.scaling.setAll(1);
           primaryHeld.scaling.x = -1;
           primaryHeld.name = primary;
-          primaryHeld.skeleton = skeletonRoot.skeleton;
         } else {
           primaryHeld.dispose();
         }
@@ -654,6 +653,7 @@ class SpawnController extends GameControllerChild {
           secondaryHeld.scaling.setAll(1);
           secondaryHeld.scaling.x = -1;
           secondaryHeld.name = secondary;
+
         } else {
           secondaryHeld.dispose();
         }
