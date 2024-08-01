@@ -27,31 +27,12 @@ import { gameController } from '../../viewer/controllers/GameController';
 import { ExporterOverlayRightNav } from './right-nav';
 import { useExpansionList } from '../common/expansions';
 import { useAlertContext } from '../../context/alerts';
-import { modelDefinitions } from '../../lib/model/constants';
 import { ExporterHeader } from './overlay-header';
-import itemMap from './items.json';
+import { useConfirm } from 'material-ui-confirm';
+import { items, models } from './constants';
 
 import './overlay.scss';
-import { useConfirm } from 'material-ui-confirm';
 
-const models = new Proxy(modelDefinitions, {
-  get(target, prop, _receiver) {
-    if (target[prop]) {
-      return `[${prop}] ${target[prop]}`;
-    }
-    return !prop || prop === 'null' ? '' : `[${prop}] unknown`;
-  },
-});
-
-const items = new Proxy(itemMap, {
-  get(target, prop, _receiver) {
-    const t = target[prop.slice(2, prop.length)];
-    if (t) {
-      return `[${prop}] ${t}`;
-    }
-    return !prop || prop === 'null' ? '' : `[${prop}] unknown`;
-  },
-});
 const steps = [
   {
     title: 'Model Processing',
@@ -613,6 +594,7 @@ export const ExporterOverlay = () => {
       <OverlayDialogs />
       {babylonModel && (
         <ExporterOverlayRightNav
+          itemOptions={itemOptions}
           babylonModel={babylonModel}
           modelFiles={modelFiles}
           setBabylonModel={setBabylonModel}
