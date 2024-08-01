@@ -197,7 +197,7 @@ export const ExporterOverlayRightNav = ({
   }, [babylonModel?.animationGroups]);
   return (
     <>
-      <Box className="exporter-right-nav">
+      <Box onKeyDown={e => e.stopPropagation()} className="exporter-right-nav">
         <Typography variant="h6" sx={{ textAlign: 'center' }}>
           Model
         </Typography>
