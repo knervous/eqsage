@@ -157,6 +157,16 @@ export class GameController {
         options
       );
     };
+    const origCreate = ThinEngine.prototype.createTexture;
+    ThinEngine.prototype.createTexture = function(
+      url, noMipmap, _invertY, scene, samplingMode, onLoad, onError, buffer, fallback, format, forcedExtension, mimeType, loaderOptions, creationFlags, useSRGBBuffer
+    ) {
+      const doFlip = !url.includes('eq/models') && !/\w+\d{4}/.test(url);
+      console.log('URL', url);
+      return origCreate.call(
+        this, url, noMipmap, doFlip, scene, samplingMode, onLoad, onError, buffer, fallback, format, forcedExtension, mimeType, loaderOptions, creationFlags, useSRGBBuffer
+      );
+    };
 
     // Override DB factory
     Engine.OfflineProviderFactory = (
