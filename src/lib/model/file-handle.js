@@ -71,7 +71,7 @@ export class EQFileHandle {
     this.#initialized = true;
   }
 
-  async process(doExport = true) {
+  async process(doExport = true, skipFlip = false) {
     if (!this.#initialized) {
       console.warn('Was not initialized, cannot process');
       return;
@@ -83,13 +83,13 @@ export class EQFileHandle {
     }
     if (this.#type === FILE_TYPE.EQG) {
       const eqgDecoder = new EQGDecoder(this);
-      await eqgDecoder.process();
+      await eqgDecoder.process(skipFlip);
       if (doExport) {
         await eqgDecoder.export();
       }
     } else if (this.#type === FILE_TYPE.S3D) {
       const s3dDecoder = new S3DDecoder(this);
-      await s3dDecoder.process();
+      await s3dDecoder.process(skipFlip);
       if (doExport) {
         await s3dDecoder.export();
       }

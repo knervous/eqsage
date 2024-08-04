@@ -15,7 +15,7 @@ import { OverlayDialogs } from './dialogs/dialogs';
 import classNames from 'classnames';
 import { useSettingsHook } from './hooks';
 import SpawnNavBar from './nav-bar/spawn-nav/spawn-nav';
-import { Compass } from './compass';
+// import { Compass } from './compass';
 
 import './overlay.scss';
 import { useMainContext } from '../main/context';
@@ -86,7 +86,7 @@ export const SpireOverlay = ({ inZone }) => {
         }}
       >
         {/** Compass */}
-        <Compass />
+        {/* <Compass /> */}
         <Stack
           sx={{ height: inZone ? 'calc(65%)' : '100px' }}
           direction={'column'}

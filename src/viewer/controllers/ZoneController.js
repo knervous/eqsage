@@ -4,7 +4,6 @@ import {
   Tools,
   Texture,
   Scene,
-  
   MeshBuilder,
   StandardMaterial,
   CubeTexture,

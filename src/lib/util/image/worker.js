@@ -62,7 +62,7 @@ async function parseTextures(entries, eqFileHandle) {
 /** @param {string} name */
 async function parseTexture(name, shaderType, data) {
   name = name.toLowerCase().replace(/\.\w+$/, '');
-  if (new DataView(data).getUint16(0, true) === 0x4d42) {
+  if (new DataView(data).getUint16(0, true) === 0x4d42) { // header for bitmap
     try {
       const img = await Jimp.read(data);
       await img.scan(0, 0, img.bitmap.width, img.bitmap.height, (x, y, idx) => {
@@ -94,6 +94,7 @@ async function parseTexture(name, shaderType, data) {
     }
     return null;
   }
+  // otherwise dds
   const [decompressed, dds] = convertDDS2Jimp(new Uint8Array(data));
   const w = dds.mipmaps[0].width;
   const h = dds.mipmaps[0].height;
@@ -130,6 +131,7 @@ async function parseTexture(name, shaderType, data) {
       }
     )
   );
+  img.flip(false, true);
 
   return await img.getBufferAsync(Jimp.MIME_PNG);
 }
