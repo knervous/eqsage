@@ -25,8 +25,9 @@ import {
 import { useMainContext } from '../main/context';
 import * as keyval from 'idb-keyval';
 import { useConfirm } from 'material-ui-confirm';
-import { expansions } from '../../lib/model/constants';
+import { VERSION, expansions } from '../../lib/model/constants';
 import { gameController } from '../../viewer/controllers/GameController';
+import { deleteEqFolder } from '../../lib/util/fileHandler';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -70,6 +71,23 @@ export const ZoneChooserDialog = ({ open }) => {
       typeof value === 'string' ? value.split(',') : value
     );
   };
+
+  useEffect(() => {
+    if (+localStorage.getItem('assetversion') === +VERSION) {
+      return;
+    }
+    console.log('Purging assets');
+    (async () => {
+      await deleteEqFolder('data');
+      await deleteEqFolder('items');
+      await deleteEqFolder('models');
+      await deleteEqFolder('objects');
+      await deleteEqFolder('zones');
+      await deleteEqFolder('textures');
+      localStorage.setItem('assetversion', VERSION);
+    })();
+ 
+  }, []);
 
   const selectAndExit = useCallback(
     (zone) => {
