@@ -53,8 +53,15 @@ export const MainProvider = ({ children }) => {
   }, [modelExporter]);
 
   useEffect(() => {
-    setTimeout(() => {
-      setSpire(window.Spire);
+    let retries = 0;
+    const int = setInterval(() => {
+      if (window.Spire) {
+        console.log(`Set Spire with ${retries} retries`);
+        setSpire(window.Spire);
+        clearInterval(int);
+      } else {
+        retries++;
+      }
     }, 100);
   }, []);
 
