@@ -1,22 +1,14 @@
 
 import { Accessor, Document, WebIO } from '@gltf-transform/core';
-import {
-  draco,
-  DRACO_DEFAULTS
-} from '@gltf-transform/functions';
-import draco3d from 'draco3dgltf';
+
+
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { quat } from 'gl-matrix';
 import { writeEQFile } from '../../util/fileHandler';
 import { VERSION } from '../../model/constants';
 
 const io = new WebIO()
-  .registerExtensions(ALL_EXTENSIONS)
-  .registerDependencies({
-    'draco3d.decoder': await draco3d.createDecoderModule(),
-    'draco3d.encoder': await draco3d.createEncoderModule()
-  });
-
+  .registerExtensions(ALL_EXTENSIONS);
 
 export async function exportv4(zoneName) {
   const document = new Document();
@@ -257,10 +249,7 @@ export async function exportv4(zoneName) {
       `${zoneName}.json`,
       JSON.stringify(zoneMetadata)
   );
-  await document.transform(
-    // Compress mesh geometry with Draco.
-    draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' }),
-  );
+
   const bytes = await io.writeBinary(document);
   await writeEQFile('zones', `${zoneName}.glb`, bytes.buffer);
 }
