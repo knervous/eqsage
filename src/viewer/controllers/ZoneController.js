@@ -118,21 +118,24 @@ class ZoneController extends GameControllerChild {
     }).then(async (glb) => {
       GlobalStore.actions.setLoadingTitle(`Optimizing ${name}`);
       GlobalStore.actions.setLoadingText('Applying GLB optimizations');
-      const blob = Object.values(glb.glTFFiles)[0];
-      const arr = new Uint8Array(await blob.arrayBuffer());
-      const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
-      const doc = await io.readBinary(arr);
-
-
-      await doc.transform(
-        dedup(),
-        prune(),
-        textureCompress({
-          targetFormat: this.gc.settings.imgCompression,
-        }));
-      const bin = await io.writeBinary(doc);
-      const assetBlob = new Blob([bin]);
-      const assetUrl = URL.createObjectURL(assetBlob);
+      let blob = Object.values(glb.glTFFiles)[0];
+      try {
+        const arr = new Uint8Array(await blob.arrayBuffer());
+        const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+        const doc = await io.readBinary(arr);
+        await doc.transform(
+          dedup(),
+          prune(),
+          textureCompress({
+            targetFormat: this.gc.settings.imgCompression,
+          }));
+        const bin = await io.writeBinary(doc);
+        blob = new Blob([bin]);
+      } catch (e) {
+        console.warn(e);
+      }
+     
+      const assetUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = assetUrl;
       link.download = `${name}.glb`;
