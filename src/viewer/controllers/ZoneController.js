@@ -15,6 +15,9 @@ import {
   Color4,
   PointerEventTypes,
   PointLight,
+  VertexData,
+  SubMesh,
+  MultiMaterial,
 } from '@babylonjs/core';
 
 import { GameControllerChild } from './GameControllerChild';
@@ -94,6 +97,7 @@ class ZoneController extends GameControllerChild {
 
     this.zoneLoaded = false;
   }
+  c = 0;
   exportZone(name) {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(`Exporting zone ${name}`);
@@ -102,6 +106,7 @@ class ZoneController extends GameControllerChild {
     GLTF2Export.GLBAsync(this.scene, name, {
       shouldExportNode(node) {
         while (node.parent) {
+          console.log(this.c++);
           node = node.parent;
         }
         return node.name === 'zone' || node.name === 'static-objects';
@@ -379,6 +384,81 @@ class ZoneController extends GameControllerChild {
     }
   }
 
+  mergeMeshesWithMaterials = (meshes, scene) => {
+    // Prepare arrays for the merged mesh data
+    const positions = [];
+    const indices = [];
+    const normals = [];
+    const uvs = [];
+    let currentIndex = 0;
+
+    // Store the submesh data
+    const subMeshes = [];
+    const materials = [];
+
+
+    // Create a new mesh for the merged result
+    const newMergedMesh = new Mesh('mergedMesh', scene);
+
+    
+    // Iterate through each mesh
+    meshes.forEach(mesh => {
+      // Ensure the mesh has been updated (i.e., make sure the vertex data is up to date)
+      mesh.bakeCurrentTransformIntoVertices();
+
+      // Get the vertex data
+      const vertexData = VertexData.ExtractFromMesh(mesh);
+
+      // Store the material of the current mesh
+      materials.push(mesh.material);
+
+      // Push the vertex data into our arrays
+      const vertexStart = currentIndex;
+      const indexStart = indices.length;
+
+      positions.push(...vertexData.positions);
+      normals.push(...vertexData.normals);
+      uvs.push(...vertexData.uvs);
+
+      // Adjust the indices and add them
+      const adjustedIndices = vertexData.indices.map(index => index + currentIndex);
+      indices.push(...adjustedIndices);
+
+      // Create a new submesh for the current mesh
+      subMeshes.push(new SubMesh(
+        materials.length - 1, // materialIndex
+        vertexStart, // verticesStart
+        vertexData.positions.length / 3, // verticesCount
+        indexStart, // indexStart
+        adjustedIndices.length, // indexCount
+        mesh
+      ));
+
+      // Update the current index
+      currentIndex += vertexData.positions.length / 3;
+    });
+
+    // Create vertex data for the new mesh
+    const vertexData = new VertexData();
+    vertexData.positions = positions;
+    vertexData.indices = indices;
+    vertexData.normals = normals;
+    vertexData.uvs = uvs;
+
+    // Apply the vertex data to the new mesh
+    vertexData.applyToMesh(newMergedMesh);
+
+    // Apply the submeshes to the new mesh
+    // newMergedMesh.subMeshes = subMeshes;
+
+    // Assign the multi-material to the new mesh
+    const multiMaterial = new MultiMaterial('multiMaterial', scene);
+    multiMaterial.subMaterials = materials;
+    newMergedMesh.material = multiMaterial;
+
+    return newMergedMesh;
+  };
+
   async loadModel(name) {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(`Loading ${name}`);
@@ -437,6 +517,7 @@ class ZoneController extends GameControllerChild {
         m.dispose();
       }
     });
+    // const zoneMesh = this.mergeMeshesWithMaterials(zone.meshes.filter((m) => m.getTotalVertices() > 0), this.currentScene);
     const zoneMesh = Mesh.MergeMeshes(
       zone.meshes.filter((m) => m.getTotalVertices() > 0),
       true,
@@ -466,6 +547,7 @@ class ZoneController extends GameControllerChild {
         mergedMesh.name = 'static-objects';
         mergedMesh.isPickable = false;
       }
+    
       const regionNode = new TransformNode('regions', this.scene);
       this.regionNode = regionNode;
       regionNode.setEnabled(!!this.regionsShown);

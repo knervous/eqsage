@@ -42,7 +42,7 @@ class ImageProcessor {
   initializeWorkers(workers = Math.min(4, navigator.hardwareConcurrency ?? 4)) {
     this.clearWorkers();
     for (let i = 0; i < workers; i++) {
-      const worker = new Worker(new URL('./worker', import.meta.url));
+      const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
       this.#workers.push(worker);
       this.babylonWorkers.push(Comlink.wrap(worker));
     }

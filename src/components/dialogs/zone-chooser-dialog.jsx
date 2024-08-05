@@ -27,7 +27,11 @@ import * as keyval from 'idb-keyval';
 import { useConfirm } from 'material-ui-confirm';
 import { VERSION, expansions } from '../../lib/model/constants';
 import { gameController } from '../../viewer/controllers/GameController';
-import { deleteEqFolder, getEQFile, writeEQFile } from '../../lib/util/fileHandler';
+import {
+  deleteEqFolder,
+  getEQFile,
+  writeEQFile,
+} from '../../lib/util/fileHandler';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -40,10 +44,16 @@ const MenuProps = {
   },
 };
 
-
 export const ZoneChooserDialog = ({ open }) => {
   const [_type, _setType] = useState('unknown');
-  const { selectedZone, setSelectedZone, setZoneDialogOpen, Spire, setModelExporter, setZones } = useMainContext();
+  const {
+    selectedZone,
+    setSelectedZone,
+    setZoneDialogOpen,
+    Spire,
+    setModelExporter,
+    setZones,
+  } = useMainContext();
   const [zoneList, setZoneList] = useState([]);
   const [expansionFilter, setExpansionFilter] = useState([]);
   const [zone, setZone] = useState(null);
@@ -73,7 +83,6 @@ export const ZoneChooserDialog = ({ open }) => {
   };
 
   useEffect(() => {
-
     (async () => {
       const assetData = await getEQFile('data', 'version.json', 'json');
       if (assetData?.version === VERSION) {
@@ -86,10 +95,12 @@ export const ZoneChooserDialog = ({ open }) => {
       await deleteEqFolder('objects');
       await deleteEqFolder('zones');
       await deleteEqFolder('textures');
-      await writeEQFile('data', 'version.json', JSON.stringify({ version: VERSION }));
-
+      await writeEQFile(
+        'data',
+        'version.json',
+        JSON.stringify({ version: VERSION })
+      );
     })();
- 
   }, []);
 
   const selectAndExit = useCallback(
@@ -110,24 +121,33 @@ export const ZoneChooserDialog = ({ open }) => {
         autocompleteRef.current?.querySelector('input')?.focus();
       }, 0);
       if (Spire) {
-        Spire.Zones.getZones().then(setZoneList).catch(() => { });
+        Spire.Zones.getZones()
+          .then(setZoneList)
+          .catch(() => {
+            import('../../data/zoneData.json').then((zl) =>
+              setZoneList(Array.from(zl.default))
+            );
+          });
       } else {
-        import('../../data/zoneData.json').then((zl) =>
-          setZoneList(Array.from(zl))
-        );
+        import('../../data/zoneData.json').then((zl) => {
+          setZoneList(Array.from(zl.default));
+        });
       }
     }
   }, [open, Spire]);
 
   useEffect(() => setZones(zoneList), [zoneList, setZones]);
-  
+
   const confirm = useConfirm();
   useEffect(() => {
     localStorage.setItem('recent-zones', JSON.stringify(recentList));
   }, [recentList]);
 
   const unlinkDir = () => {
-    confirm({ description: 'Are you sure you want to unlink your EQ directory?', title: 'Unlink EQ Directory' })
+    confirm({
+      description: 'Are you sure you want to unlink your EQ directory?',
+      title      : 'Unlink EQ Directory',
+    })
       .then(() => {
         /* ... */
         keyval.del('eqdir').then(() => {
@@ -137,7 +157,6 @@ export const ZoneChooserDialog = ({ open }) => {
       .catch(() => {
         /* ... */
       });
-
   };
 
   return (
@@ -156,8 +175,7 @@ export const ZoneChooserDialog = ({ open }) => {
       >
         Select a Zone
       </DialogTitle>
-      <DialogContent
-      >
+      <DialogContent>
         <Stack direction={'column'}>
           <FormControl
             size="small"
@@ -211,9 +229,11 @@ export const ZoneChooserDialog = ({ open }) => {
               }}
               options={filteredZoneList.map((zone, idx) => {
                 return {
-                  label: `${zone.long_name} - ${zone.short_name} ${zone.version > 0 ? `[v${zone.version}]` : ''}`.trim(),
-                  id   : idx,
-                  key  : `${zone.id}-${zone.zoneidnumber}`,
+                  label: `${zone.long_name} - ${zone.short_name} ${
+                    zone.version > 0 ? `[v${zone.version}]` : ''
+                  }`.trim(),
+                  id : idx,
+                  key: `${zone.id}-${zone.zoneidnumber}`,
                 };
               })}
               //  sx={{ width: 300 }}
@@ -225,7 +245,9 @@ export const ZoneChooserDialog = ({ open }) => {
               {recentList.map((zone) => (
                 <Chip
                   key={`chip-${zone.id}`}
-                  label={`${zone.long_name} ${zone.version > 0 ? `[v${zone.version}]` : ''}`.trim()}
+                  label={`${zone.long_name} ${
+                    zone.version > 0 ? `[v${zone.version}]` : ''
+                  }`.trim()}
                   variant="outlined"
                   onClick={() => selectAndExit(zone)}
                   onDelete={() => {
@@ -240,17 +262,17 @@ export const ZoneChooserDialog = ({ open }) => {
 
       <Stack direction={'column'}>
         <Button
-          color='primary'
+          color="primary"
           onClick={() => selectAndExit(zone)}
           disabled={!zone}
           variant="outlined"
           sx={{ margin: '5px auto' }}
         >
-        Select Zone
+          Select Zone
         </Button>
 
         <Button
-          color='primary'
+          color="primary"
           onClick={() => {
             gameController.dispose();
             setSelectedZone(null);
@@ -258,22 +280,22 @@ export const ZoneChooserDialog = ({ open }) => {
             setTimeout(() => {
               setZoneDialogOpen(false);
             }, 500);
-            
           }}
           variant="outlined"
           sx={{ margin: '5px auto' }}
         >
-        Model Exporter
+          Model Exporter
         </Button>
-        {!selectedZone && <Button
-          onClick={unlinkDir}
-          variant="outlined"
-          sx={{ margin: '15px auto' }}
-        >
-          Unlink EQ Directory
-        </Button>}
+        {!selectedZone && (
+          <Button
+            onClick={unlinkDir}
+            variant="outlined"
+            sx={{ margin: '15px auto' }}
+          >
+            Unlink EQ Directory
+          </Button>
+        )}
       </Stack>
-      
 
       {/* <DialogActions>
        
