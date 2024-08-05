@@ -39,7 +39,8 @@ export default defineConfig({
         entryFileNames: 'static/js/eqsage-[name].[hash].js',
       },
     },
-    target: 'esnext'
+    target   : 'esnext',
+    sourcemap: true,
   },
   worker: {
     format: 'es',
