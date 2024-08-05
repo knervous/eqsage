@@ -32,6 +32,7 @@ export default defineConfig({
     port: 4100
   },
   build: {
+    assetsDir    : 'static',
     rollupOptions: {
       output: {
         chunkFileNames: 'static/js/eqsage-[name].[hash].js',
@@ -39,7 +40,6 @@ export default defineConfig({
       },
     },
     target: 'esnext'
-    // sourcemap: false,
   },
   worker: {
     format: 'es',
