@@ -40,7 +40,7 @@ const getMaterials = async (materialList, document, roughness = 0.0) => {
     if (materials[eqMaterial.name]) {
       continue;
     }
-    let [name] = eqMaterial.name.toLowerCase().split('_');
+    let [name] = eqMaterial.name.toLowerCase().split(/_mdf/i);
 
     if (/m\d+/.test(name) && eqMaterial.bitmapInfo?.reference) {
       name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
@@ -87,6 +87,7 @@ const getMaterials = async (materialList, document, roughness = 0.0) => {
       case ShaderType.Boundary:
         gltfMaterial.setAlphaMode('BLEND');
         gltfMaterial.setAlpha(0);
+        gltfMaterial.setExtras({ boundary: true })
         break;
       default:
         gltfMaterial.setAlphaMode('OPAQUE');
