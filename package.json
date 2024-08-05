@@ -51,6 +51,7 @@
     "buffer": "^6.0.3",
     "cross-env": "^7.0.3",
     "eslint-config-react-app": "^7.0.1",
+    "rollup": "^4.20.0",
     "sass": "^1.77.8",
     "util": "^0.12.5",
     "vite": "^5.3.5",
