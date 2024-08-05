@@ -1,19 +1,11 @@
 import { Accessor, Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import {
-  draco,
-  DRACO_DEFAULTS
-} from '@gltf-transform/functions';
-import draco3d from 'draco3dgltf';
+
 import { mat4, quat, vec3 } from 'gl-matrix';
 import { getEQFileExists, writeEQFile } from '../../util/fileHandler';
 
 const io = new WebIO()
-  .registerExtensions(ALL_EXTENSIONS)
-  .registerDependencies({
-    'draco3d.decoder': await draco3d.createDecoderModule(),
-    'draco3d.encoder': await draco3d.createEncoderModule()
-  });
+  .registerExtensions(ALL_EXTENSIONS);
 
 export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod, v3) {
   const position = vec3.fromValues(p.x, p.y, p.z); // Replace x, y, z with the object's position
@@ -201,10 +193,7 @@ export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod
       .setAttribute('NORMAL', primNormals)
       .setAttribute('TEXCOORD_0', primUv);
   }
-  await document.transform(
-    // Compress mesh geometry with Draco.
-    draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' }),
-  );
+
   const bytes = await io.writeBinary(document);
   await writeEQFile('objects', `${modelFile}.glb`, bytes.buffer);
 }

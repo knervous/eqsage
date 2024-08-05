@@ -8,7 +8,6 @@ import { Accessor, WebIO } from '@gltf-transform/core';
 import { mat4 } from 'gl-matrix';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
-import draco3d from 'draco3dgltf';
 import { ShaderType } from './materials/material';
 import {
   getEQFile,
@@ -24,10 +23,7 @@ import {
 } from '../util/animation-helper';
 import { GlobalStore } from '../../state';
 
-const io = new WebIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({
-  'draco3d.decoder': await draco3d.createDecoderModule(),
-  'draco3d.encoder': await draco3d.createEncoderModule(),
-});
+const io = new WebIO().registerExtensions(ALL_EXTENSIONS)
 
 /**
  *
