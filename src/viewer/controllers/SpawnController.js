@@ -17,7 +17,7 @@ import raceData from '../common/raceData.json';
 
 import { GameControllerChild } from './GameControllerChild';
 import { BabylonSpawn } from '../models/BabylonSpawn';
-import { MeshBuilder } from 'babylonjs';
+import { MeshBuilder } from '@babylonjs/core';
 import { GlobalStore } from '../../state';
 import { GLTF2Export } from '@babylonjs/serializers';
 import { dedup, prune, textureCompress } from '@gltf-transform/functions';

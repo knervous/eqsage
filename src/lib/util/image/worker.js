@@ -1,13 +1,25 @@
 import * as Comlink from 'comlink';
 import { convertDDS2Jimp } from '../image-processing';
 import 'jimp/browser/lib/jimp';
-import { ShaderType } from '../../s3d/materials/material';
-
+const ShaderType = {
+  Diffuse                        : 0,
+  Transparent25                  : 1,
+  Transparent50                  : 2,
+  Transparent75                  : 3,       
+  TransparentAdditive            : 4,
+  TransparentAdditiveUnlit       : 5,
+  TransparentMasked              : 6,
+  DiffuseSkydome                 : 7,
+  TransparentSkydome             : 8, 
+  TransparentAdditiveUnlitSkydome: 9,
+  Invisible                      : 10,
+  Boundary                       : 11,
+};
 
 /**
  * @type {import('jimp/browser/lib/jimp')}
  */
-const Jimp = global.Jimp;
+const Jimp = globalThis.Jimp; // eslint-disable-line
 
 /**
  * @typedef QueueItem

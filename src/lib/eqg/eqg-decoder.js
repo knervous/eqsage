@@ -51,11 +51,10 @@ export class EQGDecoder {
     pfsArchive.openFromFile(arrayBuffer);
     const images = [];
     this.files = {};
-    console.log('p', pfsArchive)
     for (const [fileName, data] of pfsArchive.files.entries()) {
       this.files[fileName] = pfsArchive.getFile(fileName);
       if (fileName.endsWith('.lit')) {
-        console.log('Filename', fileName, 'data', this.files[fileName])
+        // console.log('Filename', fileName, 'data', this.files[fileName])
       }
       // await writeEQFile('files', fileName, f.data);
       if (fileName.endsWith('.zon')) {

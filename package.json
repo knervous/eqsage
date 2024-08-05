@@ -2,6 +2,7 @@
   "name": "eqsage",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "module": "dist/es/lib/index.js",
   "dependencies": {
     "@babylonjs/core": "^6.38.0",
@@ -23,10 +24,10 @@
     "@reduxjs/toolkit": "^2.0.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
-    "babylonjs": "^6.38.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react-swc": "^3.7.0",
     "classnames": "^2.5.1",
     "comlink": "^4.4.1",
-    "dexie": "^3.2.4",
     "draco3dgltf": "^1.5.7",
     "dxt-js": "^0.0.3",
     "gl-matrix": "^3.4.3",
@@ -41,23 +42,25 @@
     "react-redux": "^9.0.4",
     "react-scripts": "5.0.1",
     "sparse-octree": "^7.1.8",
-    "spire-api": "^1.0.9",
+    "spire-api": "1.0.10",
     "three": "^0.160.0",
     "use-debounce": "^10.0.0"
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
+    "@originjs/vite-plugin-commonjs": "^1.0.3",
     "buffer": "^6.0.3",
-    "circular-dependency-plugin": "^5.2.2",
-    "copy-webpack-plugin": "^12.0.2",
-    "craco-swc": "^0.5.1",
     "cross-env": "^7.0.3",
     "eslint-config-react-app": "^7.0.1",
-    "util": "^0.12.5"
+    "sass": "^1.77.8",
+    "util": "^0.12.5",
+    "vite": "^5.3.5",
+    "vite-plugin-comlink": "^5.0.1",
+    "vite-plugin-static-copy": "^1.0.6",
+    "vite-plugin-tsconfig-paths": "^1.4.1"
   },
   "scripts": {
-    "start": "NODE_OPTIONS='--max-old-space-size=4096' craco start",
-    "build": "craco build",
+    "start": "vite",
+    "build": "vite build",
     "test": "craco test"
   },
   "eslintConfig": {
