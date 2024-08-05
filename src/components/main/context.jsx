@@ -35,6 +35,7 @@ export const MainProvider = ({ children }) => {
   const [modelExporter, setModelExporter] = useState(false);
   const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
   const [zones, setZones] = useState([]);
+  const [spire, setSpire] = useState(null);
 
   useEffect(() => {
     setStatusDialogOpen(permissionStatus !== PermissionStatusTypes.Ready);
@@ -51,9 +52,15 @@ export const MainProvider = ({ children }) => {
     window.gameController.modelExporter = true;
   }, [modelExporter]);
 
+  useEffect(() => {
+    setTimeout(() => {
+      setSpire(window.Spire);
+    }, 100);
+  }, []);
+
   const Spire = useMemo(
     () =>
-      window.Spire ??
+      spire ??
       (() => {
         return !!remoteUrl
           ? {
@@ -72,7 +79,7 @@ export const MainProvider = ({ children }) => {
           : null;
       })() ??
       null,
-    [remoteUrl]
+    [remoteUrl, spire]
   );
 
   useEffect(() => {
