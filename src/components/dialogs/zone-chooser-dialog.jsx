@@ -27,7 +27,7 @@ import * as keyval from 'idb-keyval';
 import { useConfirm } from 'material-ui-confirm';
 import { VERSION, expansions } from '../../lib/model/constants';
 import { gameController } from '../../viewer/controllers/GameController';
-import { deleteEqFolder } from '../../lib/util/fileHandler';
+import { deleteEqFolder, getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -73,18 +73,21 @@ export const ZoneChooserDialog = ({ open }) => {
   };
 
   useEffect(() => {
-    if (+localStorage.getItem('assetversion') === +VERSION) {
-      return;
-    }
-    console.log('Purging assets');
+
     (async () => {
+      const assetData = await getEQFile('data', 'version.json', 'json');
+      if (assetData?.version === VERSION) {
+        return;
+      }
+      console.log('Purging assets');
       await deleteEqFolder('data');
       await deleteEqFolder('items');
       await deleteEqFolder('models');
       await deleteEqFolder('objects');
       await deleteEqFolder('zones');
       await deleteEqFolder('textures');
-      localStorage.setItem('assetversion', VERSION);
+      await writeEQFile('data', 'version.json', JSON.stringify({ version: VERSION }));
+
     })();
  
   }, []);

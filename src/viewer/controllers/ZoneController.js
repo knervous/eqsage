@@ -117,6 +117,8 @@ class ZoneController extends GameControllerChild {
       const arr = new Uint8Array(await blob.arrayBuffer());
       const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
       const doc = await io.readBinary(arr);
+
+
       await doc.transform(
         dedup(),
         prune(),
@@ -430,16 +432,22 @@ class ZoneController extends GameControllerChild {
       undefined,
       '.glb'
     );
+    zone.meshes.forEach(m => {
+      if (m.material?.metadata?.gltf?.extras?.boundary) {
+        m.dispose();
+      }
+    });
     const zoneMesh = Mesh.MergeMeshes(
       zone.meshes.filter((m) => m.getTotalVertices() > 0),
       true,
       true,
       undefined,
-      true,
+      false,
       true
     );
     zoneMesh.name = 'zone';
     zoneMesh.isPickable = false;
+
     const metadata = await getEQFile('zones', `${name}.json`, 'json');
     if (metadata) {
       const meshes = [];
@@ -451,7 +459,7 @@ class ZoneController extends GameControllerChild {
         true,
         true,
         undefined,
-        true,
+        false,
         true
       );
       if (mergedMesh) {
@@ -598,7 +606,7 @@ class ZoneController extends GameControllerChild {
     const animationTexturesCache = {};
 
     for (const material of this.scene.materials) {
-      if (!material.metadata?.gltf?.extras) {
+      if (!material.metadata?.gltf?.extras?.animationDelay) {
         continue;
       }
 

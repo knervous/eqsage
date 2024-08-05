@@ -188,6 +188,11 @@ export class GameController {
           image._data = data; // entry.data.buffer;
         } else {
           console.warn(`Unhandled image ${image.name}`);
+          try {
+            
+          } catch {
+
+          }
           // Solid gray 1px png until this is solved
           const pngData = new Uint8Array([
             0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00,

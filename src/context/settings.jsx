@@ -14,6 +14,7 @@ const defaultOptions = {
   clipPlane     : 10000,
   spawnLOD      : 500,
   remoteUrl     : '',
+  showCompass   : true,
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(

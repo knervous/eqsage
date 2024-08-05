@@ -28,6 +28,7 @@ export const SettingsDialog = ({ onClose }) => {
     clipPlane = 10000,
     spawnLOD = 500,
     remoteUrl = '',
+    showCompass = true,
   } = useSettingsContext();
   const [testState, setTestState] = useState('Ready');
   const [user, setUser] = useState('');
@@ -163,6 +164,18 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Force zone reload"
+      />
+      <br />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={showCompass}
+            onChange={({ target: { checked } }) =>
+              setOption('showCompass', checked)
+            }
+          />
+        }
+        label="Show Compass"
       />
       <br />
       <FormControl size={'small'}>

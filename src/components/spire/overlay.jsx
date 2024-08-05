@@ -19,6 +19,7 @@ import { Compass } from './compass';
 
 import './overlay.scss';
 import { useMainContext } from '../main/context';
+import { useSettingsContext } from '../../context/settings';
 
 
 const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
@@ -60,6 +61,7 @@ export const SpireOverlay = ({ inZone }) => {
   const { toggleDialog, dialogState, closeDialogs } = useOverlayContext();
   const { modelExporter } = useMainContext();
   useSettingsHook();
+  const { showCompass } = useSettingsContext();
   useEffect(() => {
     const keyHandler = (e) => {
       if (e.key === 'Escape') {
@@ -86,7 +88,7 @@ export const SpireOverlay = ({ inZone }) => {
         }}
       >
         {/** Compass */}
-        <Compass />
+        {showCompass && <Compass />}
         <Stack
           sx={{ height: inZone ? 'calc(65%)' : '100px' }}
           direction={'column'}
