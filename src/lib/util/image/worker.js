@@ -5,12 +5,12 @@ const ShaderType = {
   Diffuse                        : 0,
   Transparent25                  : 1,
   Transparent50                  : 2,
-  Transparent75                  : 3,       
+  Transparent75                  : 3,
   TransparentAdditive            : 4,
   TransparentAdditiveUnlit       : 5,
   TransparentMasked              : 6,
   DiffuseSkydome                 : 7,
-  TransparentSkydome             : 8, 
+  TransparentSkydome             : 8,
   TransparentAdditiveUnlitSkydome: 9,
   Invisible                      : 10,
   Boundary                       : 11,
@@ -33,48 +33,68 @@ const alphaShaderMap = {
   [ShaderType.Transparent50]      : 128,
   [ShaderType.TransparentSkydome] : 128,
   [ShaderType.Transparent75]      : 192,
-  [ShaderType.TransparentAdditive]: 192
+  [ShaderType.TransparentAdditive]: 192,
 };
 
+const mainThreadFuncs = Comlink.wrap(self); // eslint-disable-line
 /**
  *
  * @param {[QueueItem]} entries
  * @param {FileSystemDirectoryHandle} eqFileHandle
  */
-async function parseTextures(entries, eqFileHandle) {
+async function parseTextures(entries, eqFileHandle, workerNum) {
+  performance.mark(`${workerNum} entered function`);
   const requiemDir = await eqFileHandle.getDirectoryHandle('eqsage', {
     create: true,
   });
   const dirHandle = await requiemDir.getDirectoryHandle('textures', {
     create: true,
   });
-
+  performance.mark(`${workerNum} started work`);
+  const cleanupFuncs = [];
   await Promise.all(
     entries.map(async ({ name, data, shaderType }) => {
       name = name.toLowerCase().replace(/\.\w+$/, '.png');
-      let textureHandle = await dirHandle.getFileHandle(name).catch(() => undefined);
+      let textureHandle = await dirHandle
+        .getFileHandle(name)
+        .catch(() => undefined);
       if (!textureHandle) {
         textureHandle = await dirHandle.getFileHandle(name, { create: true });
       } else {
+        mainThreadFuncs.incrementParsedImage();
         return;
       }
       const writable = await textureHandle.createWritable();
       if (writable.locked) {
+        mainThreadFuncs.incrementParsedImage();
         return;
       }
       const imgData = await parseTexture(name, shaderType, data);
       await writable.write(imgData);
-      await writable.getWriter().releaseLock();
-      await writable.close();
+      cleanupFuncs.push(async () => {
+        await writable.getWriter().releaseLock();
+        await writable.close();
+      });
+
+      mainThreadFuncs.incrementParsedImage();
     })
   );
-  // await db.textureData.bulkAdd(imgEntries);
+  performance.mark(`${workerNum} finished work`);
+  performance.measure(
+    `${workerNum} total time`,
+    `${workerNum} entered function`,
+    `${workerNum} finished work`
+  );
+  setTimeout(async () => {
+    cleanupFuncs.forEach(fn => fn());
+  }, 0);
 }
 
 /** @param {string} name */
 async function parseTexture(name, shaderType, data) {
   name = name.toLowerCase().replace(/\.\w+$/, '');
-  if (new DataView(data).getUint16(0, true) === 0x4d42) { // header for bitmap
+  if (new DataView(data).getUint16(0, true) === 0x4d42) {
+    // header for bitmap
     try {
       const img = await Jimp.read(data);
       await img.scan(0, 0, img.bitmap.width, img.bitmap.height, (x, y, idx) => {
@@ -82,23 +102,30 @@ async function parseTexture(name, shaderType, data) {
           r: img.bitmap.data[idx + 0],
           g: img.bitmap.data[idx + 1],
           b: img.bitmap.data[idx + 2],
-          a: img.bitmap.data[idx + 3]
+          a: img.bitmap.data[idx + 3],
         };
 
         let alpha = thisColor.a; // a
         if (alphaShaderMap[shaderType]) {
           alpha = alphaShaderMap[shaderType];
         } else {
-          const maxRgb = [thisColor.r, thisColor.g, thisColor.b].reduce((acc, val) => val > acc ? val : acc, 0);
-          alpha = maxRgb <= fullAlphaToDoubleAlphaThreshold ? maxRgb :
-            Math.min(maxRgb + ((maxRgb - fullAlphaToDoubleAlphaThreshold) * 2), 255);
+          const maxRgb = [thisColor.r, thisColor.g, thisColor.b].reduce(
+            (acc, val) => (val > acc ? val : acc),
+            0
+          );
+          alpha =
+            maxRgb <= fullAlphaToDoubleAlphaThreshold
+              ? maxRgb
+              : Math.min(
+                maxRgb + (maxRgb - fullAlphaToDoubleAlphaThreshold) * 2,
+                255
+              );
         }
-      
+
         img.bitmap.data[idx + 0] = thisColor.r;
         img.bitmap.data[idx + 1] = thisColor.g;
         img.bitmap.data[idx + 2] = thisColor.b;
         img.bitmap.data[idx + 3] = alpha;
-      
       });
       return await img.getBufferAsync(Jimp.MIME_PNG);
     } catch (e) {
@@ -132,8 +159,6 @@ async function parseTexture(name, shaderType, data) {
           // Math.min(maxRgb + ((maxRgb - fullAlphaToDoubleAlphaThreshold) * 2), 255);
         }
         bmp.bitmap.data[idx + 3] = alpha;
-
-
       },
       (err, newImg) => {
         if (err) {

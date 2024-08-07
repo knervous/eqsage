@@ -77,7 +77,7 @@ export const getEQDir = async (name) => {
 
 /**
  *
- * @param {FileSystemDirectoryHandle} directory
+ * @param {string} directory
  * @param {string} name
  * @returns {Promise<boolean>}
  */

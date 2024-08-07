@@ -122,7 +122,15 @@ export const ZoneChooserDialog = ({ open }) => {
       }, 0);
       if (Spire) {
         Spire.Zones.getZones()
-          .then(setZoneList)
+          .then(zones => {
+            if (!Array.isArray(zones)) {
+              console.log('Error with spire zones', zones);
+
+              throw new Error('Error with zones response');
+
+            }
+            setZoneList(zones);
+          })
           .catch(() => {
             import('../../data/zoneData.json').then((zl) =>
               setZoneList(Array.from(zl.default))
