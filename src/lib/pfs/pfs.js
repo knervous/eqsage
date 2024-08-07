@@ -2,6 +2,37 @@ import { deflate, inflate } from 'pako';
 import { Buffer } from 'buffer';
 
 const polynomial = 0x04C11DB7;
+const MAX_BLOCK_SIZE = 8192; // the client will crash if you make this bigger, so don't.
+
+function readUInt32LE(buffer, offset) {
+  return (buffer[offset]) |
+         (buffer[offset + 1] << 8) |
+         (buffer[offset + 2] << 16) |
+         (buffer[offset + 3] << 24);
+}
+
+function readInt32LE(buffer, offset) {
+  const val = readUInt32LE(buffer, offset);
+  return val > 0x7FFFFFFF ? val - 0x100000000 : val;
+}
+
+function writeUInt32LE(buffer, value, offset) {
+  buffer[offset] = value & 0xFF;
+  buffer[offset + 1] = (value >> 8) & 0xFF;
+  buffer[offset + 2] = (value >> 16) & 0xFF;
+  buffer[offset + 3] = (value >> 24) & 0xFF;
+}
+
+function writeInt32LE(buffer, value, offset) {
+  writeUInt32LE(buffer, value < 0 ? value + 0x100000000 : value, offset);
+}
+
+function concatTypedArrays(a, b) {
+  const c = new Uint8Array(a.length + b.length);
+  c.set(a, 0);
+  c.set(b, a.length);
+  return c;
+}
 
 export class PFSCRC {
   constructor() {
@@ -44,7 +75,6 @@ export class PFSCRC {
 }
 
 const crcInstance = new PFSCRC();
-
 export class PFSArchive {
   constructor() {
     this.files = new Map();
@@ -67,51 +97,53 @@ export class PFSArchive {
 
   openFromFile(arrayBuffer) {
     this.close();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = new Uint8Array(arrayBuffer);
 
     if (buffer.length < 12) {
       console.error('File too small to be a valid PFS archive');
       return false;
     }
 
-    const dirOffset = buffer.readUInt32LE(0);
-    const magic = buffer.slice(4, 8).toString('ascii');
+    const dirOffset = readUInt32LE(buffer, 0);
+    const magic = String.fromCharCode(buffer[4], buffer[5], buffer[6], buffer[7]);
     
     if (magic !== 'PFS ') {
       console.error('Magic word header mismatch');
       return false;
     }
 
-    const dirCount = buffer.readUInt32LE(dirOffset);
+    const dirCount = readUInt32LE(buffer, dirOffset);
     const directoryEntries = [];
     const filenameEntries = [];
 
     for (let i = 0; i < dirCount; ++i) {
       const entryOffset = dirOffset + 4 + i * 12;
-      const crc = buffer.readInt32LE(entryOffset);
-      const offset = buffer.readUInt32LE(entryOffset + 4);
-      const size = buffer.readUInt32LE(entryOffset + 8);
+      const crc = readInt32LE(buffer, entryOffset);
+      const offset = readUInt32LE(buffer, entryOffset + 4);
+      const size = readUInt32LE(buffer, entryOffset + 8);
 
       if (crc !== 0x61580ac9) {
         directoryEntries.push({ crc, offset, size });
         continue;
       }
 
-      const filenameBuffer = this.inflateByFileOffset(buffer, offset, size);
-      if (!filenameBuffer) {
+      const filenameBuffer = new Uint8Array(buffer.slice(offset, offset + size));
+      const filenameInflated = this.inflateByFileOffset(filenameBuffer, 0, size);
+
+      if (!filenameInflated) {
         console.error('Inflate directory failed');
         return false;
       }
 
       let filenamePos = 0;
-      const filenameCount = filenameBuffer.readUInt32LE(0);
+      const filenameCount = readUInt32LE(filenameInflated, 0);
       filenamePos += 4;
 
       for (let j = 0; j < filenameCount; ++j) {
-        const filenameLength = filenameBuffer.readUInt32LE(filenamePos);
+        const filenameLength = readUInt32LE(filenameInflated, filenamePos);
         filenamePos += 4;
 
-        const filename = filenameBuffer.toString('ascii', filenamePos, filenamePos + filenameLength - 1);
+        const filename = String.fromCharCode.apply(null, filenameInflated.slice(filenamePos, filenamePos + filenameLength - 1));
         filenamePos += filenameLength;
 
         const filenameLower = filename.toLowerCase();
@@ -140,82 +172,113 @@ export class PFSArchive {
       return true;
     }
 
-    this.footer = true;
-    this.footerDate = buffer.readUInt32LE(footerOffset + 5);
+    try {
+      this.footerDate = readUInt32LE(buffer, footerOffset + 5);
+      this.footer = true;
+    } catch (e) {
+      this.footer = false;
+    }
 
     return true;
   }
 
   saveToFile() {
-    let buffer = Buffer.alloc(0);
-
-    let filesList = Buffer.alloc(0);
-    let filePos = 0;
-
-    const fileCount = this.files.size;
-    filesList = Buffer.concat([filesList, Buffer.alloc(4)]);
-    filesList.writeUInt32LE(fileCount, filePos);
-    filePos += 4;
-
+    let buffer = new Uint8Array(0);
+  
+    // Write Header
+    buffer = this.concatTypedArrays(buffer, new Uint8Array(12)); // Placeholder for header and dirOffset
+    const preamble = new Uint8Array([0x50, 0x46, 0x53, 0x20, 0, 0, 2, 0]); // 'PFS ' and some additional data
+    buffer.set(preamble, 4);
+  
     const dirEntries = [];
-    let fileOffset = 0;
-
+    let filesList = new Uint8Array(0);
+    let filePos = 0;
+  
+    let fileCount = 0;
+    for (const [fileName] of this.files) {
+      if (fileName.endsWith('.lit')) {
+        continue;
+      }
+      fileCount++;
+    }
+    filesList = this.concatTypedArrays(filesList, new Uint8Array(4));
+    writeUInt32LE(filesList, fileCount, filePos);
+    filePos += 4;
+  
     for (const [filename, data] of this.files) {
+      if (filename.endsWith('.lit')) {
+    
+        continue;
+      }
       const crc = crcInstance.get(filename);
       const offset = buffer.length;
-      const size = this.filesUncompressedSize.get(filename);
-
-      buffer = Buffer.concat([buffer, data]);
-
-      dirEntries.push({ crc, offset, size });
-
+      const sz = this.filesUncompressedSize.get(filename);
+  
+      buffer = this.concatTypedArrays(buffer, data);
+  
+      dirEntries.push({ crc, offset, sz });
+  
       const filenameLen = filename.length + 1;
-      const filenameBuffer = Buffer.alloc(filenameLen);
-      filenameBuffer.write(filename, 0, filenameLen - 1, 'ascii');
-      filesList = Buffer.concat([filesList, Buffer.alloc(4 + filenameLen)]);
-      filesList.writeUInt32LE(filenameLen, filePos);
+      const filenameBuffer = new Uint8Array(filenameLen);
+      for (let i = 0; i < filename.length; ++i) {
+        filenameBuffer[i] = filename.charCodeAt(i);
+      }
+      filesList = this.concatTypedArrays(filesList, new Uint8Array(4 + filenameLen));
+      writeUInt32LE(filesList, filenameLen, filePos);
       filePos += 4;
-      filenameBuffer.copy(filesList, filePos);
+      filesList.set(filenameBuffer, filePos);
       filePos += filenameLen;
+      filesList[filePos - 1] = 0; // Null terminator
     }
-
-    fileOffset = buffer.length;
+  
+    const fileOffset = buffer.length;
     const deflatedFileList = this.writeDeflatedFileBlock(filesList);
-    buffer = Buffer.concat([buffer, deflatedFileList]);
-
+    if (!deflatedFileList) {
+      return false;
+    }
+    buffer = this.concatTypedArrays(buffer, deflatedFileList);
+  
+    const fileSize = filesList.length;
+  
     const dirOffset = buffer.length;
-    buffer = Buffer.concat([buffer, Buffer.alloc(4)]);
-    buffer.writeUInt32LE(dirOffset, 0);
-
+    writeUInt32LE(buffer, dirOffset, 0); // Write dirOffset at the start of the buffer
+  
     const dirCount = dirEntries.length + 1;
-    buffer = Buffer.concat([buffer, Buffer.alloc(4)]);
-    buffer.writeUInt32LE(dirCount, dirOffset);
-
-    // let curDirEntryOffset = dirOffset + 4;
-    for (const { crc, offset, size } of dirEntries) {
-      const entryBuffer = Buffer.alloc(12);
-      entryBuffer.writeInt32LE(crc, 0);
-      entryBuffer.writeUInt32LE(offset, 4);
-      entryBuffer.writeUInt32LE(size, 8);
-      buffer = Buffer.concat([buffer, entryBuffer]);
-      // curDirEntryOffset += 12;
+    buffer = this.concatTypedArrays(buffer, new Uint8Array(4));
+    writeUInt32LE(buffer, dirCount, dirOffset);
+  
+    let _curDirEntryOffset = dirOffset + 4;
+    for (const { crc, offset, sz } of dirEntries) {
+      const entryBuffer = new Uint8Array(12);
+      writeInt32LE(entryBuffer, crc, 0);
+      writeUInt32LE(entryBuffer, offset, 4);
+      writeUInt32LE(entryBuffer, sz, 8);
+      buffer = this.concatTypedArrays(buffer, entryBuffer);
+      _curDirEntryOffset += 12;
     }
-
-    const dirEntryBuffer = Buffer.alloc(12);
-    dirEntryBuffer.writeInt32LE(0x61580ac9, 0);
-    dirEntryBuffer.writeUInt32LE(fileOffset, 4);
-    dirEntryBuffer.writeUInt32LE(deflatedFileList.length, 8);
-    buffer = Buffer.concat([buffer, dirEntryBuffer]);
-    // curDirEntryOffset += 12;
-
+  
+    const dirEntryBuffer = new Uint8Array(12);
+    writeInt32LE(dirEntryBuffer, 0x61580AC9, 0);
+    writeUInt32LE(dirEntryBuffer, fileOffset, 4);
+    writeUInt32LE(dirEntryBuffer, fileSize, 8);
+    buffer = this.concatTypedArrays(buffer, dirEntryBuffer);
+    _curDirEntryOffset += 12;
+  
     if (this.footer) {
-      const footerBuffer = Buffer.alloc(5 + 4);
-      footerBuffer.write('STEVE', 0, 5, 'ascii');
-      footerBuffer.writeUInt32LE(this.footerDate, 5);
-      buffer = Buffer.concat([buffer, footerBuffer]);
+      const footerBuffer = new Uint8Array(9);
+      footerBuffer.set(new TextEncoder().encode('STEVE'), 0);
+      writeUInt32LE(footerBuffer, this.footerDate, 5);
+      buffer = this.concatTypedArrays(buffer, footerBuffer);
     }
-
+  
     return buffer;
+  }
+
+  concatTypedArrays(a, b) {
+    const c = new Uint8Array(a.length + b.length);
+    c.set(a, 0);
+    c.set(b, a.length);
+    return c;
   }
 
   close() {
@@ -299,8 +362,8 @@ export class PFSArchive {
     let inflateSize = 0;
 
     while (inflateSize < size) {
-      const deflateLength = buffer.readUInt32LE(position);
-      const inflateLength = buffer.readUInt32LE(position + 4);
+      const deflateLength = readUInt32LE(buffer, position);
+      const inflateLength = readUInt32LE(buffer, position + 4);
       inflateSize += inflateLength;
       position += deflateLength + 8;
     }
@@ -317,44 +380,42 @@ export class PFSArchive {
     const outBuffer = new Uint8Array(size);
     let position = offset;
     let inflateSize = 0;
-  
+
     while (inflateSize < size) {
-      const deflateLength = buffer.readUInt32LE(position);
-      const inflateLength = buffer.readUInt32LE(position + 4);
+      const deflateLength = readUInt32LE(buffer, position);
+      const inflateLength = readUInt32LE(buffer, position + 4);
       const tempBuffer = buffer.slice(position + 8, position + 8 + deflateLength);
-  
+
       const inflatedData = inflate(tempBuffer);
       if (inflatedData.length !== inflateLength) {
         throw new Error('ZLib Decompression failed');
       }
-  
+
       outBuffer.set(inflatedData, inflateSize);
       inflateSize += inflateLength;
       position += deflateLength + 8;
     }
-  
-    return Buffer.from(outBuffer);
+
+    return outBuffer;
   }
-  
 
   writeDeflatedFileBlock(fileBuffer) {
-    let outBuffer = Buffer.alloc(0);
+    let outBuffer = new Uint8Array(0);
     let pos = 0;
     let remain = fileBuffer.length;
 
     while (remain > 0) {
-      const sz = remain >= 8192 ? 8192 : remain;
+      const sz = remain >= MAX_BLOCK_SIZE ? MAX_BLOCK_SIZE : remain;
       remain -= sz;
 
       const block = deflate(fileBuffer.slice(pos, pos + sz));
       pos += sz;
 
-      const _idx = outBuffer.length;
-      const entryBuffer = Buffer.alloc(8 + block.length);
-      entryBuffer.writeUInt32LE(block.length, 0);
-      entryBuffer.writeUInt32LE(sz, 4);
-      block.copy(entryBuffer, 8);
-      outBuffer = Buffer.concat([outBuffer, entryBuffer]);
+      const entryBuffer = new Uint8Array(8 + block.length);
+      writeUInt32LE(entryBuffer, block.length, 0);
+      writeUInt32LE(entryBuffer, sz, 4);
+      entryBuffer.set(block, 8);
+      outBuffer = concatTypedArrays(outBuffer, entryBuffer);
     }
 
     return outBuffer;

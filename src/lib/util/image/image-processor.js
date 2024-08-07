@@ -24,7 +24,7 @@ class ImageProcessor {
   #workers = [];
 
   /** @type {[Comlink.Remote<import('./worker.js')['default']>]} */
-  babylonWorkers = null;
+  babylonWorkers = [];
 
   /**
    * @type {[FileSystemHandle]}
@@ -33,6 +33,8 @@ class ImageProcessor {
 
   workerIdx = 0;
 
+  current = 0;
+
   /**
    * @typedef QueueItem
    * @property {string} name
@@ -40,6 +42,10 @@ class ImageProcessor {
    */
 
   initializeWorkers(workers = Math.min(4, navigator.hardwareConcurrency ?? 4)) {
+    if (this.#workers.length) {
+      console.log('Reusing initialized workers');
+      return;
+    }
     this.clearWorkers();
     for (let i = 0; i < workers; i++) {
       const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
@@ -47,13 +53,25 @@ class ImageProcessor {
       this.babylonWorkers.push(Comlink.wrap(worker));
     }
   }
+  queueClear(expected) {
+    setTimeout(() => {
+      if (expected === this.current) {
+        
+        this.clearWorkers();
+      } else {
+        console.log('Reusing worker image processors');
+      }
+    }, 10 * 1000);
+  }
 
   clearWorkers() {
-    this.#workers.forEach((w) => {
-      w.terminate();
-    });
-    this.#workers = [];
-    this.babylonWorkers = [];
+    // console.log('Cleared workers');
+    // this.current = 0;
+    // this.#workers.forEach((w) => {
+    //   w.terminate();
+    // });
+    // this.#workers = [];
+    // this.babylonWorkers = [];
   }
 
   /**
@@ -67,12 +85,21 @@ class ImageProcessor {
     const imageChunks = chunkArray(images, this.#workers.length);
     GlobalStore.actions.setLoadingTitle('Loading Images');
     let count = 0;
-
-    GlobalStore.actions.setLoadingText(
-      `Decoded ${count} of ${images.length} images using ${
-        this.#workers.length
-      } threads`
-    );
+    const workerLength = this.#workers.length;
+    const incrementContainer = {
+      incrementParsedImage() {
+        count++;
+        GlobalStore.actions.setLoadingText(
+          `Decoded ${count} of ${images.length} images using ${
+            workerLength
+          } threads`
+        );
+      }
+    };
+    for (const worker of this.#workers) {
+      Comlink.expose(incrementContainer, worker);
+    }
+   
     await Promise.all(
       imageChunks.map((imgs, idx) =>
         this.babylonWorkers[idx]
@@ -81,19 +108,13 @@ class ImageProcessor {
               imgs,
               imgs.map((i) => i.data)
             ),
-            gameController.rootFileSystemHandle
+            gameController.rootFileSystemHandle,
+            idx
           )
-          .then(() => {
-            count += imgs.length;
-            GlobalStore.actions.setLoadingText(
-              `Decoded ${count} of ${images.length} images using ${
-                this.#workers.length
-              } threads`
-            );
-          })
       )
     );
-    this.clearWorkers();
+    this.current++;
+    // this.queueClear(this.current);
   }
 }
 

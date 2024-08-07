@@ -11,6 +11,7 @@ import { exportv4 } from './gltf-export/v4';
 import { exportv3 } from './gltf-export/v3';
 import { writeModels } from './gltf-export/common';
 import { PFSArchive } from '../pfs/pfs';
+import { writeEQFile } from '../util/fileHandler';
 
 export class EQGDecoder {
   /** @type {import('../model/file-handle').EQFileHandle} */
@@ -100,6 +101,13 @@ export class EQGDecoder {
     console.log(`Processed - ${file.name}`);
     await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
     console.log('Done processing images');
+
+    // Entrypoint for testing
+    if (process.env.REACT_APP_LOCAL_DEV === 'true') {
+      const eqgFile = await pfsArchive.saveToFile();
+      await writeEQFile('zones_out', file.name, eqgFile);
+    }
+   
   }
 
   /**
