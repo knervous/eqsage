@@ -24,9 +24,10 @@ import { GameControllerChild } from './GameControllerChild';
 import {
   AABBNode,
   buildAABBTree,
+  optimizeBoundingBoxes,
   recurseTreeFromKnownNode,
 } from '../../lib/s3d/bsp/region-utils';
-import { getEQFile } from '../../lib/util/fileHandler';
+import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { GLTF2Export } from '@babylonjs/serializers';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
@@ -179,7 +180,7 @@ class ZoneController extends GameControllerChild {
     this.regionMaterial.diffuseColor = new Color3(0, 127, 65); // Red color
     this.regionMaterial.emissiveColor = new Color4(0, 127, 65, 0.3); // Red color
 
-    const hdrTexture = CubeTexture.CreateFromPrefilteredData('https://playground.babylonjs.com/textures/environment.env', this.scene);
+    const hdrTexture = CubeTexture.CreateFromPrefilteredData('/environment.env', this.scene);
     this.scene.environmentTexture = hdrTexture;
     this.scene.environmentIntensity = 1.0;
 
@@ -487,11 +488,11 @@ class ZoneController extends GameControllerChild {
     const map = ['px', 'py', 'pz', 'nx', 'ny', 'nz'];
     for (let i = 0; i < 6; i++) {
       png_array.push(
-        `https://playground.babylonjs.com/textures/skybox_${map[i]}.jpg`
+        `/skybox_${map[i]}.jpg`
       );
     }
     skyboxMaterial.reflectionTexture = new CubeTexture(
-      'https://playground.babylonjs.com/textures/',
+      '/',
       this.scene,
       [],
       false,
@@ -554,7 +555,10 @@ class ZoneController extends GameControllerChild {
       const regionNode = new TransformNode('regions', this.scene);
       this.regionNode = regionNode;
       regionNode.setEnabled(!!this.regionsShown);
-
+      if (!metadata.regions?.length && metadata.unparsedRegions?.length) {
+        metadata.regions = await optimizeBoundingBoxes(metadata.unparsedRegions);
+        await writeEQFile('zones', `${name}.json`, JSON.stringify(metadata));
+      }
       let idx = 0;
       this.aabbTree = buildAABBTree(
         metadata.regions.map(

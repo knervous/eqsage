@@ -131,7 +131,7 @@ export class TypedArrayReader {
     this.setCursor(idx);
     const val = this.readCString();
     this.setCursor(currIdx);
-    return val;
+    return val.trim();
   }
 
   readByteArray(length) {

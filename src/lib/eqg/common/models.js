@@ -166,6 +166,10 @@ export class Terrain {
   placeableGroups = [];
 
   /**
+   * @type {[string]}
+   */
+  modelNames = {};
+  /**
    * @type {[Region]}
    */
   regions = [];

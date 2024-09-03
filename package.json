@@ -60,7 +60,7 @@
     "vite-plugin-tsconfig-paths": "^1.4.1"
   },
   "scripts": {
-    "start": "vite",
+    "start": "vite --mode development",
     "build": "NODE_OPTIONS=--max-old-space-size=6144 vite build",
     "test": "craco test"
   },

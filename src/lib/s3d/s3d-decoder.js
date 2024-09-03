@@ -12,6 +12,7 @@ import { ShaderType } from './materials/material';
 import {
   getEQFile,
   getEQFileExists,
+  getEQRootDir,
   writeEQFile,
 } from '../util/fileHandler';
 import { optimizeBoundingBoxes } from './bsp/region-utils';
@@ -22,6 +23,7 @@ import {
   animationMap,
 } from '../util/animation-helper';
 import { GlobalStore } from '../../state';
+import { EQGDecoder } from '../eqg/eqg-decoder';
 
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS)
 
@@ -60,7 +62,7 @@ const getMaterials = async (materialList, document, roughness = 0.0) => {
 
     const texture = document
       .createTexture(name.toLowerCase())
-       // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+      .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
       .setURI(`/eq/textures/${name}`)
       .setExtras({
         name,
@@ -537,13 +539,14 @@ export class S3DDecoder {
    * @param {Wld} wld
    */
   async exportObjects(wld, path = 'objects') {
-   
 
     for (let i = 0; i < wld.meshes.length; i++) {
       const mesh = wld.meshes[i];
       const material = mesh.materialList;
       const scrubbedName = material.name.split('_')[0].toLowerCase();
-      if (await getEQFileExists(path, `${scrubbedName}.glb`)) {
+      const diskFileName = this.#fileHandle.name.includes('gequip') || true ? `${scrubbedName}.glb` :
+        `[${this.#fileHandle.name}] ${scrubbedName}.glb`
+      if (await getEQFileExists(path, diskFileName)) {
         continue;
       }
       const document = new Document(scrubbedName);
@@ -673,7 +676,7 @@ export class S3DDecoder {
       // );
       const bytes = await io.writeBinary(document);
 
-      await writeEQFile(path, `${scrubbedName}.glb`, bytes);
+      await writeEQFile(path, diskFileName, bytes);
     }
   }
 
@@ -724,7 +727,7 @@ export class S3DDecoder {
         center: [leafNode.center[0], leafNode.center[2], leafNode.center[1]],
       });
     }
-    zoneMetadata.regions = await optimizeBoundingBoxes(regions);
+    zoneMetadata.unparsedRegions = regions;
 
     // Object Instances
     const objWld = this.wldFiles.find((f) => f.type === WldType.ZoneObjects);
@@ -931,7 +934,6 @@ export class S3DDecoder {
 
   async process() {
     console.log('process', this.#fileHandle.name);
-    imageProcessor.initializeWorkers();
     const micro = performance.now();
     if (this.#fileHandle.name.startsWith('gequip')) {
       this.gequip = true;
@@ -943,6 +945,28 @@ export class S3DDecoder {
           await this.processS3D(file);
           break;
         case 'txt':
+          if (file.name.endsWith('_assets.txt')) {
+            const contents = (await file.text()).split('\r\n');
+            for (const line of contents) {
+              if (line.endsWith('.eqg')) {
+                console.log(`Loading dependent asset ${line}`);
+                try {
+                  const dir = getEQRootDir();
+                  const fh = await dir.getFileHandle(line).then(f => f.getFile());
+                  const decoder = new EQGDecoder(fh);
+                  await decoder.processEQG(fh);
+                  for (const [name, mod] of Object.entries(decoder.models)) {
+                    if (!name.includes('ter_')) {
+                      await decoder.writeModels(name, mod);
+                    }
+                  }
+                } catch(e) {
+                  console.log(`Error loading dependent asset`, e);
+                }
+              
+              }
+            }
+          }
           break;
         case 'eff':
           break;
@@ -959,6 +983,5 @@ export class S3DDecoder {
     console.log(
       `Took ${((performance.now() - micro) / 1000).toFixed(4)} seconds.`
     );
-    imageProcessor.clearWorkers();
   }
 }

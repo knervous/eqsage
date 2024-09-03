@@ -1,17 +1,15 @@
 /* eslint-disable */
 
-import zlib from 'pako';
-import { Buffer } from 'buffer';
-import { TypedArrayReader } from '../util/typed-array-reader';
-import { imageProcessor } from '../util/image/image-processor';
-import { Zone, ZoneData } from './zone/zone';
-import { Model } from './model/model';
-import { Eco } from './eco/eco';
-import { exportv4 } from './gltf-export/v4';
-import { exportv3 } from './gltf-export/v3';
-import { writeModels } from './gltf-export/common';
-import { PFSArchive } from '../pfs/pfs';
-import { writeEQFile } from '../util/fileHandler';
+import { imageProcessor } from "../util/image/image-processor";
+import { Zone } from "./zone/zone";
+import { ZoneData } from "./zone/v4-zone";
+import { Model, Animation } from "./model/model";
+import { Eco } from "./eco/eco";
+import { exportv4 } from "./gltf-export/v4";
+import { exportv3 } from "./gltf-export/v3";
+import { writeModels } from "./gltf-export/common";
+import { PFSArchive } from "../pfs/pfs";
+import {  getEQRootDir } from "../util/fileHandler";
 
 export class EQGDecoder {
   /** @type {import('../model/file-handle').EQFileHandle} */
@@ -28,6 +26,11 @@ export class EQGDecoder {
   models = {};
 
   /**
+   * @type {Object.<string, import('./model/model').Animation>}
+   */
+  animations = {};
+
+  /**
    * @type {Object.<string, import('./eco/eco').Eco>}
    */
   eco = {};
@@ -37,54 +40,83 @@ export class EQGDecoder {
    */
   zoneData = null;
 
+  /**
+   *
+   * @type {PFSArchive
+   */
+  pfsArchive;
+
   constructor(fileHandle) {
     this.#fileHandle = fileHandle;
   }
 
-  /**
-   *
-   * @param {FileSystemHandle} file
-   */
-  async processEQG(file) {
-    console.log('handle eqg', file.name);
-    const arrayBuffer = await file.arrayBuffer();
-    const pfsArchive = new PFSArchive();
-    pfsArchive.openFromFile(arrayBuffer);
+  get name() {
+    return this.#fileHandle.name;
+  }
+
+  async processBuffer(name, arrayBuffer) {
+    this.pfsArchive = new PFSArchive();
+    this.pfsArchive.openFromFile(arrayBuffer);
     const images = [];
     this.files = {};
-    for (const [fileName, data] of pfsArchive.files.entries()) {
-      this.files[fileName] = pfsArchive.getFile(fileName);
-      if (fileName.endsWith('.lit')) {
+    console.log("l dev", import.meta.env.VITE_LOCAL_DEV);
+    for (const [fileName, data] of this.pfsArchive.files.entries()) {
+      console.log('File', fileName)
+      this.files[fileName] = this.pfsArchive.getFile(fileName);
+      if (fileName.endsWith(".lit")) {
         // console.log('Filename', fileName, 'data', this.files[fileName])
       }
-      // await writeEQFile('files', fileName, f.data);
-      if (fileName.endsWith('.zon')) {
-        this.zone = new Zone(this.files[fileName], this.#fileHandle, fileName, this.files);
+      if (import.meta.env.VITE_LOCAL_DEV === "true") {
+        //await writeEQFile(name, fileName, this.files[fileName]);
+      }
+      if (fileName.endsWith(".zon")) {
+        this.zone = Zone.Factory(
+          this.files[fileName],
+          this.#fileHandle,
+          fileName,
+          this.files
+        );
       }
 
-      if (fileName.endsWith('.mod') || fileName.endsWith('.ter')) {
-        const model = new Model(this.files[fileName], this.#fileHandle, fileName);
+      if (fileName.endsWith(".ani")) {
+        const ani = new Animation(
+          this.files[fileName],
+          this.#fileHandle,
+          fileName
+        );
+        this.animations[ani.name] = ani;
+      }
+
+      if (fileName.endsWith(".mod") || fileName.endsWith(".ter")) {
+        const model = new Model(
+          this.files[fileName],
+          this.#fileHandle,
+          fileName
+        );
         this.models[model.name] = model;
       }
 
-      if (fileName.endsWith('.bmp') || fileName.endsWith('.dds')) {
+      if (fileName.endsWith(".bmp") || fileName.endsWith(".dds")) {
         images.push({ name: fileName, data: this.files[fileName].buffer });
         continue;
       }
-      if (fileName.endsWith('.eco')) {
-        this.eco[fileName.replace('.eco', '')] = new Eco(this.files[fileName]);
+      if (fileName.endsWith(".eco")) {
+        this.eco[fileName.replace(".eco", "")] = new Eco(this.files[fileName]);
+      }
+      if (fileName.endsWith(".mds")) {
+        console.log("Had MDS! ", fileName);
       }
     }
 
     // Post process
     for (const [key, data] of Object.entries(this.files)) {
-      if (key.endsWith('.dat')) {
+      if (key.endsWith(".dat")) {
         switch (key) {
-          case 'water.dat':
+          case "water.dat":
             break;
-          case 'floraexclusion.dat':
+          case "floraexclusion.dat":
             break;
-          case 'invw.dat':
+          case "invw.dat":
             break;
           default:
             this.zoneData = new ZoneData(
@@ -98,55 +130,97 @@ export class EQGDecoder {
         }
       }
     }
-    console.log(`Processed - ${file.name}`);
+    console.log(`Processed - ${name}`);
     await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
-    console.log('Done processing images');
-
-    // Entrypoint for testing
-    if (process.env.REACT_APP_LOCAL_DEV === 'true') {
-      const eqgFile = await pfsArchive.saveToFile();
-      await writeEQFile('zones_out', file.name, eqgFile);
-    }
-   
+    console.log("Done processing images");
   }
 
   /**
-   * 
-   * @param {import('./common/models').PlaceableGroup} p 
+   *
+   * @param {FileSystemHandle} file
+   */
+  async processEQG(file) {
+    console.log("handle eqg", file.name);
+
+    const arrayBuffer = await file.arrayBuffer();
+    await this.processBuffer(file.name, arrayBuffer);
+
+    // Entrypoint for testing
+    if (import.meta.env.VITE_LOCAL_DEV === "true" && this.zone?.version === 3) {
+      // const serZone = Zone.write(this.zone.terrain);
+      // this.pfsArchive.setFile('broodlands.zon', serZone)
+      // const eqgFile = await this.pfsArchive.saveToFile();
+      // await this.processBuffer(file.name, eqgFile);
+      // await writeEQFile('zones_out', file.name, eqgFile);
+    }
+  }
+
+  /**
+   *
+   * @param {import('./common/models').PlaceableGroup} p
    */
   async writeModels(p, zoneMetadata, modelFile, writtenModels, mod, v3) {
-    return writeModels.apply(this, [p, zoneMetadata, modelFile, writtenModels, mod, v3]);
+    return writeModels.apply(this, [
+      p,
+      zoneMetadata,
+      modelFile,
+      writtenModels,
+      mod,
+      v3,
+    ]);
   }
 
   async export() {
-    console.log('EQG Zone', this.zone);
-    if (this.zone.header.version === 4) {
+    console.log("EQG Zone", this.zone);
+    if (!this.zone) {
+      for (const [name, mod] of Object.entries(this.models)) {
+        if (!name.includes('ter_')) {
+          await this.writeModels(name, mod);
+        }
+      }
+    }
+    if (this.zone?.header?.version === 4) {
       return exportv4.apply(this, [`${this.#fileHandle.name}`]);
     }
     return exportv3.apply(this, [`${this.#fileHandle.name}`]);
   }
 
   async process() {
-    console.log('process', this.#fileHandle.name);
-    imageProcessor.initializeWorkers();
+    console.log("process", this.#fileHandle.name);
     const micro = performance.now();
 
     for (const file of this.#fileHandle.fileHandles) {
-      const extension = file.name.split('.').pop();
+      const extension = file.name.split(".").pop();
       switch (extension) {
-        case 'eqg':
+        case "eqg":
           await this.processEQG(file);
           break;
-        case 'txt':
+        case "txt":
+          if (file.name.endsWith('_assets.txt')) {
+            const contents = (await file.text()).split('\r\n');
+            for (const line of contents) {
+              if (line.endsWith('.eqg')) {
+                console.log(`Loading dependent asset ${line}`);
+                try {
+                  const dir = getEQRootDir();
+                  const fh = await dir.getFileHandle(line).then(f => f.getFile());
+                  await this.processEQG(fh);
+                } catch(e) {
+                  console.log(`Error loading dependent asset`, e);
+                }
+              
+              }
+            }
+          }
           break;
-        case 'eff':
+        case "eff":
           break;
-        case 'xmi':
+        case "xmi":
           break;
-        case 'emt':
+        case "emt":
           break;
-        case 'zon':
-          this.zone = new Zone(
+        case "zon":
+          this.zone = Zone.Factory(
             new Uint8Array(await file.arrayBuffer()),
             this.#fileHandle,
             file.name,
@@ -162,6 +236,5 @@ export class EQGDecoder {
     console.log(
       `Took ${((performance.now() - micro) / 1000).toFixed(4)} seconds.`
     );
-    imageProcessor.clearWorkers();
   }
 }

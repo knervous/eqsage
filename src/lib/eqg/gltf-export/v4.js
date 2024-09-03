@@ -6,6 +6,7 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { quat } from 'gl-matrix';
 import { writeEQFile } from '../../util/fileHandler';
 import { VERSION } from '../../model/constants';
+import { writeMetadata } from './common';
 
 const io = new WebIO()
   .registerExtensions(ALL_EXTENSIONS);
@@ -217,7 +218,11 @@ export async function exportv4(zoneName) {
     zoneMetadata.regions.push(region.parseRegion(true));
   }
 
+  
   // Models
+  for (const [name, mod] of Object.entries(this.models)) {
+    await this.writeModels(name, mod);
+  }
   const writtenModels = {};
   for (const pg of this.zone.terrain.placeableGroups) {
     for (const p of pg.placeables) {
@@ -239,8 +244,7 @@ export async function exportv4(zoneName) {
       p.rotateZ = p.rotateY;
       p.rotateZ = 0;
       p.rotateX = 0;
-       
-      await this.writeModels(p, zoneMetadata, modelFile, writtenModels, mod);
+      await writeMetadata(p, zoneMetadata, modelFile, writtenModels, false);
     }
   }
 

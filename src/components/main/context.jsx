@@ -36,6 +36,11 @@ export const MainProvider = ({ children }) => {
   const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
   const [zones, setZones] = useState([]);
   const [spire, setSpire] = useState(null);
+  const [recentList, setRecentList] = useState(() =>
+    localStorage.getItem('recent-zones')
+      ? JSON.parse(localStorage.getItem('recent-zones'))
+      : []
+  );
 
   useEffect(() => {
     setStatusDialogOpen(permissionStatus !== PermissionStatusTypes.Ready);
@@ -92,6 +97,11 @@ export const MainProvider = ({ children }) => {
   useEffect(() => {
     SpireApi.remoteUrl = remoteUrl;
   }, [remoteUrl]);
+
+  useEffect(() => {
+    localStorage.setItem('recent-zones', JSON.stringify(recentList));
+  }, [recentList]);
+  
   return (
     <MainContext.Provider
       value={{
@@ -112,6 +122,8 @@ export const MainProvider = ({ children }) => {
         onDrop,
         requestPermissions,
         permissionStatus,
+        recentList,
+        setRecentList,
       }}
     >
       {children}

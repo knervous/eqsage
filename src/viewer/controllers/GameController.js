@@ -107,7 +107,7 @@ export class GameController {
   }
 
   showUi = params.ui === 'true';
-  dev = process.env.REACT_APP_DEV === 'true';
+  dev = import.meta.env.VITE_DEV === 'true';
 
   CameraController = cameraController;
   LightController = lightController;
