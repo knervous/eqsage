@@ -195,10 +195,8 @@ export class PFSArchive {
     let filePos = 0;
   
     let fileCount = 0;
-    for (const [fileName] of this.files) {
-      if (fileName.endsWith('.lit')) {
-        continue;
-      }
+    for (const [_fileName] of this.files) {
+
       fileCount++;
     }
     filesList = this.concatTypedArrays(filesList, new Uint8Array(4));
@@ -206,10 +204,6 @@ export class PFSArchive {
     filePos += 4;
   
     for (const [filename, data] of this.files) {
-      if (filename.endsWith('.lit')) {
-    
-        continue;
-      }
       const crc = crcInstance.get(filename);
       const offset = buffer.length;
       const sz = this.filesUncompressedSize.get(filename);

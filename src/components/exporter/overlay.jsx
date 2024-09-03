@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Accordion,
   AccordionDetails,
@@ -32,6 +32,7 @@ import { useConfirm } from 'material-ui-confirm';
 import { items, models } from './constants';
 
 import './overlay.scss';
+import { DevOverlay } from './dev-overlay';
 
 const steps = [
   {
@@ -55,8 +56,14 @@ const steps = [
 ];
 export const ExporterOverlay = () => {
   const { closeDialogs } = useOverlayContext();
-  const { rootFileSystemHandle, zones, setModelExporter, setZoneDialogOpen } =
-    useMainContext();
+  const {
+    rootFileSystemHandle,
+    zones,
+    setModelExporter,
+    setZoneDialogOpen,
+    recentList,
+    setRecentList,
+  } = useMainContext();
   const settings = useSettingsContext();
   const { openAlert } = useAlertContext();
   const { ExpansionList, filteredZoneList } = useExpansionList({ zones });
@@ -129,7 +136,20 @@ export const ExporterOverlay = () => {
       .filter(Boolean)
       .sort((a, b) => (a.label > b.label ? 1 : -1));
   }, [itemFiles]);
+
   const confirm = useConfirm();
+
+  const doProcessZone = useCallback(
+    async (zone) => {
+      if (!recentList.some((a) => a.short_name === zone.short_name)) {
+        setRecentList((l) => [...l, zone]);
+        localStorage.setItem('recent-zones', JSON.stringify(recentList));
+      }
+      await processZone(zone.short_name, settings, rootFileSystemHandle, true);
+      await refreshModelFiles();
+    },
+    [rootFileSystemHandle, settings, recentList, setRecentList]
+  );
 
   useEffect(() => {
     setRun(
@@ -294,20 +314,20 @@ export const ExporterOverlay = () => {
           <Autocomplete
             size="small"
             sx={{ margin: '0px 0', maxWidth: '270px' }}
-            isOptionEqualToValue={(option, value) =>
-              option?.key === value?.key
-            }
+            isOptionEqualToValue={(option, value) => option?.key === value?.key}
+            onKeyDown={async e => {
+              if (e.key === 'Enter') {
+                await doProcessZone({ short_name: e.target.value });
+                e.stopPropagation();
+                e.preventDefault();
+              }
+              
+            }}
             onChange={async (e, values) => {
               if (!values) {
                 return;
               }
-              await processZone(
-                values.short_name,
-                settings,
-                rootFileSystemHandle,
-                true
-              );
-              await refreshModelFiles();
+              await doProcessZone(values);
             }}
             renderOption={(props, option) => {
               return (
@@ -316,10 +336,12 @@ export const ExporterOverlay = () => {
                 </li>
               );
             }}
+            noOptionsText={'Enter Custom File and Press Return'}
             options={filteredZoneList.map((z) => ({
               label     : `[${z.short_name}] ${z.long_name}`,
               key       : `${z.id}-${z.zoneidnumber}`,
               short_name: z.short_name,
+              ...z,
             }))}
             renderInput={(params) => (
               <TextField {...params} label="Individual Zone" />
@@ -333,38 +355,29 @@ export const ExporterOverlay = () => {
                 confirm({
                   description: `You're about to process ${filteredZoneList.length} zones. This may take awhile. Be sure to keep this browser tab open and visible. To stop processing, simply refresh the page.`,
                   title      : 'Process Zones',
-                }).then(async () => {
-                  for (const z of zones) {
-                    if (
-                      !filteredZoneList.some(
-                        (fz) => fz.short_name === z.short_name
-                      ) || z.short_name.includes('tutorial')
-                      
-                    ) {
-                      continue;
+                })
+                  .then(async () => {
+                    for (const z of zones) {
+                      if (
+                        !filteredZoneList.some(
+                          (fz) => fz.short_name === z.short_name
+                        ) ||
+                        z.short_name.includes('tutorial')
+                      ) {
+                        continue;
+                      }
+                      await doProcessZone(z);
+                      openAlert(`Exported ${z.short_name} - ${z.long_name}`);
                     }
-                    await processZone(
-                      z.short_name,
-                      settings,
-                      rootFileSystemHandle,
-                      true
-                    );
-                    await refreshModelFiles();
-                    openAlert(`Exported ${z.short_name} - ${z.long_name}`);
-                  }
-                  openAlert('Done processing zones');
-
-                }).catch(() => {
-
-                });
-               
+                    openAlert('Done processing zones');
+                  })
+                  .catch(() => {});
               }}
               variant="outlined"
               sx={{ margin: '0 auto', width: '100%' }}
             >
               Process Filtered Zones ({filteredZoneList.length})
             </Button>
-           
           </AccordionDetails>
         </Accordion>
         <Divider sx={{ margin: '5px' }} />
@@ -591,6 +604,9 @@ export const ExporterOverlay = () => {
         }
       />
       <OverlayDialogs />
+      {import.meta.env.VITE_LOCAL_DEV === 'true' && (
+        <DevOverlay doProcessZone={doProcessZone} />
+      )}
       {babylonModel && (
         <ExporterOverlayRightNav
           itemOptions={itemOptions}

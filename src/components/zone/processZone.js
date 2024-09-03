@@ -112,14 +112,6 @@ export async function processZone(zoneName, settings, rootFileSystemHandle, _onl
   gameController.rootFileSystemHandle = rootFileSystemHandle;
   GlobalStore.actions.setLoading(true);
 
-  // Preprocess globalload
-  GlobalStore.actions.setLoadingTitle('Loading Global Dependencies');
-
-  const existingMetadata = await getEQFile('data', 'global.json', 'json');
-
-  if (existingMetadata?.version !== GLOBAL_VERSION) {
-    await processGlobal(settings, rootFileSystemHandle);
-  }
   console.log('Zone name', zoneName);
   GlobalStore.actions.setLoadingTitle(`Processing Zone ${zoneName}`);
   GlobalStore.actions.setLoadingText('Loading Zone', zoneName);

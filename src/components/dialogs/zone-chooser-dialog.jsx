@@ -53,15 +53,13 @@ export const ZoneChooserDialog = ({ open }) => {
     Spire,
     setModelExporter,
     setZones,
+    recentList,
+    setRecentList,
   } = useMainContext();
   const [zoneList, setZoneList] = useState([]);
   const [expansionFilter, setExpansionFilter] = useState([]);
   const [zone, setZone] = useState(null);
-  const [recentList, setRecentList] = useState(() =>
-    localStorage.getItem('recent-zones')
-      ? JSON.parse(localStorage.getItem('recent-zones'))
-      : []
-  );
+
   const autocompleteRef = useRef(null);
   const filteredZoneList = useMemo(() => {
     if (expansionFilter.length === 0) {
@@ -114,6 +112,15 @@ export const ZoneChooserDialog = ({ open }) => {
     },
     [setZoneDialogOpen, setSelectedZone, recentList]
   );
+  const enterModelExporter = useCallback(() => {
+    gameController.dispose();
+    setSelectedZone(null);
+    setModelExporter(true);
+    setTimeout(() => {
+      setZoneDialogOpen(false);
+    }, 500);
+  }, [setSelectedZone, setModelExporter, setZoneDialogOpen]);
+
 
   useEffect(() => {
     if (open) {
@@ -147,9 +154,6 @@ export const ZoneChooserDialog = ({ open }) => {
   useEffect(() => setZones(zoneList), [zoneList, setZones]);
 
   const confirm = useConfirm();
-  useEffect(() => {
-    localStorage.setItem('recent-zones', JSON.stringify(recentList));
-  }, [recentList]);
 
   const unlinkDir = () => {
     confirm({
@@ -281,14 +285,7 @@ export const ZoneChooserDialog = ({ open }) => {
 
         <Button
           color="primary"
-          onClick={() => {
-            gameController.dispose();
-            setSelectedZone(null);
-            setModelExporter(true);
-            setTimeout(() => {
-              setZoneDialogOpen(false);
-            }, 500);
-          }}
+          onClick={enterModelExporter}
           variant="outlined"
           sx={{ margin: '5px auto' }}
         >
@@ -304,21 +301,6 @@ export const ZoneChooserDialog = ({ open }) => {
           </Button>
         )}
       </Stack>
-
-      {/* <DialogActions>
-       
-        <Button
-          color='primary'
-          onClick={async () => {
-            await processGlobal(settings, rootFileSystemHandle, true);
-            await processEquip(settings, rootFileSystemHandle, true);
-          }}
-          variant="outlined"
-          sx={{ margin: '0 auto' }}
-        >
-          Process Global
-        </Button>
-      </DialogActions> */}
     </Dialog>
   );
 };

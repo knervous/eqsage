@@ -35,6 +35,10 @@ class ImageProcessor {
 
   current = 0;
 
+  constructor() {
+    this.initializeWorkers();
+  }
+
   /**
    * @typedef QueueItem
    * @property {string} name
@@ -53,25 +57,15 @@ class ImageProcessor {
       this.babylonWorkers.push(Comlink.wrap(worker));
     }
   }
-  queueClear(expected) {
-    setTimeout(() => {
-      if (expected === this.current) {
-        
-        this.clearWorkers();
-      } else {
-        console.log('Reusing worker image processors');
-      }
-    }, 10 * 1000);
-  }
 
   clearWorkers() {
-    // console.log('Cleared workers');
-    // this.current = 0;
-    // this.#workers.forEach((w) => {
-    //   w.terminate();
-    // });
-    // this.#workers = [];
-    // this.babylonWorkers = [];
+    console.log('Cleared workers');
+    this.current = 0;
+    this.#workers.forEach((w) => {
+      w.terminate();
+    });
+    this.#workers = [];
+    this.babylonWorkers = [];
   }
 
   /**
@@ -79,9 +73,7 @@ class ImageProcessor {
    * @param {[QueueItem]} images
    */
   async parseImages(images) {
-    if (this.#workers.length === 0) {
-      this.initializeWorkers();
-    }
+
     const imageChunks = chunkArray(images, this.#workers.length);
     GlobalStore.actions.setLoadingTitle('Loading Images');
     let count = 0;
@@ -114,7 +106,6 @@ class ImageProcessor {
       )
     );
     this.current++;
-    // this.queueClear(this.current);
   }
 }
 

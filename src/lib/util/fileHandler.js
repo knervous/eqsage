@@ -49,6 +49,23 @@ let cachedDirHandle = null;
 const handles = {
 
 };
+
+export const getEQSageDir = async () => {
+  if (!window.gameController.rootFileSystemHandle) {
+    return;
+  }
+  const eqsageDir = cachedDirHandle ||
+    await window.gameController.rootFileSystemHandle.getDirectoryHandle('eqsage', {
+      create: true,
+    });
+  cachedDirHandle = eqsageDir;
+
+  return eqsageDir;
+};
+
+export const getEQRootDir = () => {
+  return window.gameController.rootFileSystemHandle;
+};
 /**
  *
  * @param {string} name

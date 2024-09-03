@@ -208,28 +208,7 @@ export class S3DAnimationWriter {
       bone.children.forEach((bIndex) => node.addChild(skeletonNodes[bIndex]));
     }
 
-    if (parent !== null && attachBoneName !== null) {
-      const parentSkeleton = this.skeletons[parent];
-      if (!parentSkeleton) {
-        throw new Error(
-          'Cannot attach child to skeleton parent it does not exist'
-        );
-      }
-      const attachBone = parentSkeleton.find(
-        (n) => n.getName().toLowerCase() === attachBone.toLowerCase()
-      );
 
-      if (attachBone === null) {
-        throw new Error('Attach bone null');
-      }
-      attachBone.addChild(skeletonNodes[0]);
-
-      if (!this.skeletonChildrenAttachBones.hasOwnProperty(parent)) {
-        this.skeletonChildrenAttachBones[parent] = {};
-      }
-      this.skeletonChildrenAttachBones[parent][skeleton.modelBase] =
-        attachBoneName;
-    }
     this.skeletons[skeletonName] = skeletonNodes;
     return skeletonNodes;
   }

@@ -21,6 +21,8 @@ import { MeshBuilder } from '@babylonjs/core';
 import { GlobalStore } from '../../state';
 import { GLTF2Export } from '@babylonjs/serializers';
 import { dedup, prune, textureCompress } from '@gltf-transform/functions';
+import { getEQFile } from '../../lib/util/fileHandler';
+import { GLOBAL_VERSION, processGlobal } from '../../components/zone/processZone';
 
 /**
  * @typedef {import('@babylonjs/core').AssetContainer} AssetContainer
@@ -214,7 +216,7 @@ class SpawnController extends GameControllerChild {
             this.currentScene,
             undefined,
             '.glb'
-          )
+          ).catch(() => null)
       );
     }
     return this.assetContainers[modelName];
@@ -387,7 +389,7 @@ class SpawnController extends GameControllerChild {
     const skeletonRoot = rootNode.getChildren(undefined, true)[0];
     const merged = Mesh.MergeMeshes(
       rootNode.getChildMeshes(false),
-      true,
+      false,
       true,
       undefined,
       true,
@@ -485,7 +487,10 @@ class SpawnController extends GameControllerChild {
 
     const assetContainer =
       await window.gameController.SpawnController.getAssetContainer(modelName);
-    const instanceContainer = assetContainer.instantiateModelsToScene();
+    const instanceContainer = assetContainer?.instantiateModelsToScene();
+    if (!instanceContainer) {
+      return;
+    }
     const animationGroups = instanceContainer.animationGroups;
     animationGroups.forEach((ag) => {
       ag.name = ag.name.replace('Clone of ', '');
@@ -736,6 +741,17 @@ class SpawnController extends GameControllerChild {
     this.actions.setLoadingTitle('Loading Spawns');
     let loadedCount = 0;
     this.actions.setLoadingText(`Loaded ${loadedCount} of ${count} spawns`);
+
+    this.actions.setLoading(true);
+
+    // Preprocess globalload
+    this.actions.setLoadingTitle('Loading Global Dependencies');
+  
+    const existingMetadata = await getEQFile('data', 'global.json', 'json');
+  
+    if (existingMetadata?.version !== GLOBAL_VERSION) {
+      await processGlobal(this.gc.settings, this.gc.rootFileSystemHandle);
+    }
 
     await Promise.all(
       Object.entries(spawnList).map(([modelName, models]) =>

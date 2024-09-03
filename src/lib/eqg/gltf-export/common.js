@@ -2,21 +2,30 @@ import { Accessor, Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 
 import { mat4, quat, vec3 } from 'gl-matrix';
-import { getEQFileExists, writeEQFile } from '../../util/fileHandler';
+import {
+  getEQFile,
+  getEQFileExists,
+  writeEQFile,
+} from '../../util/fileHandler';
+import { EQGAnimationWriter } from './eqg-animation';
 
-const io = new WebIO()
-  .registerExtensions(ALL_EXTENSIONS);
+const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
-export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod, v3) {
+export async function writeMetadata(
+  p,
+  zoneMetadata,
+  modelFile,
+  writtenModels,
+  v3
+) {
   const position = vec3.fromValues(p.x, p.y, p.z); // Replace x, y, z with the object's position
 
   // let flippedPosition;
   let x, y, z;
   if (v3) {
-      
     const flipMatrix = mat4.create();
     mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]); // Scale X and Z by -1
-      
+
     // Apply the flip transformation to the rotated position
     const flippedPosition = vec3.create();
     vec3.transformMat4(flippedPosition, position, flipMatrix);
@@ -34,7 +43,7 @@ export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod
 
     const flipMatrix = mat4.create();
     mat4.scale(flipMatrix, flipMatrix, [-1, -1, 1]); // Scale X and Z by -1
-      
+
     // Apply the flip transformation to the rotated position
     const flippedPosition = vec3.create();
     vec3.transformMat4(flippedPosition, rotatedPosition, flipMatrix);
@@ -62,16 +71,66 @@ export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod
     return;
   }
   writtenModels[p.modelFile.toLowerCase()] = true;
-  if (await getEQFileExists('objects', `${modelFile}.glb`)) {
+}
+
+/**
+ *
+ * @param {string} modelFile
+ * @param {import('../model/model').Model} mod
+ * @this {import('../eqg-decoder').EQGDecoder}
+ * @returns
+ */
+export async function writeModels(modelFile, mod) {
+  modelFile = modelFile.replace('.mod', '');
+  const diskFileName = this.name.includes('gequip') || true ? `${modelFile.glb}` : `[${this.name}] ${modelFile}.glb`;
+  if (
+    (await getEQFileExists('objects', diskFileName)) &&
+    !modelFile.includes('et_drbanner') &&
+    !modelFile.includes('dest') &&
+    !modelFile.includes('ggy') &&
+    !modelFile.includes('mnr') &&
+    !modelFile.includes('zmm')
+  ) {
     return;
   }
   const document = new Document();
   const objectName = mod.name.replace('.mod', '');
   const buffer = document.createBuffer();
   const scene = document.createScene(objectName);
-  const node = document
-    .createNode(objectName)
-    .setTranslation([0, 0, 0]);
+  const node = document.createNode(objectName).setTranslation([0, 0, 0]);
+  const skeletonNodes = [];
+  const boneIndices = [];
+
+  if (mod.bones.length) {
+    for (const bone of mod.bones) {
+      if (bone.childrenCount > 0) {
+        let nextIdx = bone.childrenIndex;
+        while (nextIdx !== -1) {
+          bone.children.push(nextIdx);
+          nextIdx = mod.bones[nextIdx].next;
+        }
+      }
+    }
+    let idx = 0;
+    function recurse(i) {
+      const bone = mod.bones[i];
+      const node = document.createNode(bone.name);
+
+      skeletonNodes.push(node);
+      boneIndices[i] = idx;
+      idx++;
+      for (const child of bone.children) {
+        mod.bones[child].parent = bone;
+        const [_b, n] = recurse(child);
+        node.addChild(n);
+      }
+      return [bone, node];
+    }
+    recurse(0);
+  }
+  console.log('mod', mod.name);
+  console.log('bi', boneIndices);
+  console.log('bones', mod.bones);
   scene.addChild(node);
   const materials = {};
   for (const mat of mod.geometry.mats) {
@@ -90,7 +149,8 @@ export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod
       const [name] = prop.valueS.toLowerCase().split('.');
       const texture = document
         .createTexture(name)
-      // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+        .setMimeType('image/png')
+        .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
         .setURI(`/eq/textures/${name}`)
         .setExtras({
           name,
@@ -100,8 +160,7 @@ export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod
       }
       if (
         prop.name.includes('Diffuse') ||
-          (prop.name.includes('Detail') &&
-            !gltfMaterial.getBaseColorTexture())
+        (prop.name.includes('Detail') && !gltfMaterial.getBaseColorTexture())
       ) {
         gltfMaterial.setBaseColorTexture(texture);
       }
@@ -113,6 +172,8 @@ export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod
     materials[mat.name] = gltfMaterial;
   }
   const primitiveMap = {};
+  const gltfMesh = document.createMesh(modelFile);
+
   for (const p of mod.geometry.polys) {
     if (p.material === -1) {
       continue;
@@ -127,25 +188,99 @@ export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod
     const v2 = mod.geometry.verts[p.verts[1]];
     const v3 = mod.geometry.verts[p.verts[2]];
 
+    const b1 = v1.boneAssignment?.weights ?? [];
+    const b2 = v2.boneAssignment?.weights ?? [];
+    const b3 = v3.boneAssignment?.weights ?? [];
+
     let sharedPrimitive = primitiveMap[mat.name];
     if (!sharedPrimitive) {
-      const mesh = document.createMesh(mat.name);
-      const materialNode = document.createNode(mat.name).setMesh(mesh);
-      node.addChild(materialNode);
       sharedPrimitive = primitiveMap[mat.name] = {
+        gltfMesh: gltfMesh,
         gltfPrim: document
           .createPrimitive()
           .setMaterial(linkedMat)
           .setName(mat.name),
         indices: [],
         vecs   : [],
+        joints : [],
+        weights: [],
         normals: [],
         uv     : [],
       };
-      mesh.addPrimitive(sharedPrimitive.gltfPrim);
+      gltfMesh.addPrimitive(sharedPrimitive.gltfPrim);
     }
     const ln = sharedPrimitive.indices.length;
+    if (b1.length && b2.length && b3.length) {
+      const reducer = (acc, val, idx, obj) => {
+        const boneVal = boneIndices[val.bone];
+        let boneIdx, weight;
+        if (val.bone === -1) {
+          boneIdx = skeletonNodes.length;
+          weight = idx === 0 ? 1 : 0;
+        } else if (boneVal === undefined) {
+          boneIdx = boneIndices[obj[0].bone];
+          weight = 0;
+        } else {
+          boneIdx = boneVal;
+          weight = val.weight;
+        }
+
+        let eqgBone = mod.bones[boneIndices.indexOf(boneIdx)];
+        if (!eqgBone) {
+          console.log('no bone', boneIdx);
+          eqgBone = {
+            x     : 0,
+            y     : 0,
+            z     : 0,
+            scaleX: 1,
+            scaleY: 1,
+            scaleZ: 1,
+            rotX  : 0,
+            rotY  : 0,
+            rotZ  : 0,
+            rotW  : 1,
+          };
+        }
+
+        acc.bones.push(boneIdx);
+        acc.weights.push(weight);
+        acc.eqgBones.push(eqgBone);
+        return acc;
+      };
+
+      const bone1 = b1.reduce(reducer, {
+        bones   : [],
+        weights : [],
+        eqgBones: [],
+        v       : v1,
+      });
+      const bone2 = b2.reduce(reducer, {
+        bones   : [],
+        weights : [],
+        eqgBones: [],
+
+        v: v2,
+      });
+      const bone3 = b3.reduce(reducer, {
+        bones   : [],
+        weights : [],
+        eqgBones: [],
+
+        v: v3,
+      });
+      // Here i want to use the bones to apply an initial transform on vertices v1, v2, v3
+      // Based on bone transform. That will include everything up the parent chain in bone
+
+      const newJoints = [...bone1.bones, ...bone2.bones, ...bone3.bones];
+      sharedPrimitive.joints.push(...newJoints);
+      const newWeights = [...bone1.weights, ...bone2.weights, ...bone3.weights];
+      sharedPrimitive.weights.push(...newWeights);
+    }
+
     sharedPrimitive.indices.push(ln + 0, ln + 1, ln + 2);
+    if (v1.pos[0] === 0 && v1.pos[1] === 0 && v1.pos[2] === 0) {
+      console.log('is 0 0 0 ');
+    }
     sharedPrimitive.vecs.push(
       ...[v1, v2, v3].flatMap((v) => [v.pos[0], v.pos[2], v.pos[1]])
     );
@@ -153,13 +288,19 @@ export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod
       ...[v1, v2, v3].flatMap((v) => [v.nor[0], v.nor[2], v.nor[1]])
     );
     sharedPrimitive.uv.push(
-      ...[v1, v2, v3].flatMap((v) => [v.tex[0], v.tex[1]])
+      ...[v1, v2, v3].flatMap((v) => [-v.tex[0], v.tex[1]])
     );
   }
 
-  for (const { gltfPrim, indices, vecs, normals, uv } of Object.values(
-    primitiveMap
-  )) {
+  for (const {
+    gltfPrim,
+    indices,
+    vecs,
+    normals,
+    uv,
+    joints,
+    weights,
+  } of Object.values(primitiveMap)) {
     const idc = new Uint16Array(indices);
     for (let i = 0; i < indices.length; i += 3) {
       idc[i] = indices[i];
@@ -186,14 +327,56 @@ export async function writeModels(p, zoneMetadata, modelFile, writtenModels, mod
       .createAccessor()
       .setType(Accessor.Type.VEC2)
       .setArray(new Float32Array(uv));
-
+    const primJoints = document
+      .createAccessor()
+      .setArray(new Uint16Array(joints))
+      .setType(Accessor.Type.VEC4);
+    const primWeights = document
+      .createAccessor()
+      .setArray(new Float32Array(weights))
+      .setType(Accessor.Type.VEC4);
     gltfPrim
       .setIndices(primIndices)
       .setAttribute('POSITION', primPositions)
       .setAttribute('NORMAL', primNormals)
-      .setAttribute('TEXCOORD_0', primUv);
+      .setAttribute('TEXCOORD_0', primUv)
+      .setAttribute('JOINTS_0', primJoints)
+      .setAttribute('WEIGHTS_0', primWeights);
+  }
+
+  if (mod.bones.length) {
+    const animWriter = new EQGAnimationWriter(
+      document,
+      skeletonNodes,
+      mod.bones,
+      boneIndices
+    );
+
+    for (const [name, ani] of Object.entries(this.animations)) {
+      //  if (name.startsWith(modelFile)) {
+      console.log('ani', ani);
+      animWriter.applyAnimation(ani, name);
+      animWriter.applyAnimation(ani, name, true);
+      // }
+    }
+
+    const skin = document.createSkin('mesh-skeleton');
+
+    for (const node of skeletonNodes) {
+      skin.addJoint(node);
+    }
+
+    // node.setMesh(gltfMesh)
+    node.setMesh(gltfMesh).setSkin(skin);
+    const rootBone = skeletonNodes[boneIndices[0]];
+    node.addChild(rootBone);
+    const dummyJoint = document.createNode('DUMMY_PLACEHOLDER');
+    skin.addJoint(dummyJoint);
+    node.addChild(dummyJoint);
+  } else {
+    node.setMesh(gltfMesh);
   }
 
   const bytes = await io.writeBinary(document);
-  await writeEQFile('objects', `${modelFile}.glb`, bytes.buffer);
+  await writeEQFile("objects", diskFileName, bytes.buffer); // eslint-disable-line
 }
