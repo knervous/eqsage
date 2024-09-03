@@ -82,7 +82,7 @@ class ModelController extends GameControllerChild {
       }
       
     };
-    const hdrTexture = CubeTexture.CreateFromPrefilteredData('/environment.env', this.scene);
+    const hdrTexture = CubeTexture.CreateFromPrefilteredData('/static/environment.env', this.scene);
     this.scene.environmentTexture = hdrTexture;
     this.scene.environmentIntensity = 1.0;
     this.regionMaterial = new StandardMaterial('region-material', this.scene);
@@ -150,7 +150,7 @@ class ModelController extends GameControllerChild {
     const map = ['px', 'py', 'pz', 'nx', 'ny', 'nz'];
     for (let i = 0; i < 6; i++) {
       png_array.push(
-        `/skybox_${map[i]}.jpg`
+        `/static/skybox_${map[i]}.jpg`
       );
     }
     skyboxMaterial.reflectionTexture = new CubeTexture(
