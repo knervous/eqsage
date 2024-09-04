@@ -510,7 +510,7 @@ class SpawnController extends GameControllerChild {
 
     const instanceSkeleton = instanceContainer.skeletons[0];
     const skeletonRoot = rootNode.getChildren(undefined, true)[0];
-
+    const newModel = rootNode.getChildTransformNodes()[0]?.metadata?.gltf?.extras?.newModel ?? false;
     const variation = headIdx.toString().padStart(2, '0') ?? '00';
     const container = await this.getAssetContainer(
       `${rootNode.name.slice(0, 3)}he${variation}`,
@@ -530,7 +530,6 @@ class SpawnController extends GameControllerChild {
         console.warn('Err', e);
       }
     }
-    console.log('Skeleton', instanceSkeleton);
 
     const merged = Mesh.MergeMeshes(
       rootNode.getChildMeshes(false),
@@ -578,12 +577,14 @@ class SpawnController extends GameControllerChild {
         const suffix = mat.name.slice(mat.name.length - 4, mat.name.length);
         const textVer = suffix.slice(0, 2);
         const textNum = suffix.slice(2, 4);
-
         const thisText = text.toString().padStart(2, '0');
+        let newFullName = `${prefix}${thisText}${textNum}`;
+        const isHead = newFullName.includes(`he${thisText}`);
 
-        const newFullName = `${prefix}${thisText}${textNum}`;
-        if (
-          newFullName.includes(`he${thisText}`) &&
+        if (isHead && newModel) {
+          newFullName = `${prefix}sk${textNum}`;
+        } else if (
+          isHead &&
           this.secondaryHelm(modelName)
         ) {
           continue;

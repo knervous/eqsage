@@ -86,12 +86,14 @@ export class EQFileHandle {
       await eqgDecoder.process();
       if (doExport) {
         await eqgDecoder.export();
+        return true;
       }
     } else if (this.#type === FILE_TYPE.S3D) {
       const s3dDecoder = new S3DDecoder(this);
       await s3dDecoder.process();
       if (doExport) {
         await s3dDecoder.export();
+        return true;
       }
     }
   }
