@@ -9,10 +9,10 @@ import { Spawn } from 'spire-api/wrappers/spawn';
 import { Grid } from 'spire-api/wrappers/grid';
 import { Npcs } from 'spire-api/wrappers/npcs';
 import { useSettingsContext } from '../../context/settings';
+import { gameController } from '../../viewer/controllers/GameController';
 
 const MainContext = React.createContext({});
 
-export const useMainContext = () => React.useContext(MainContext);
 
 /**
  * @typedef Spire
@@ -23,6 +23,43 @@ export const useMainContext = () => React.useContext(MainContext);
  * @property {import ('../../../../spire/frontend/src/app/spawn').Spawn} Spawn
  * @property {import ('../../../../spire/frontend/src/app/grid').Grid} Grid
  * @property {import ('../../../../spire/frontend/src/app/npcs').Npcs} Npcs
+ */
+
+
+/**
+ * @typedef {Object} UseMainContextReturn
+ * @property {any} selectedZone - The currently selected zone.
+ * @property {React.Dispatch<React.SetStateAction<any>>} setSelectedZone - Function to set the selected zone.
+ * @property {boolean} zoneDialogOpen - Whether the zone dialog is open.
+ * @property {React.Dispatch<React.SetStateAction<boolean>>} setZoneDialogOpen - Function to set the zone dialog open state.
+ * @property {boolean} statusDialogOpen - Whether the status dialog is open.
+ * @property {React.Dispatch<React.SetStateAction<boolean>>} setStatusDialogOpen - Function to set the status dialog open state.
+ * @property {boolean} modelExporter - Whether the model exporter is enabled.
+ * @property {React.Dispatch<React.SetStateAction<boolean>>} setModelExporter - Function to set the model exporter state.
+ * @property {boolean} modelExporterLoaded - Whether the model exporter is loaded.
+ * @property {React.Dispatch<React.SetStateAction<boolean>>} setModelExporterLoaded - Function to set the model exporter loaded state.
+ * @property {any} rootFileSystemHandle - The file system handle for the root.
+ * @property {any[]} zones - The list of zones.
+ * @property {React.Dispatch<React.SetStateAction<any[]>>} setZones - Function to set the list of zones.
+ * @property {Spire} Spire - Spire object containing APIs and utilities.
+ * @property {any} onDrop - Handler for file drop operations.
+ * @property {any} requestPermissions - Function to request permissions.
+ * @property {PermissionStatusTypes} permissionStatus - The current permission status.
+ * @property {any[]} recentList - List of recent zones.
+ * @property {React.Dispatch<React.SetStateAction<any[]>>} setRecentList - Function to set the recent zones list.
+ */
+
+/**
+ * 
+ * @returns {UseMainContextReturn}
+ */
+export const useMainContext = () => React.useContext(MainContext);
+
+
+/**
+ * 
+ * @param {*} param0 
+ * @returns 
  */
 
 export const MainProvider = ({ children }) => {
@@ -101,6 +138,10 @@ export const MainProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('recent-zones', JSON.stringify(recentList));
   }, [recentList]);
+
+  useEffect(() => {
+    gameController.Spire = Spire;
+  }, [Spire]);
   
   return (
     <MainContext.Provider

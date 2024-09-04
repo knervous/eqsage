@@ -239,6 +239,7 @@ class SpawnController extends GameControllerChild {
       }
       spawnList[realModel].push(spawn);
     }
+    console.log('sl', spawnList);
     this.remainingSpawnGroups += Object.keys(spawnList).length;
     this.actions.setLoadingText(`Loading ${this.remainingSpawnGroups} spawn types`);
     await Promise.all(Object.entries(spawnList).map(([modelName, models]) => this.addSpawn(modelName, models).then(() => {

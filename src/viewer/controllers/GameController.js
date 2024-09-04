@@ -23,6 +23,17 @@ import { GlobalStore } from '../../state';
 import { GLTFLoader } from '@babylonjs/loaders/glTF/2.0';
 import { getEQFile } from '../../lib/util/fileHandler';
 
+/**
+ * @typedef Spire
+ * @property {import ('../../../../spire/frontend/src/app/api/spire-api')} SpireApi
+ * @property {import ('../../../../spire/frontend/src/app/api')} SpireApiTypes
+ * @property {import ('../../../../spire/frontend/src/app/api/spire-query-builder').SpireQueryBuilder} SpireQueryBuilder
+ * @property {import ('../../../../spire/frontend/src/app/zones').Zones} Zones
+ * @property {import ('../../../../spire/frontend/src/app/spawn').Spawn} Spawn
+ * @property {import ('../../../../spire/frontend/src/app/grid').Grid} Grid
+ * @property {import ('../../../../spire/frontend/src/app/npcs').Npcs} Npcs
+ */
+
 Database.IDBStorageEnabled = true;
 SceneLoader.ShowLoadingScreen = false;
 
@@ -96,6 +107,9 @@ export class GameController {
   canvas = null;
 
   loading = false;
+
+  /** @type {Spire} */
+  Spire = null;
 
   /**
    * @type {FileSystemDirectoryHandle}

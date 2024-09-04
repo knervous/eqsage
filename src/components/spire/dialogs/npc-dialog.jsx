@@ -11,6 +11,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import { v4 } from 'uuid';
 
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -19,11 +20,14 @@ import { gameController } from '../../../viewer/controllers/GameController';
 import { Vector3 } from '@babylonjs/core';
 import { useMainContext } from '../../main/context';
 import { useZoneContext } from '../../zone/zone-context';
+import { useAlertContext } from '../../../context/alerts';
 
 export const NpcDialog = ({ onClose }) => {
   const [spawnFilter, setSpawnFilter] = useState('');
   const { selectedZone } = useMainContext();
-  const { spawns } = useZoneContext();
+  const { spawns, loadCallback } = useZoneContext();
+  const { openAlert } = useAlertContext();
+
   const filteredSpawns = useMemo(
     () =>
       spawns.filter((s) =>
@@ -33,20 +37,34 @@ export const NpcDialog = ({ onClose }) => {
       ),
     [spawns, spawnFilter]
   );
+  
   const addSpawn = useCallback(async () => {
     const { Spire } = gameController;
 
     const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
       ...Spire.SpireApi.cfg()
     );
-    const _spawnGroupApi = new Spire.SpireApiTypes.SpawngroupApi(
+    const spawnGroupApi = new Spire.SpireApiTypes.SpawngroupApi(
       ...Spire.SpireApi.cfg()
     );
     // First create spawn group
-    // const spawnGroup = await spawnGroupApi.createSpawngroup({ spawngroup });
-    const createResult = await spawn2Api.createSpawn2({ spawn2: { zone: selectedZone.short_name, x: 0, y: 0, z: 0 } });
-    console.log('Res', createResult);
-  }, [selectedZone]);
+    const spawnGroup = await spawnGroupApi.createSpawngroup({
+      spawngroup: { name: v4() },
+    });
+    const createResult = await spawn2Api.createSpawn2({
+      spawn2: {
+        zone         : selectedZone.short_name,
+        x            : 0,
+        y            : 0,
+        z            : 0,
+        spawngroup_id: spawnGroup.data.id,
+        min_expansion: -1,
+        max_expansion: -1
+      },
+    });
+    openAlert('Created new spawn at location [0, 0, 0]');
+    loadCallback();
+  }, [selectedZone, loadCallback, openAlert]);
 
   useEffect(() => {
     const meshes =
@@ -90,7 +108,7 @@ export const NpcDialog = ({ onClose }) => {
           sx={{ height: '40px', marginBottom: '20px' }}
           onClick={addSpawn}
         >
-          Add Spawn{' '}
+          Add Spawn
         </Button>
       </Stack>
       <CollapsibleTable spawns={filteredSpawns} />
