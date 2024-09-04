@@ -141,11 +141,11 @@ export const ExporterOverlay = () => {
 
   const doProcessZone = useCallback(
     async (zone) => {
-      if (!recentList.some((a) => a.short_name === zone.short_name)) {
+      const didProcess = await processZone(zone.short_name, settings, rootFileSystemHandle, true);
+      if (didProcess && !recentList.some((a) => a.short_name === zone.short_name)) {
         setRecentList((l) => [...l, zone]);
         localStorage.setItem('recent-zones', JSON.stringify(recentList));
       }
-      await processZone(zone.short_name, settings, rootFileSystemHandle, true);
       await refreshModelFiles();
     },
     [rootFileSystemHandle, settings, recentList, setRecentList]

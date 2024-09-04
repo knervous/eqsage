@@ -15,7 +15,6 @@ import {
   getEQRootDir,
   writeEQFile,
 } from '../util/fileHandler';
-import { optimizeBoundingBoxes } from './bsp/region-utils';
 import { VERSION } from '../model/constants';
 import { fragmentNameCleaner } from '../util/util';
 import {
@@ -198,7 +197,7 @@ export class S3DDecoder {
       }
     }
 
-    // console.log('Files', Object.keys(this.files));
+    console.log('Files', Object.keys(this.files));
 
     for (const image of images) {
       image.shaderType = shaderMap[image.name];
@@ -221,6 +220,7 @@ export class S3DDecoder {
     GlobalStore.actions.setLoadingTitle('Exporting models');
 
     const AnimationSources = {};
+    let newModel = false;
     for (const skeleton of wld.skeletons) {
       if (skeleton === null) {
         continue;
@@ -237,7 +237,10 @@ export class S3DDecoder {
         .filter(
           (t) => t.modelName === modelBase || t.modelName === alternateModel
         )
-        .forEach((t) => skeleton.addTrackData(t));
+        .forEach((t) => {
+          skeleton.addTrackData(t);
+          newModel ||= t.newModel;
+        });
       for (const mesh of wld.meshes) {
         if (mesh.isHandled) {
           continue;
@@ -343,7 +346,7 @@ export class S3DDecoder {
           .createNode(scrubbedName)
           .setTranslation([0, 0, 0]);
 
-        node.setExtras({ secondaryMeshes: skeleton.secondaryMeshes.length });
+        node.setExtras({ secondaryMeshes: skeleton.secondaryMeshes.length, newModel });
 
         scene.addChild(node);
 

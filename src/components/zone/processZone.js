@@ -115,6 +115,7 @@ export async function processZone(zoneName, settings, rootFileSystemHandle, _onl
   console.log('Zone name', zoneName);
   GlobalStore.actions.setLoadingTitle(`Processing Zone ${zoneName}`);
   GlobalStore.actions.setLoadingText('Loading Zone', zoneName);
+  let match = false;
   await new Promise(async (res) => {
     const handles = [];
     try {
@@ -135,9 +136,9 @@ export async function processZone(zoneName, settings, rootFileSystemHandle, _onl
       settings
     );
     await obj.initialize();
-    await obj.process();
+    match = await obj.process();
     res();
   });
   GlobalStore.actions.setLoading(false);
-
+  return match;
 }
