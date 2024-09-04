@@ -10,6 +10,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { gameController } from '../../../../viewer/controllers/GameController';
 import classNames from 'classnames';
 import './spawn-nav.scss';
@@ -17,6 +18,8 @@ import { useMainContext } from '../../../main/context';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { AddEditSpawnDialog } from './add-edit-spawn-dialog';
 import { useAlertContext } from '../../../../context/alerts';
+import { useConfirm } from 'material-ui-confirm';
+import { useZoneContext } from '../../../zone/zone-context';
 
 function SpawnNavBar() {
   const [selectedSpawn, setSelectedSpawn] = useState(null);
@@ -26,6 +29,7 @@ function SpawnNavBar() {
   const [open, setOpen] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [addEditDialogOpen, setAddEditDialogOpen] = useState(false);
+  const confirm = useConfirm();
 
   const pickRaycast = useCallback(() => {
     gameController.ZoneController.pickRaycastForLoc(loc => {
@@ -118,6 +122,24 @@ function SpawnNavBar() {
     () => selectedSpawn?.spawnentries ?? [],
     [selectedSpawn?.spawnentries]
   );
+  const { loadCallback } = useZoneContext();
+  const doDelete = () => {
+    confirm({
+      description: 'Are you sure you want to delete this spawn?',
+      title      : 'Delete Spawn',
+    }).then(() => {
+      console.log('do delete');
+      const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
+        ...Spire.SpireApi.cfg()
+      );
+      spawn2Api.deleteSpawn2({ id: selectedSpawn?.id }).then(() => {
+        openAlert(`Deleted ${selectedSpawn.name}`);
+        loadCallback();
+      }).catch(() => {
+        openAlert(`Error deleting ${selectedSpawn.name}`, 'warning');
+      });
+    }).catch(() => {});
+  };
   return open ? (
     <>
       {addEditDialogOpen && spawnEntries && (
@@ -159,11 +181,14 @@ function SpawnNavBar() {
             variant="h6"
             sx={{ marginBottom: '15px', textAlign: 'center' }}
           >
-            Spawn ID - {selectedSpawn?.id}
+            Spawn ID - {selectedSpawn?.id}           
             <Typography variant="body2" color="textSecondary" component="p">
               {spawnSubtext}
             </Typography>
           </Typography>
+          <IconButton sx={{ position: 'absolute', top: 15, right: 15 }} onClick={doDelete}>
+            <DeleteIcon />
+          </IconButton>
           <Typography
             onClick={() => setAddEditDialogOpen(true)}
             variant="h6"

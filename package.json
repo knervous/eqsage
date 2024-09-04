@@ -42,7 +42,7 @@
     "react-redux": "^9.0.4",
     "react-scripts": "5.0.1",
     "sparse-octree": "^7.1.8",
-    "spire-api": "1.0.10",
+    "spire-api": "1.0.11",
     "three": "^0.160.0",
     "use-debounce": "^10.0.0"
   },
