@@ -693,7 +693,27 @@ class SpawnController extends GameControllerChild {
     }
   }
 
-  async addSpawns(spawns) {
+  async deleteSpawn(spawn) {
+    this.spawns[spawn.id]?.dispose();
+  }
+
+  async updateSpawn(spawn) {
+    const firstSpawn = spawn.spawnentries?.[0]?.npc_type;
+    const model = raceData.find((r) => r.id === firstSpawn?.race);
+    const realModel = (
+      model?.[firstSpawn?.gender] ||
+      model?.['2'] ||
+      'HUM'
+    ).toLowerCase();
+    const newSpawn = {
+      ...firstSpawn,
+      ...spawn,
+    };
+    this.spawns[spawn.id]?.dispose();
+    this.addSpawn(realModel, [newSpawn]);
+  }
+
+  async addSpawns(spawns, skipDispose = false) {
     if (!this.currentScene || spawns.length === 0) {
       return;
     }
@@ -704,18 +724,18 @@ class SpawnController extends GameControllerChild {
     }
     this.zoneSpawnsNode.setEnabled(true);
     this.zoneSpawnsNode.id = 'zone-spawns';
-    this.zoneSpawnsNode.getChildren().forEach((c) => c.dispose());
+    if (!skipDispose) {
+      this.zoneSpawnsNode.getChildren().forEach((c) => c.dispose());
+    }
 
     const spawnList = {};
     let count = 0;
     for (const spawn of spawns) {
       if (
         spawn.id !== 10787 && // Guard Mezzt
-        // spawn.id !== 10706 && // Guard Rashik
         //  spawn.id !== 10811 && // Tubal Weaver
         // spawn.id !== 10783 // && // POD
         spawn.id !== 10847 // connie link
-        //  spawn.id !== 10809 // Felodious Sworddancer
       ) {
         if (process.env.LOCAL_DEV === 'true') {
           continue;

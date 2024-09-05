@@ -21,8 +21,13 @@ import { useZoneContext } from '../../../zone/zone-context';
 import { useMainContext } from '../../../main/context';
 import { useAlertContext } from '../../../../context/alerts';
 
-
-export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
+export const AddEditSpawnDialog = ({
+  onClose,
+  open,
+  entries = [],
+  spawn,
+  setSelectedSpawn,
+}) => {
   const { Spire } = useMainContext();
   const { openAlert } = useAlertContext();
   const [npcList, setNpcList] = useState(entries);
@@ -32,19 +37,19 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
     async (forSave) => {
       if (forSave) {
         try {
-     
           // First list all spawn entries, then diff
           const builder = new Spire.SpireQueryBuilder();
           builder.where('spawngroupID', '=', spawn.spawngroup_id);
+
           const spawnEntryApi = new Spire.SpireApiTypes.SpawnentryApi(
             ...Spire.SpireApi.cfg()
           );
           const existingSpawnEntries = await spawnEntryApi.listSpawnentries(
             builder.get()
           );
-
+          const firstExisting = existingSpawnEntries.data[0];
           for (const existing of existingSpawnEntries.data) {
-          // Existed before and doesn't now, we need to delete
+            // Existed before and doesn't now, we need to delete
             const matched = npcList.find(
               (entry) => entry.npc_id === existing.npc_id
             );
@@ -56,10 +61,12 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
                 { query: builder.get() }
               );
             } else {
-            // Or see if there's a diff and update
+              // Or see if there's a diff and update
               const cloneMatch = deepClone(matched);
-              delete cloneMatch.npc_type;
-              if (JSON.stringify(cloneMatch) !== JSON.stringify(existing)) {
+              if (
+                JSON.stringify({ ...cloneMatch, npc_type: 0 }) !==
+                JSON.stringify({ ...existing, npc_type: 0 })
+              ) {
                 const builder = new Spire.SpireQueryBuilder();
                 builder.where('npcID', '=', existing.npc_id);
                 await spawnEntryApi.updateSpawnentry(
@@ -71,7 +78,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
           }
 
           for (const existing of npcList) {
-          // Existed now and didn't before, we need to create
+            // Existed now and didn't before, we need to create
             const matched = existingSpawnEntries.data.find(
               (entry) => entry.npc_id === existing.npc_id
             );
@@ -82,9 +89,25 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
               });
             }
           }
-          openAlert('Updated spawn entries');
+          const spawn2Builder = new Spire.SpireQueryBuilder();
+          spawn2Builder.where('id', '=', spawn.id);
+          spawn2Builder.includes(['Spawnentries.NpcType']);
+          const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
+            ...Spire.SpireApi.cfg()
+          );
 
-          loadCallback();
+          const {
+            data: [latestSpawn],
+          } = await spawn2Api.listSpawn2s(spawn2Builder.get());
+
+          openAlert('Updated spawn entries');
+          console.log('spawn', spawn, 'latest', latestSpawn);
+          loadCallback({
+            type     : 'updateSpawn',
+            spawn    : latestSpawn,
+            prevSpawn: firstExisting,
+          });
+          setSelectedSpawn(latestSpawn);
         } catch (e) {
           openAlert('Failed to update spawn entries', 'warning');
         }
@@ -107,7 +130,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
     const npcs = await Spire.Npcs.listNpcsByName(val);
     setSpawnList(npcs);
   }, 500);
-  
+
   return (
     <CommonDialog
       onClose={dialogClosed}
@@ -175,7 +198,10 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
               <TableCell align="center">
                 <IconButton
                   onClick={() => {
-                    window.open(`${Spire.SpireApi?.remoteUrl ?? ''}/npc/${entry.npc_id}`, '_blank');
+                    window.open(
+                      `${Spire.SpireApi?.remoteUrl ?? ''}/npc/${entry.npc_id}`,
+                      '_blank'
+                    );
                   }}
                 >
                   <OpenInNewIcon />
@@ -187,7 +213,7 @@ export const AddEditSpawnDialog = ({ onClose, open, entries = [], spawn }) => {
       </Table>
       <Autocomplete
         size="small"
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           // e.preventDefault();
           e.stopPropagation();
         }}

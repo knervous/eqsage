@@ -128,13 +128,13 @@ function SpawnNavBar() {
       description: 'Are you sure you want to delete this spawn?',
       title      : 'Delete Spawn',
     }).then(() => {
-      console.log('do delete');
       const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
         ...Spire.SpireApi.cfg()
       );
       spawn2Api.deleteSpawn2({ id: selectedSpawn?.id }).then(() => {
         openAlert(`Deleted ${selectedSpawn.name}`);
-        loadCallback();
+        setOpen(false);
+        loadCallback({ type: 'deleteSpawn', spawn: selectedSpawn });
       }).catch(() => {
         openAlert(`Error deleting ${selectedSpawn.name}`, 'warning');
       });
@@ -146,6 +146,7 @@ function SpawnNavBar() {
         <AddEditSpawnDialog
           open={addEditDialogOpen}
           spawn={selectedSpawn}
+          setSelectedSpawn={setSelectedSpawn}
           onClose={() => setAddEditDialogOpen(false)}
           entries={spawnEntries}
         />
