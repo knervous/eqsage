@@ -37,12 +37,14 @@ export const CommonDialog = ({
   hideButtons = false,
   maxWidth = 'md',
   className = '',
-  additionalButtons = null
+  additionalButtons = null,
+  sx = {},
+  noEscClose = false,
 }) => {
   return (
     <Dialog
       onKeyDown={(e) => {
-        if (e.key === 'Escape') {
+        if (e.key === 'Escape' && !noEscClose) {
           onClose();
         }
       }}
@@ -51,7 +53,7 @@ export const CommonDialog = ({
       fullWidth={fullWidth}
       maxWidth={maxWidth}
       className={'ui-dialog'}
-      sx={{ pointerEvents: 'none' }}
+      sx={{ pointerEvents: 'none', ...sx }}
       slotProps={{ backdrop: { sx: { pointerEvents: 'none' } } }}
       hideBackdrop={hideBackdrop}
       PaperComponent={PaperComponent}
@@ -59,7 +61,7 @@ export const CommonDialog = ({
     >
       <DialogTitle
         className="ui-dialog-title"
-        style={{ cursor: 'move' }}
+        style={{ cursor: 'move' }}wd
         id="draggable-dialog-title"
       >
         {title}

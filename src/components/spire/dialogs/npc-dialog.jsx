@@ -21,13 +21,15 @@ import { Vector3 } from '@babylonjs/core';
 import { useMainContext } from '../../main/context';
 import { useZoneContext } from '../../zone/zone-context';
 import { useAlertContext } from '../../../context/alerts';
+import { useOverlayContext } from '../provider';
 
 export const NpcDialog = ({ onClose }) => {
   const [spawnFilter, setSpawnFilter] = useState('');
   const { selectedZone } = useMainContext();
+  const { toggleDialog } = useOverlayContext();
   const { spawns, loadCallback } = useZoneContext();
   const { openAlert } = useAlertContext();
-
+  const [hidden, setHidden] = useState(false);
   const filteredSpawns = useMemo(
     () =>
       spawns.filter((s) =>
@@ -37,34 +39,42 @@ export const NpcDialog = ({ onClose }) => {
       ),
     [spawns, spawnFilter]
   );
-  
-  const addSpawn = useCallback(async () => {
-    const { Spire } = gameController;
 
-    const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
-      ...Spire.SpireApi.cfg()
-    );
-    const spawnGroupApi = new Spire.SpireApiTypes.SpawngroupApi(
-      ...Spire.SpireApi.cfg()
-    );
-    // First create spawn group
-    const spawnGroup = await spawnGroupApi.createSpawngroup({
-      spawngroup: { name: v4() },
+  const addSpawn = useCallback(async () => {
+    setHidden(true);
+    gameController.ZoneController.pickRaycastForLoc(async (loc) => {
+      setHidden(false);
+      if (!loc) {
+        return;
+      }
+      const { Spire } = gameController;
+
+      const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
+        ...Spire.SpireApi.cfg()
+      );
+      const spawnGroupApi = new Spire.SpireApiTypes.SpawngroupApi(
+        ...Spire.SpireApi.cfg()
+      );
+      // First create spawn group
+      const spawnGroup = await spawnGroupApi.createSpawngroup({
+        spawngroup: { name: v4() },
+      });
+      const createResult = await spawn2Api.createSpawn2({
+        spawn2: {
+          zone         : selectedZone.short_name,
+          x            : loc.z,
+          y            : loc.x,
+          z            : loc.y,
+          spawngroup_id: spawnGroup.data.id,
+          min_expansion: -1,
+          max_expansion: -1,
+        },
+      });
+      openAlert(`Created new spawn at location [${loc.z} ${loc.x} ${loc.y}]`);
+      loadCallback({ type: 'create', spawn: createResult.data });
+      toggleDialog('npc', false);
     });
-    const createResult = await spawn2Api.createSpawn2({
-      spawn2: {
-        zone         : selectedZone.short_name,
-        x            : 0,
-        y            : 0,
-        z            : 0,
-        spawngroup_id: spawnGroup.data.id,
-        min_expansion: -1,
-        max_expansion: -1
-      },
-    });
-    openAlert('Created new spawn at location [0, 0, 0]');
-    loadCallback();
-  }, [selectedZone, loadCallback, openAlert]);
+  }, [selectedZone, loadCallback, openAlert, toggleDialog]);
 
   useEffect(() => {
     const meshes =
@@ -80,7 +90,26 @@ export const NpcDialog = ({ onClose }) => {
     }
   }, [filteredSpawns]);
   return (
-    <CommonDialog fullWidth onClose={onClose} title={'Spawns'}>
+    <CommonDialog
+      noEscClose={hidden}
+      sx={
+        hidden
+          ? {
+            width        : '400px',
+            height       : '250px',
+            position     : 'fixed !important',
+            bottom       : '20px !important',
+            right        : 'calc(50vw - 200px) !important',
+            top          : 'unset',
+            left         : 'unset',
+            pointerEvents: 'none',
+          }
+          : {}
+      }
+      fullWidth
+      onClose={onClose}
+      title={'Spawns'}
+    >
       <Stack alignItems={'center'} justifyContent={'center'} direction="row">
         <FormControl
           margin="dense"
