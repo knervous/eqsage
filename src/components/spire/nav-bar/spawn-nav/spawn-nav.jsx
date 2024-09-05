@@ -10,6 +10,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { gameController } from '../../../../viewer/controllers/GameController';
 import classNames from 'classnames';
@@ -28,6 +30,7 @@ function SpawnNavBar() {
   const { selectedZone, Spire } = useMainContext();
   const [open, setOpen] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [selectedGridIdx, setSelectedGridIdx] = useState(0);
   const [addEditDialogOpen, setAddEditDialogOpen] = useState(false);
   const confirm = useConfirm();
 
@@ -79,6 +82,10 @@ function SpawnNavBar() {
     }
     const clickCallback = (spawn) => {
       console.log('Spawn', spawn);
+      if (spawn.gridIdx !== undefined) {
+        setSelectedGridIdx(spawn.gridIdx);
+        return;
+      }
       gameController.SpawnController.npcLight(spawn);
       gameController.SpawnController.showSpawnPath(spawn?.grid ?? []);
       const s = JSON.parse(JSON.stringify(spawn));
@@ -86,6 +93,7 @@ function SpawnNavBar() {
       setInitialSpawn(s);
       setAddEditDialogOpen(false);
       setSelectedIdx(0);
+      setSelectedGridIdx(0);
       setOpen(true);
     };
 
@@ -140,6 +148,16 @@ function SpawnNavBar() {
       });
     }).catch(() => {});
   };
+
+  const createGrid = useCallback(() => {
+
+  }, []);
+
+  useEffect(() => {
+    if (selectedSpawn?.grid) {
+      gameController.SpawnController.showSpawnPath(selectedSpawn?.grid ?? [], selectedGridIdx);
+    }
+  }, [selectedGridIdx, selectedSpawn?.grid]);
   return open ? (
     <>
       {addEditDialogOpen && spawnEntries && (
@@ -312,6 +330,59 @@ function SpawnNavBar() {
             ></TextField>
           </Stack>
           
+          <Stack sx={{ margin: '25px 10px 10px 10px', }} direction="row" justifyContent={'center'} alignContent={'center'}>
+            <Typography
+              onClick={createGrid}
+              variant="h6"
+              sx={{
+                color     : 'primary.main',
+                fontSize  : '18px',
+                userSelect: 'none',
+                lineHeight: '35px',
+              }}
+            >
+            Grid Pathing
+            </Typography>
+            <Stack direction="row">
+              <IconButton
+                disabled={selectedGridIdx < 1}
+                onClick={() => {
+                  setSelectedGridIdx(g => g - 1);
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <IconButton
+                disabled={selectedGridIdx === (selectedSpawn.grid?.length ?? 0) - 1}
+                onClick={() => {
+                  setSelectedGridIdx(g => g + 1);
+                }}
+              >
+                <ArrowForwardIcon />
+              </IconButton>
+            </Stack>
+          </Stack>
+          <FormControl
+            sx={{ margin: '0 auto', maxWidth: '100%', width: '100%' }}
+          >
+            <Stack direction="row" justifyContent="space-evenly">
+              <InputLabel id="spawn-grid-label">Grid Entry</InputLabel>
+              <Select
+                fullWidth
+                labelId="spawn-grid-label"
+                id="spawn-select"
+                value={selectedGridIdx}
+                label="Age"
+                onChange={(e) => setSelectedGridIdx(e.target.value)}
+              >
+                {selectedSpawn?.grid?.map?.((g, idx) => (
+                  <MenuItem key={idx} value={idx}>
+                    Grid Path {g.number}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Stack>
+          </FormControl>
         </Box>
       </Box>
     </>

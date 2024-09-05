@@ -165,6 +165,11 @@ class ZoneController extends GameControllerChild {
     glowLayer.customEmissiveColorSelector = function (mesh, subMesh, material, result) {
       if (mesh?.metadata?.emissiveColor) {
         result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.5);
+        if (mesh?.metadata?.occludedColor) {
+          if (mesh.isOccluded) { 
+            result.set(mesh?.metadata?.occludedColor.r, mesh?.metadata?.occludedColor.g, mesh?.metadata?.occludedColor.b, 0.5);
+          }
+        }
         if (mesh?.metadata?.onlyOccluded) {
           if (mesh.isOccluded) {
             result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.5);
