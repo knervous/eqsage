@@ -1,5 +1,7 @@
 import {
+  AbstractMesh,
   Color3,
+  DynamicTexture,
   Mesh,
   PBRMaterial,
   PointLight,
@@ -22,7 +24,10 @@ import { GlobalStore } from '../../state';
 import { GLTF2Export } from '@babylonjs/serializers';
 import { dedup, prune, textureCompress } from '@gltf-transform/functions';
 import { getEQFile } from '../../lib/util/fileHandler';
-import { GLOBAL_VERSION, processGlobal } from '../../components/zone/processZone';
+import {
+  GLOBAL_VERSION,
+  processGlobal,
+} from '../../components/zone/processZone';
 
 /**
  * @typedef {import('@babylonjs/core').AssetContainer} AssetContainer
@@ -69,6 +74,7 @@ class SpawnController extends GameControllerChild {
   dispose() {
     this.assetContainers = {};
     if (this.currentScene) {
+      this.currentScene.unregisterBeforeRender(this.renderCallback);
       this.currentScene.onPointerObservable.remove(
         this.sceneMouseDown.bind(this)
       );
@@ -91,6 +97,7 @@ class SpawnController extends GameControllerChild {
       this.currentScene
     );
     this.currentScene.onPointerObservable.add(this.sceneMouseDown.bind(this));
+    this.currentScene.registerBeforeRender(this.renderCallback.bind(this));
   }
 
   npcLight(spawn) {
@@ -117,15 +124,32 @@ class SpawnController extends GameControllerChild {
       }
     }
   }
+  dynamicPlanes = [];
 
-  showSpawnPath(coords) {
+  renderCallback() {
+    for (const plane of this.dynamicPlanes) {
+      console.log('hit me');
+      const distance = this.currentScene.activeCamera.position
+        .subtract(plane.position)
+        .length();
+
+      // Scale factor based on distance (adjust multiplier as needed)
+      const scaleFactor = Math.max(distance / 130, 0.5); // Minimum scale factor to avoid too small billboards
+
+      // Apply the scaling
+      plane.scaling = new Vector3(scaleFactor, scaleFactor, scaleFactor);
+    }
+  }
+  showSpawnPath(coords, selectedIdx) {
     if (!this.currentScene) {
       return;
     }
+    this.dynamicPlanes = [];
+
     if (this.currentScene.getMeshById('spawn-path')) {
       this.currentScene.getMeshById('spawn-path').dispose();
     }
-    if (coords.length === 0) {
+    if (!coords || coords.length === 0) {
       return;
     }
     const path = coords.map((a) => new Vector3(a.y, a.z, a.x));
@@ -152,25 +176,113 @@ class SpawnController extends GameControllerChild {
     };
 
     // Function to create an arrow
-    const createDirectionalBox = (name, point, scene) => {
+    const createDirectionalBox = (name, point, scene, idx) => {
       // Create box with initial size, will scale later
+      const selected = idx === selectedIdx;
+      const size = selected ? 3 : 2;
       const box = MeshBuilder.CreateBox(
         name,
-        { height: 2, width: 2, depth: 2 },
+        { height: size, width: size, depth: size },
         scene
       );
       box.parent = tube;
       box.position = point;
       box.material = tubeMaterial;
       box.metadata = {
-        emissiveColor: new Color3(0, 0.5, 1),
+        emissiveColor: selected ? new Color3(1, 0.5, 0) : new Color3(0, 0.5, 1),
       };
       this.ZoneController.glowLayer.addIncludedOnlyMesh(box);
+
+      // Create a dynamic texture for the label
+      const dynamicTexture = new DynamicTexture(
+        `dynamicTexture${idx}`,
+        { width: 512, height: 256 },
+        scene,
+        false
+      );
+      dynamicTexture.hasAlpha = true;
+
+      // Define the text, font, and colors
+      const text = (idx + 1).toString();
+      const font = 'bold 150px Arial';
+      const textColor = 'white';
+      const outlineColor = '#000';
+
+      // Manual outline by drawing black text at slightly offset positions
+      const offset = 4;
+      dynamicTexture.drawText(
+        text,
+        256 - offset,
+        140 - offset,
+        font,
+        outlineColor,
+        null,
+        true
+      );
+      dynamicTexture.drawText(
+        text,
+        256 + offset,
+        140 - offset,
+        font,
+        outlineColor,
+        null,
+        true
+      );
+      dynamicTexture.drawText(
+        text,
+        256 - offset,
+        140 + offset,
+        font,
+        outlineColor,
+        null,
+        true
+      );
+      dynamicTexture.drawText(
+        text,
+        256 + offset,
+        140 + offset,
+        font,
+        outlineColor,
+        null,
+        true
+      );
+
+      // Draw the white text on top
+      dynamicTexture.drawText(text, 256, 135, font, textColor, null, true);
+
+      // Create a plane for the billboard
+      const plane = MeshBuilder.CreatePlane(
+        `labelPlane${idx}`,
+        { width: 9, height: 6 },
+        scene
+      );
+      plane.material = new StandardMaterial(`labelMat${idx}`, scene);
+      plane.material.diffuseTexture = dynamicTexture;
+      plane.material.emissiveColor = new Color3(1, 1, 1); // Set emissive color to make it visible in dark scenes
+      plane.material.backFaceCulling = false; // Ensure the texture is visible from all angles
+      this.ZoneController.glowLayer.addIncludedOnlyMesh(plane);
+      plane.metadata = {
+        emissiveColor: selected ? new Color3(1, 0.5, 0) : new Color3(0, 0, 0),
+        occludedColor: new Color3(1, 1, 1),
+        spawn        : {
+          gridIdx: idx
+        }
+      };
+      // Position the plane above the box
+      plane.position = new Vector3(0, 0 + size, 0);
+      plane.parent = box;
+
+      // Make the plane always face the camera (billboard effect)
+      plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
+      plane.forceRenderingWhenOccluded = true;
+      plane.occlusionType = AbstractMesh.OCCLUSION_TYPE_OPTIMISTIC;
+      plane.isPickable = true;
+      this.dynamicPlanes.push(plane);
     };
 
     // Place directional boxes along the path with updated scaling
-    for (let i = 0; i < path.length - 1; i++) {
-      createDirectionalBox(`box${i}`, path[i], this.currentScene);
+    for (let i = 0; i < path.length; i++) {
+      createDirectionalBox(`box${i}`, path[i], this.currentScene, i);
     }
   }
 
@@ -510,7 +622,9 @@ class SpawnController extends GameControllerChild {
 
     const instanceSkeleton = instanceContainer.skeletons[0];
     const skeletonRoot = rootNode.getChildren(undefined, true)[0];
-    const newModel = rootNode.getChildTransformNodes()[0]?.metadata?.gltf?.extras?.newModel ?? false;
+    const newModel =
+      rootNode.getChildTransformNodes()[0]?.metadata?.gltf?.extras?.newModel ??
+      false;
     const variation = headIdx.toString().padStart(2, '0') ?? '00';
     const container = await this.getAssetContainer(
       `${rootNode.name.slice(0, 3)}he${variation}`,
@@ -583,10 +697,7 @@ class SpawnController extends GameControllerChild {
 
         if (isHead && newModel) {
           newFullName = `${prefix}sk${textNum}`;
-        } else if (
-          isHead &&
-          this.secondaryHelm(modelName)
-        ) {
+        } else if (isHead && this.secondaryHelm(modelName)) {
           continue;
         }
 
@@ -642,9 +753,8 @@ class SpawnController extends GameControllerChild {
     if (secondary) {
       const secondaryHeld = await this.createItem(secondary);
       if (secondaryHeld) {
-    
-        const secondaryBone = skeletonRoot.skeleton.bones.find((b) =>
-          b.name === (secondaryPoint === 0 ? 'l_point' : 'shield_point')
+        const secondaryBone = skeletonRoot.skeleton.bones.find(
+          (b) => b.name === (secondaryPoint === 0 ? 'l_point' : 'shield_point')
         );
         const transformNode = rootNode
           .getChildTransformNodes()
@@ -661,7 +771,6 @@ class SpawnController extends GameControllerChild {
           secondaryHeld.scaling.setAll(1);
           secondaryHeld.scaling.x = -1;
           secondaryHeld.name = secondary;
-
         } else {
           secondaryHeld.dispose();
         }
@@ -767,9 +876,9 @@ class SpawnController extends GameControllerChild {
 
     // Preprocess globalload
     this.actions.setLoadingTitle('Loading Global Dependencies');
-  
+
     const existingMetadata = await getEQFile('data', 'global.json', 'json');
-  
+
     if (existingMetadata?.version !== GLOBAL_VERSION) {
       await processGlobal(this.gc.settings, this.gc.rootFileSystemHandle);
     }
