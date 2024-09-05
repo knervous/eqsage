@@ -128,7 +128,6 @@ class SpawnController extends GameControllerChild {
 
   renderCallback() {
     for (const plane of this.dynamicPlanes) {
-      console.log('hit me');
       const distance = this.currentScene.activeCamera.position
         .subtract(plane.position)
         .length();
