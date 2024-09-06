@@ -141,8 +141,16 @@ export const ExporterOverlay = () => {
 
   const doProcessZone = useCallback(
     async (zone) => {
-      const didProcess = await processZone(zone.short_name, settings, rootFileSystemHandle, true);
-      if (didProcess && !recentList.some((a) => a.short_name === zone.short_name)) {
+      const didProcess = await processZone(
+        zone.short_name,
+        settings,
+        rootFileSystemHandle,
+        true
+      );
+      if (
+        didProcess &&
+        !recentList.some((a) => a.short_name === zone.short_name)
+      ) {
         setRecentList((l) => [...l, zone]);
         localStorage.setItem('recent-zones', JSON.stringify(recentList));
       }
@@ -315,13 +323,12 @@ export const ExporterOverlay = () => {
             size="small"
             sx={{ margin: '0px 0', maxWidth: '270px' }}
             isOptionEqualToValue={(option, value) => option?.key === value?.key}
-            onKeyDown={async e => {
+            onKeyDown={async (e) => {
               if (e.key === 'Enter') {
                 await doProcessZone({ short_name: e.target.value });
                 e.stopPropagation();
                 e.preventDefault();
               }
-              
             }}
             onChange={async (e, values) => {
               if (!values) {

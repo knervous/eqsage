@@ -5,6 +5,7 @@ import {
   Mesh,
   PBRMaterial,
   PointLight,
+  PointerDragBehavior,
   PointerEventTypes,
   SceneLoader,
   StandardMaterial,
@@ -57,12 +58,16 @@ class SpawnController extends GameControllerChild {
    */
   zoneSpawnsNode = null;
 
+  tubePath = [];
+  pathPoints = [];
+
   addClickCallback = (cb) => {
     this.clickCallbacks.push(cb);
   };
   removeClickCallback = (cb) => {
     this.clickCallbacks = this.clickCallbacks.filter((l) => l !== cb);
   };
+
 
   /** @type {import('@babylonjs/core').Octree<AbstractMesh>} */
 
@@ -100,6 +105,46 @@ class SpawnController extends GameControllerChild {
     this.currentScene.registerBeforeRender(this.renderCallback.bind(this));
   }
 
+  onDragBehavior() {
+    const scene = this.currentScene;
+    if (!scene) {
+      return;
+    }
+    const zoneMesh = scene.getMeshByName('zone');
+    if (!zoneMesh) {
+      return;
+    }
+
+    const node = this.planeDragTarget;
+
+    if (!node) {
+      return;
+    }
+    const pickResult = scene.pick(
+      scene.pointerX,
+      scene.pointerY,
+      m => m === zoneMesh,
+      false,
+      this.CameraController.camera,
+      (p0, p1, p2, ray) => {
+        const p0p1 = p0.subtract(p1);
+        const p2p1 = p2.subtract(p1);
+        const normal = Vector3.Cross(p0p1, p2p1);
+        return Vector3.Dot(ray.direction, normal) > 0;
+      }
+    );
+
+    // Check if the ray intersects with the specific mesh
+    if (pickResult.hit && pickResult.pickedMesh === zoneMesh) {
+      const hitPoint = pickResult.pickedPoint;
+      node.position.set(hitPoint.x, hitPoint.y + 5, hitPoint.z);
+      node.resetPlane();
+      this.tubePath[node.metadata.idx] = new Vector3(hitPoint.x, hitPoint.y + 5, hitPoint.z);
+      this.updateTube();
+    }
+
+  }
+
   npcLight(spawn) {
     const light =
       this.currentScene?.getLightById('spawn-light') ??
@@ -126,6 +171,7 @@ class SpawnController extends GameControllerChild {
   }
   dynamicPlanes = [];
 
+
   renderCallback() {
     for (const plane of this.dynamicPlanes) {
       const distance = this.currentScene.activeCamera.position
@@ -133,15 +179,165 @@ class SpawnController extends GameControllerChild {
         .length();
 
       // Scale factor based on distance (adjust multiplier as needed)
-      const scaleFactor = Math.max(distance / 130, 0.5); // Minimum scale factor to avoid too small billboards
+      const scaleFactor = Math.max(distance / 160, 0.5); // Minimum scale factor to avoid too small billboards
 
       // Apply the scaling
       plane.scaling = new Vector3(scaleFactor, scaleFactor, scaleFactor);
     }
   }
-  showSpawnPath(coords, selectedIdx) {
+
+  updateTube() {
+    const scene = this.currentScene;
+    const tube = scene.getMeshById('spawn-path');
+
+    if (tube) {
+    // Update the existing tube by re-using the same mesh
+      MeshBuilder.CreateTube(
+        'tube',
+        {
+          path    : this.tubePath,
+          radius  : 0.5,
+          instance: tube, // Reuse the existing tube mesh
+        },
+        scene
+      );
+    }
+  }
+
+  createGridNode(tube, point, tubeMaterial, idx, selectedIdx, updateCallback) {
+    const scene = this.currentScene;
+    if (!scene) {
+      return;
+    }
+    const name = `box${idx}`;
+    // Create box with initial size, will scale later
+    const selected = idx === selectedIdx;
+    const size = selected ? 4 : 3;
+    const box = MeshBuilder.CreateBox(
+      name,
+      { height: size, width: size, depth: size },
+      scene
+    );
+    box.parent = tube;
+    box.position = point;
+    box.material = tubeMaterial;
+    box.metadata = {
+      emissiveColor: selected ? new Color3(1, 0.5, 0) : new Color3(0, 0.5, 1),
+      idx
+    };
+    this.ZoneController.glowLayer.addIncludedOnlyMesh(box);
+
+    // Create a dynamic texture for the label
+    const dynamicTexture = new DynamicTexture(
+      `dynamicTexture${idx}`,
+      { width: 256, height: 256 },
+      scene,
+      false
+    );
+    dynamicTexture.hasAlpha = true;
+
+    // Define the text, font, and colors
+    const text = (idx + 1).toString();
+    const font = 'bold 150px Arial';
+    const textColor = 'white';
+    const outlineColor = '#000';
+
+    // Manual outline by drawing black text at slightly offset positions
+    const offset = 4;
+    dynamicTexture.drawText(
+      text,
+      50 - offset,
+      140 - offset,
+      font,
+      outlineColor,
+      null,
+      true
+    );
+    dynamicTexture.drawText(
+      text,
+      50 + offset,
+      140 - offset,
+      font,
+      outlineColor,
+      null,
+      true
+    );
+    dynamicTexture.drawText(
+      text,
+      50 - offset,
+      140 + offset,
+      font,
+      outlineColor,
+      null,
+      true
+    );
+    dynamicTexture.drawText(
+      text,
+      50 + offset,
+      140 + offset,
+      font,
+      outlineColor,
+      null,
+      true
+    );
+
+    // Draw the white text on top
+    dynamicTexture.drawText(text, 50, 135, font, textColor, null, true);
+
+    // Create a plane for the billboard
+    const plane = MeshBuilder.CreatePlane(
+      `labelPlane${idx}`,
+      { width: 6, height: 6 },
+      scene
+    );
+    plane.material = new StandardMaterial(`labelMat${idx}`, scene);
+    plane.material.diffuseTexture = dynamicTexture;
+    plane.material.emissiveColor = new Color3(1, 1, 1); // Set emissive color to make it visible in dark scenes
+    plane.material.backFaceCulling = false; // Ensure the texture is visible from all angles
+    this.ZoneController.glowLayer.addIncludedOnlyMesh(plane);
+    plane.metadata = {
+      emissiveColor: selected ? new Color3(1, 0.5, 0) : new Color3(0, 0, 0),
+      occludedColor: new Color3(1, 1, 1),
+      spawn        : {
+        gridIdx: idx,
+      },
+    };
+    const db = new PointerDragBehavior();
+    plane.onDragStart = () => {
+      this.planeDragTarget = box;
+    };
+    plane.onDragEnd = () => {
+      updateCallback(this.pathPoints[idx], box.position);
+    };
+    db.onDragStartObservable.add(plane.onDragStart);
+    db.onDragEndObservable.add(plane.onDragEnd);
+    db.onDragObservable.add(this.onDragBehavior.bind(this));
+
+    db.attach(plane);
+    plane.db = db;
+
+    // Position the plane above the box
+    plane.position = new Vector3(0, 1 + size, 0);
+    plane.parent = box;
+    plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
+    plane.forceRenderingWhenOccluded = true;
+    plane.occlusionType = AbstractMesh.OCCLUSION_TYPE_OPTIMISTIC;
+    plane.isPickable = true;
+    box.resetPlane = () => {
+      plane.position = new Vector3(0, 1 + size, 0);
+    };
+    this.dynamicPlanes.push(plane);
+  }
+
+  showSpawnPath(coords, selectedIdx, updateCallback = () => {}) {
     if (!this.currentScene) {
       return;
+    }
+    for (const plane of this.dynamicPlanes) {
+      plane.db.detach();
+      plane.db.onDragStartObservable.removeCallback(plane.onDragStart);
+      plane.db.onDragEndObservable.removeCallback(plane.onDragEnd);
+      plane.db.onDragObservable.removeCallback(this.onDragBehavior);
     }
     this.dynamicPlanes = [];
 
@@ -152,6 +348,11 @@ class SpawnController extends GameControllerChild {
       return;
     }
     const path = coords.map((a) => new Vector3(a.y, a.z, a.x));
+    this.pathPoints = coords;
+    this.tubePath = path;
+    if (path.length <= 1) {
+      return;
+    }
     const tube = MeshBuilder.CreateTube(
       'tube',
       {
@@ -162,6 +363,7 @@ class SpawnController extends GameControllerChild {
       },
       this.currentScene
     );
+    
     tube.id = 'spawn-path';
     const tubeMaterial = new StandardMaterial(
       'tubeMaterial',
@@ -174,114 +376,9 @@ class SpawnController extends GameControllerChild {
       emissiveColor: new Color3(0, 0.5, 1),
     };
 
-    // Function to create an arrow
-    const createDirectionalBox = (name, point, scene, idx) => {
-      // Create box with initial size, will scale later
-      const selected = idx === selectedIdx;
-      const size = selected ? 3 : 2;
-      const box = MeshBuilder.CreateBox(
-        name,
-        { height: size, width: size, depth: size },
-        scene
-      );
-      box.parent = tube;
-      box.position = point;
-      box.material = tubeMaterial;
-      box.metadata = {
-        emissiveColor: selected ? new Color3(1, 0.5, 0) : new Color3(0, 0.5, 1),
-      };
-      this.ZoneController.glowLayer.addIncludedOnlyMesh(box);
-
-      // Create a dynamic texture for the label
-      const dynamicTexture = new DynamicTexture(
-        `dynamicTexture${idx}`,
-        { width: 512, height: 256 },
-        scene,
-        false
-      );
-      dynamicTexture.hasAlpha = true;
-
-      // Define the text, font, and colors
-      const text = (idx + 1).toString();
-      const font = 'bold 150px Arial';
-      const textColor = 'white';
-      const outlineColor = '#000';
-
-      // Manual outline by drawing black text at slightly offset positions
-      const offset = 4;
-      dynamicTexture.drawText(
-        text,
-        256 - offset,
-        140 - offset,
-        font,
-        outlineColor,
-        null,
-        true
-      );
-      dynamicTexture.drawText(
-        text,
-        256 + offset,
-        140 - offset,
-        font,
-        outlineColor,
-        null,
-        true
-      );
-      dynamicTexture.drawText(
-        text,
-        256 - offset,
-        140 + offset,
-        font,
-        outlineColor,
-        null,
-        true
-      );
-      dynamicTexture.drawText(
-        text,
-        256 + offset,
-        140 + offset,
-        font,
-        outlineColor,
-        null,
-        true
-      );
-
-      // Draw the white text on top
-      dynamicTexture.drawText(text, 256, 135, font, textColor, null, true);
-
-      // Create a plane for the billboard
-      const plane = MeshBuilder.CreatePlane(
-        `labelPlane${idx}`,
-        { width: 9, height: 6 },
-        scene
-      );
-      plane.material = new StandardMaterial(`labelMat${idx}`, scene);
-      plane.material.diffuseTexture = dynamicTexture;
-      plane.material.emissiveColor = new Color3(1, 1, 1); // Set emissive color to make it visible in dark scenes
-      plane.material.backFaceCulling = false; // Ensure the texture is visible from all angles
-      this.ZoneController.glowLayer.addIncludedOnlyMesh(plane);
-      plane.metadata = {
-        emissiveColor: selected ? new Color3(1, 0.5, 0) : new Color3(0, 0, 0),
-        occludedColor: new Color3(1, 1, 1),
-        spawn        : {
-          gridIdx: idx
-        }
-      };
-      // Position the plane above the box
-      plane.position = new Vector3(0, 0 + size, 0);
-      plane.parent = box;
-
-      // Make the plane always face the camera (billboard effect)
-      plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
-      plane.forceRenderingWhenOccluded = true;
-      plane.occlusionType = AbstractMesh.OCCLUSION_TYPE_OPTIMISTIC;
-      plane.isPickable = true;
-      this.dynamicPlanes.push(plane);
-    };
-
     // Place directional boxes along the path with updated scaling
     for (let i = 0; i < path.length; i++) {
-      createDirectionalBox(`box${i}`, path[i], this.currentScene, i);
+      this.createGridNode(tube, path[i], tubeMaterial, i, selectedIdx, updateCallback);
     }
   }
 

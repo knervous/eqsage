@@ -42,7 +42,7 @@ export const ZoneProvider = ({ children }) => {
 
         for (const path of gridPoints) {
           for (const [idx, spawn] of Object.entries(spawnPoints)) {
-            if (path.gridid === spawn.pathgrid) {
+            if (path.gridid === spawn.pathgrid && path.gridid !== 0) {
               if (!spawnPoints[idx].grid) {
                 spawnPoints[idx].grid = [];
               }
