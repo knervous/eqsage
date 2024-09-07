@@ -9,6 +9,7 @@ import {
   Select,
   Stack,
   Typography,
+  Tooltip,
 } from '@mui/material';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -25,11 +26,14 @@ import { useConfirm } from 'material-ui-confirm';
 import { useZoneContext } from '../../../zone/zone-context';
 import { GridEntryApi } from 'spire-api/api/grid-entry-api';
 import { GridApi } from 'spire-api/api/grid-api';
+import { SpawngroupApi } from 'spire-api/api/spawngroup-api';   // eslint-disable-line
 
 function SpawnNavBar() {
   const [selectedSpawn, setSelectedSpawn] = useState(null);
   const [initialSpawn, setInitialSpawn] = useState(null);
   const [gridUpdater, setGridUpdater] = useState(0);
+  // const [spawnGroup, setSpawnGroup] = useState(null);
+  const [grid, setGrid] = useState(null);
   const [, forceRender] = useState({});
   const { openAlert } = useAlertContext();
   const { selectedZone, Spire } = useMainContext();
@@ -82,13 +86,13 @@ function SpawnNavBar() {
         openAlert(`Failed to update ${selectedSpawn.name}`, 'warning');
       }
     })();
-  }, [
+  }, [   // eslint-disable-line
     selectedSpawn?.x,
     selectedSpawn?.y,
     selectedSpawn?.z,
     Spire,
     initialSpawn,
-  ]); // eslint-disable-line
+  ]);
 
   useEffect(() => {
     setOpen(false);
@@ -111,6 +115,16 @@ function SpawnNavBar() {
 
       delete s.grid;
 
+      if (s.pathgrid) {
+        const gridApi = new GridApi(...Spire.SpireApi.cfg());
+        const entry = await gridApi.getGrid({ id: s.pathgrid });
+        setGrid(entry.data);
+      } else {
+        setGrid(null);
+      }
+
+      // const spawnGroupApi = new SpawngroupApi(...Spire.SpireApi.cfg());
+      // spawnGroupApi.getSpawngroup({ id: s.spawngroup_id }).then(r => setSpawnGroup(r.data)).catch(() => {});
       setSelectedSpawn(s);
       setInitialSpawn(s);
       setAddEditDialogOpen(false);
@@ -189,12 +203,14 @@ function SpawnNavBar() {
     if (!selectedSpawn.grid) {
       console.log('no grid');
       const gridApi = new GridApi(...Spire.SpireApi.cfg());
-      const freeIdRes = await Spire.SpireApi.v1().get('/api/v1/query/free-id-ranges/grid/id');
+      const freeIdRes = await Spire.SpireApi.v1().get(
+        '/api/v1/query/free-id-ranges/grid/id'
+      );
       const freeId = +freeIdRes.data.data[0].start_id;
       const newEntry = await gridApi.createGrid({
         grid: {
           zoneid: selectedZone.zoneidnumber,
-          id    : freeId
+          id    : freeId,
         },
       });
       console.log('new entry', newEntry);
@@ -202,9 +218,13 @@ function SpawnNavBar() {
       const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
         ...Spire.SpireApi.cfg()
       );
-      await spawn2Api.updateSpawn2({ spawn2: selectedSpawn, id: selectedSpawn.id });
+      await spawn2Api.updateSpawn2({
+        spawn2: selectedSpawn,
+        id    : selectedSpawn.id,
+      });
       selectedSpawn.grid = [];
       updateSpawn = true;
+      setGrid(newEntry.data);
     }
     let existingLast = {
       number : 0,
@@ -238,7 +258,7 @@ function SpawnNavBar() {
       loadCallback({ type: 'updateSpawn', spawn: selectedSpawn });
       setSelectedSpawn(selectedSpawn);
     }
-  }, [Spire.SpireApi, selectedZone, selectedSpawn, loadCallback]);
+  }, [Spire.SpireApi, selectedZone, selectedSpawn, loadCallback]); // eslint-disable-line
 
   const updateGridEntry = useCallback(
     async (gridEntry, number = gridEntry.number) => {
@@ -308,7 +328,6 @@ function SpawnNavBar() {
 
   useEffect(() => {
     if (selectedSpawn?.grid) {
-      console.log('showing grid', selectedSpawn?.grid);
       gameController.SpawnController.showSpawnPath(
         selectedSpawn?.grid ?? [],
         selectedGridIdx,
@@ -316,7 +335,6 @@ function SpawnNavBar() {
       );
     }
   }, [selectedGridIdx, selectedSpawn?.grid, updateGrid, gridUpdater]);
-
   return open ? (
     <>
       {addEditDialogOpen && spawnEntries && (
@@ -359,7 +377,7 @@ function SpawnNavBar() {
             variant="h6"
             sx={{ marginBottom: '15px', textAlign: 'center' }}
           >
-            Spawn ID - {selectedSpawn?.id}
+            Spawn Group ID - {selectedSpawn?.id}
             <Typography variant="body2" color="textSecondary" component="p">
               {spawnSubtext}
             </Typography>
@@ -506,7 +524,7 @@ function SpawnNavBar() {
                 color     : 'primary.main',
                 fontSize  : '18px',
                 userSelect: 'none',
-                lineHeight: '35px',
+                lineHeight: '40px',
               }}
             >
               Grid Pathing
@@ -543,7 +561,7 @@ function SpawnNavBar() {
               <InputLabel id="spawn-grid-label">Grid Entry</InputLabel>
               <Select
                 fullWidth
-                disabled={ gridLoading}
+                disabled={gridLoading}
                 labelId="spawn-grid-label"
                 id="spawn-select"
                 value={selectedGridIdx}
@@ -556,11 +574,15 @@ function SpawnNavBar() {
                   </MenuItem>
                 ))}
               </Select>
-              <IconButton disabled={ gridLoading} sx={{ width: '56px' }} onClick={createGridEntry}>
+              <IconButton
+                disabled={gridLoading}
+                sx={{ width: '56px' }}
+                onClick={createGridEntry}
+              >
                 <AddCircleIcon />
               </IconButton>
               <IconButton
-                disabled={ gridLoading || !selectedGridEntry}
+                disabled={gridLoading || !selectedGridEntry}
                 sx={{ width: '56px' }}
                 onClick={deleteGridEntry}
               >
@@ -569,10 +591,10 @@ function SpawnNavBar() {
             </Stack>
           </FormControl>
           {selectedGridEntry && (
-            <FormControl disabled={ gridLoading}>
+            <FormControl sx={{ margin: '5px 0' }} disabled={gridLoading}>
               <Stack direction="row">
                 <TextField
-                  sx={{ margin: '10px 0' }}
+                  sx={{ margin: '10px 5px 10px 0px' }}
                   inputProps={{ type: 'number' }}
                   label="Heading"
                   value={selectedGridEntry.heading}
@@ -593,6 +615,160 @@ function SpawnNavBar() {
                 ></TextField>
               </Stack>
             </FormControl>
+          )}
+          {grid && (
+            <>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontSize  : '18px',
+                  margin    : '10px 10px 10px 10px',
+                  textAlign : 'center',
+                  userSelect: 'none',
+                  color     : 'primary.main',
+                }}
+              >
+                Grid
+              </Typography>
+
+              <FormControl sx={{ margin: '5px 0' }} fullWidth>
+                <InputLabel id="grid-wander-label">Wander Type</InputLabel>
+                <Select
+                  labelId="grid-wander-label"
+                  sx={{ width: '100%' }}
+                  size={'small'}
+                  label="Wander Type"
+                  value={grid.type}
+                  onChange={(e) => {
+                    const gridApi = new GridApi(...Spire.SpireApi.cfg());
+                    grid.type = +e.target.value;
+                    gridApi
+                      .updateGrid({ id: grid.id, grid })
+                      .then(() => {
+                        openAlert('Updated Grid Wander Type');
+                      })
+                      .catch(() => {
+                        openAlert('Error Updating Grid Wander Type', 'warning');
+                      })
+                      .finally(() => {
+                        forceRender({});
+                      });
+                  }}
+                >
+                  {[
+                    [
+                      0,
+                      'Circular',
+                      'NPC will cycle waypoints in order, then head back to the first waypoint.',
+                    ],
+                    [
+                      1,
+                      'Random 10',
+                      'NPC will pick a random of the nearest 10 waypoints and go to it.',
+                    ],
+                    [
+                      2,
+                      'Random',
+                      'NPC will pick a random waypoint in the grid and go to it.',
+                    ],
+                    [
+                      3,
+                      'Patrol',
+                      'NPC will walk the waypoints to the end, then turn and backtrack.',
+                    ],
+                    [
+                      4,
+                      'One Way',
+                      'NPC will walk the waypoints to the end, then repop.',
+                    ],
+                    [
+                      5,
+                      'Random 5 LoS',
+                      'NPC will pick a random of the nearest 5 waypoints within line of sight.',
+                    ],
+                    [
+                      6,
+                      'One Way',
+                      'NPC will walk the waypoints to the end, then Depop.',
+                    ],
+                    [
+                      7,
+                      'Center Point',
+                      'NPC will treat wp0 as center and move between it and a random wp.',
+                    ],
+                    [
+                      8,
+                      'Random Center Point',
+                      'NPC will alternate between a random waypoint and a random waypoint that is marked as center point.',
+                    ],
+                    [
+                      9,
+                      'Random Path',
+                      'Pick random waypoints, but follow path instead of heading there directly.',
+                    ],
+                  ].map(([val, short, long], idx) => (
+                    <Tooltip
+                      key={idx}
+                      value={val}
+                      placement="left"
+                      title={long}
+                    >
+                      <MenuItem>
+                        [{val}] {short}
+                      </MenuItem>
+                    </Tooltip>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl sx={{ margin: '5px 0' }} fullWidth>
+                <InputLabel id="grid-pause-label">Pause Type</InputLabel>
+
+                <Select
+                  labelId="grid-pause-label"
+                  sx={{ width: '100%' }}
+                  size={'small'}
+                  label="Pause Type"
+                  value={grid.type_2}
+                  onChange={(e) => {
+                    const gridApi = new GridApi(...Spire.SpireApi.cfg());
+                    grid.type_2 = +e.target.value;
+                    gridApi
+                      .updateGrid({ id: grid.id, grid })
+                      .then(() => {
+                        openAlert('Updated Grid Pause Type');
+                      })
+                      .catch(() => {
+                        openAlert('Error Updating Grid Pause Type', 'warning');
+                      })
+                      .finally(() => {
+                        forceRender({});
+                      });
+                  }}
+                >
+                  {[
+                    [
+                      0,
+                      'Random half',
+                      'NPC pauses for half of its pause time + random of half its pause time.',
+                    ],
+                    [1, 'Full', 'NPC pauses for full pause time.'],
+                    [2, 'Random', 'NPC pauses for random of its pause time.'],
+                  ].map(([val, short, long], idx) => (
+                    <Tooltip
+                      key={idx}
+                      value={val}
+                      placement="left"
+                      title={long}
+                    >
+                      <MenuItem>
+                        [{val}] {short}
+                      </MenuItem>
+                    </Tooltip>
+                  ))}
+                </Select>
+              </FormControl>
+            </>
           )}
         </Box>
       </Box>

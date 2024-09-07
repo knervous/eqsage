@@ -79,6 +79,68 @@ export class BabylonSpawn {
     this.rootNode.addLODLevel(value, this.instance);
   }
 
+
+  secondaryHelm = (name) => {
+    return [
+      'bam',
+      'baf',
+      'erm',
+      'erf',
+      'elf',
+      'elm',
+      'gnf',
+      'gnm',
+      'trf',
+      'trm',
+      'hum',
+      'huf',
+      'daf',
+      'dam',
+      'dwf',
+      'dwm',
+      'haf',
+      'ikf',
+      'ikm',
+      'ham',
+      'hif',
+      'him',
+      'hof',
+      'hom',
+      'ogm',
+      'ogf',
+      'gia',
+      'yak',
+      'kem',
+      'kef',
+      'tri',
+      'tun',
+    ].some((l) => name.startsWith(l));
+  };
+
+  skipTextureSwap(modelName) {
+    return ['tri', 'tun', 'els', 'rhi', 'ogs', 'aelobject02'].some((l) =>
+      modelName.startsWith(l)
+    );
+  }
+
+  wearsRobe(modelName) {
+    return [
+      'daf01',
+      'dam01',
+      'erf01',
+      'erm01',
+      'gnf01',
+      'gnm01',
+      'huf01',
+      'hum01',
+      'ikf01',
+      'ikm01',
+      'hif01',
+      'him01',
+    ].includes(modelName);
+  }
+
+
   /**
    * @returns {boolean}
    */
@@ -123,36 +185,24 @@ export class BabylonSpawn {
     const instanceSkeleton = this.instanceContainer.skeletons[0];
     const skeletonRoot = this.rootNode.getChildren(undefined, true)[0];
 
-    const secondaryMeshes = this.rootNode.getChildTransformNodes()[0]?.metadata?.gltf?.extras?.secondaryMeshes ?? 0;
   
     // Secondary mesh
-    let secModel = null;
-    if (secondaryMeshes > 0) {
-      const variation = this.spawnEntry.helmtexture?.toString().padStart(2, '0') ?? '00';
-      const container = await window.gameController.SpawnController.getAssetContainer(`${this.modelName}he${variation}`, true);
-      if (container) {
-        const secondaryModel = container.instantiateModelsToScene();
-        secModel = secondaryModel;
-        try {
-          secondaryModel.rootNodes[0].getChildMeshes()?.forEach(m => {
-            this.rootNode.addChild(m);
-            m.parent = this.rootNode;
-          });
-  
-  
-        } catch (e) {
-  
-        }
-      }
-    
-      // this.rootNode.addChild(secondaryModel.rootNodes[0].getChildMeshes()[0]);
-      // if (secondaryModel.rootNodes.length) {
-      //   this.rootNode.addChild(secondaryModel.rootNodes[0].getChildMeshes()[0]);
+    const secModel = null;
 
-      // } else {
-      //   console.warn(`Sec mesh for ${this.spawnEntry.name} not loaded`);
-      // }
+    const variation = this.spawnEntry.helmtexture?.toString().padStart(2, '0') ?? '00';
+    const container = await window.gameController.SpawnController.getAssetContainer(`${this.modelName}he${variation}`, true);
+    let sec = null;
+    if (container) {
+      const secondaryModel = container.instantiateModelsToScene();
+      const secondaryRootNode = secondaryModel.rootNodes[0];
+
+      secondaryRootNode.getChildMeshes().forEach((m) => {
+        m.parent = this.rootNode;
+      });
+      sec = secondaryModel;
     }
+
+    sec?.dispose();
 
     const merged = Mesh.MergeMeshes(
       this.rootNode.getChildMeshes(false),
@@ -182,29 +232,31 @@ export class BabylonSpawn {
         this.spawnEntry.hasOwnProperty('texture') &&
         this.spawnEntry.texture > 0
       ) {
+        const texture = this.spawnEntry.texture;
+
         for (const [idx, mat] of Object.entries(multiMat.subMaterials)) {
           if (!mat?._albedoTexture) {
             continue;
           }
-          const isVariationTexture = this.spawnEntry.texture >= 10;
-          let text =
-            isVariationTexture
-              ? this.spawnEntry.texture - 10
-              : this.spawnEntry.texture;
+          const isVariationTexture = texture >= 10;
+          let text = isVariationTexture ? texture - 10 : texture;
           if (mat.name.startsWith('clk')) {
             text += 4;
+          } else if (texture >= 10) {
+            continue;
           }
           const prefix = mat.name.slice(0, mat.name.length - 4);
           const suffix = mat.name.slice(mat.name.length - 4, mat.name.length);
           const textVer = suffix.slice(0, 2);
           const textNum = suffix.slice(2, 4);
-
           const thisText = text.toString().padStart(2, '0');
-          if (thisText.includes(`he${thisText}`)) {
+          const newFullName = `${prefix}${thisText}${textNum}`;
+          const isHead = newFullName.includes(`he${thisText}`);
+  
+          if (isHead && this.secondaryHelm(this.modelName)) {
             continue;
           }
-
-          const newFullName = `${prefix}${thisText}${textNum}`;
+  
           if (thisText !== textVer) {
             const existing = window.gameController.currentScene.materials
               .flat()
