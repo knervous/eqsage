@@ -82,7 +82,7 @@ export async function writeMetadata(
  */
 export async function writeModels(modelFile, mod) {
   modelFile = modelFile.replace('.mod', '');
-  const diskFileName = this.name.includes('gequip') || true ? `${modelFile.glb}` : `[${this.name}] ${modelFile}.glb`;
+  const diskFileName = `${modelFile}.glb`;
   if (
     (await getEQFileExists('objects', diskFileName)) &&
     !modelFile.includes('et_drbanner') &&

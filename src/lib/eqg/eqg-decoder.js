@@ -144,7 +144,7 @@ export class EQGDecoder {
 
     const arrayBuffer = await file.arrayBuffer();
     await this.processBuffer(file.name, arrayBuffer);
-
+    console.log('pfs', this.pfsArchive)
     // Entrypoint for testing
     if (import.meta.env.VITE_LOCAL_DEV === "true" && this.zone?.version === 3) {
       // const serZone = Zone.write(this.zone.terrain);
