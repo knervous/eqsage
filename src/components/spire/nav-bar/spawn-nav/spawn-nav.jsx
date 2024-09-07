@@ -74,7 +74,7 @@ function SpawnNavBar() {
 
     (async () => {
       const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
-        ...Spire.SpireApi.cfg()
+        ...Spire?.SpireApi.cfg()
       );
       try {
         await spawn2Api.updateSpawn2({
@@ -108,7 +108,7 @@ function SpawnNavBar() {
 
       gameController.SpawnController.npcLight(spawn);
       const s = JSON.parse(JSON.stringify(spawn));
-      const gridApi = new GridEntryApi(...Spire.SpireApi.cfg());
+      const gridApi = new GridEntryApi(...Spire?.SpireApi.cfg());
       const builder = new Spire.SpireQueryBuilder();
       builder.where('gridid', '=', s.pathgrid);
       builder.where('zoneid', '=', selectedZone.zoneidnumber);
@@ -116,14 +116,14 @@ function SpawnNavBar() {
       delete s.grid;
 
       if (s.pathgrid) {
-        const gridApi = new GridApi(...Spire.SpireApi.cfg());
+        const gridApi = new GridApi(...Spire?.SpireApi.cfg());
         const entry = await gridApi.getGrid({ id: s.pathgrid });
         setGrid(entry.data);
       } else {
         setGrid(null);
       }
 
-      // const spawnGroupApi = new SpawngroupApi(...Spire.SpireApi.cfg());
+      // const spawnGroupApi = new SpawngroupApi(...Spire?.SpireApi.cfg());
       // spawnGroupApi.getSpawngroup({ id: s.spawngroup_id }).then(r => setSpawnGroup(r.data)).catch(() => {});
       setSelectedSpawn(s);
       setInitialSpawn(s);
@@ -179,7 +179,7 @@ function SpawnNavBar() {
     })
       .then(() => {
         const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
-          ...Spire.SpireApi.cfg()
+          ...Spire?.SpireApi.cfg()
         );
         spawn2Api
           .deleteSpawn2({ id: selectedSpawn?.id })
@@ -202,8 +202,8 @@ function SpawnNavBar() {
     let updateSpawn = false;
     if (!selectedSpawn.grid) {
       console.log('no grid');
-      const gridApi = new GridApi(...Spire.SpireApi.cfg());
-      const freeIdRes = await Spire.SpireApi.v1().get(
+      const gridApi = new GridApi(...Spire?.SpireApi.cfg());
+      const freeIdRes = await Spire?.SpireApi.v1().get(
         '/api/v1/query/free-id-ranges/grid/id'
       );
       const freeId = +freeIdRes.data.data[0].start_id;
@@ -216,7 +216,7 @@ function SpawnNavBar() {
       console.log('new entry', newEntry);
       selectedSpawn.pathgrid = newEntry.data.id;
       const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
-        ...Spire.SpireApi.cfg()
+        ...Spire?.SpireApi.cfg()
       );
       await spawn2Api.updateSpawn2({
         spawn2: selectedSpawn,
@@ -240,7 +240,7 @@ function SpawnNavBar() {
     ) {
       existingLast = selectedSpawn.grid[selectedSpawn.grid.length - 1];
     }
-    const gridApi = new GridEntryApi(...Spire.SpireApi.cfg());
+    const gridApi = new GridEntryApi(...Spire?.SpireApi.cfg());
     const newEntry = await gridApi.createGridEntry({
       gridEntry: {
         ...existingLast,
@@ -258,11 +258,11 @@ function SpawnNavBar() {
       loadCallback({ type: 'updateSpawn', spawn: selectedSpawn });
       setSelectedSpawn(selectedSpawn);
     }
-  }, [Spire.SpireApi, selectedZone, selectedSpawn, loadCallback]); // eslint-disable-line
+  }, [Spire?.SpireApi, selectedZone, selectedSpawn, loadCallback]); // eslint-disable-line
 
   const updateGridEntry = useCallback(
     async (gridEntry, number = gridEntry.number) => {
-      const gridApi = new GridEntryApi(...Spire.SpireApi.cfg());
+      const gridApi = new GridEntryApi(...Spire?.SpireApi.cfg());
       const builder = new Spire.SpireQueryBuilder();
       builder.where('number', '=', number);
       builder.where('zoneid', '=', gridEntry.zoneid);
@@ -277,7 +277,7 @@ function SpawnNavBar() {
         { query: builder.get() }
       );
     },
-    [Spire.SpireApi, Spire.SpireQueryBuilder]
+    [Spire?.SpireApi, Spire?.SpireQueryBuilder]
   );
 
   const deleteGridEntry = useCallback(async () => {
@@ -286,7 +286,7 @@ function SpawnNavBar() {
     }
     setGridLoading(true);
     try {
-      const gridApi = new GridEntryApi(...Spire.SpireApi.cfg());
+      const gridApi = new GridEntryApi(...Spire?.SpireApi.cfg());
       const builder = new Spire.SpireQueryBuilder();
       builder.where('number', '=', selectedGridEntry.number);
       builder.where('zoneid', '=', selectedGridEntry.zoneid);
@@ -432,7 +432,7 @@ function SpawnNavBar() {
                 disabled={selectedIdx === -1}
                 onClick={() => {
                   window.open(
-                    `${Spire.SpireApi?.remoteUrl ?? ''}/npc/${
+                    `${Spire?.SpireApi?.remoteUrl ?? ''}/npc/${
                       selectedSpawn?.spawnentries?.[selectedIdx]?.npc_id
                     }`,
                     '_blank'
@@ -640,7 +640,7 @@ function SpawnNavBar() {
                   label="Wander Type"
                   value={grid.type}
                   onChange={(e) => {
-                    const gridApi = new GridApi(...Spire.SpireApi.cfg());
+                    const gridApi = new GridApi(...Spire?.SpireApi.cfg());
                     grid.type = +e.target.value;
                     gridApi
                       .updateGrid({ id: grid.id, grid })
@@ -731,7 +731,7 @@ function SpawnNavBar() {
                   label="Pause Type"
                   value={grid.type_2}
                   onChange={(e) => {
-                    const gridApi = new GridApi(...Spire.SpireApi.cfg());
+                    const gridApi = new GridApi(...Spire?.SpireApi.cfg());
                     grid.type_2 = +e.target.value;
                     gridApi
                       .updateGrid({ id: grid.id, grid })
