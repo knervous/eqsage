@@ -2,7 +2,6 @@
 import zlib from 'pako';
 import { Buffer } from 'buffer';
 import { Wld, WldType } from './wld/wld';
-import { TypedArrayReader } from '../util/typed-array-reader';
 import { imageProcessor } from '../util/image/image-processor';
 import { Accessor, WebIO } from '@gltf-transform/core';
 import { mat4 } from 'gl-matrix';
@@ -10,6 +9,7 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
 import { ShaderType } from './materials/material';
 import {
+  appendObjectMetadata,
   getEQFile,
   getEQFileExists,
   getEQRootDir,
@@ -23,85 +23,10 @@ import {
 } from '../util/animation-helper';
 import { GlobalStore } from '../../state';
 import { EQGDecoder } from '../eqg/eqg-decoder';
+import { PFSArchive } from '../pfs/pfs';
+import { Sound } from './sound/sound';
 
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS)
-
-/**
- *
- * @param {[import('./materials/material-list').MaterialList]}
- * @param {Document} document
- */
-const getMaterials = async (materialList, document, roughness = 0.0) => {
-  const materials = {};
-  for (const eqMaterial of materialList) {
-    if (materials[eqMaterial.name]) {
-      continue;
-    }
-    let [name] = eqMaterial.name.toLowerCase().split(/_mdf/i);
-
-    if (/m\d+/.test(name) && eqMaterial.bitmapInfo?.reference) {
-      name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
-    }
-    const gltfMaterial = document
-      .createMaterial()
-      .setDoubleSided(false)
-      .setRoughnessFactor(1)
-      .setMetallicFactor(0)
-      .setName(name);
-    if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {
-      name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
-      gltfMaterial.setName(name);
-      gltfMaterial.setExtras({
-        animationDelay: eqMaterial.bitmapInfo.reference.animationDelayMs,
-        frames        : eqMaterial.bitmapInfo.reference.bitmapNames.map((m) =>
-          m.name.toLowerCase()
-        ),
-      });
-    }
-
-    const texture = document
-      .createTexture(name.toLowerCase())
-      .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
-      .setURI(`/eq/textures/${name}`)
-      .setExtras({
-        name,
-      })
-      .setMimeType('image/png');
-    gltfMaterial.setBaseColorTexture(texture);
-    switch (eqMaterial.shaderType) {
-      case ShaderType.TransparentMasked:
-        gltfMaterial.setAlpha(0.5).setAlphaMode('MASK');
-        break;
-      case ShaderType.Transparent25:
-      case ShaderType.Transparent50:
-      case ShaderType.Transparent75:
-      case ShaderType.TransparentAdditive:
-      case ShaderType.TransparentAdditiveUnlit:
-      case ShaderType.TransparentSkydome:
-      case ShaderType.TransparentAdditiveUnlitSkydome:
-        gltfMaterial.setAlphaMode('BLEND');
-        break;
-      case ShaderType.Boundary:
-        gltfMaterial.setAlphaMode('BLEND');
-        gltfMaterial.setAlpha(0);
-        gltfMaterial.setExtras({ boundary: true })
-        break;
-      default:
-        gltfMaterial.setAlphaMode('OPAQUE');
-        break;
-    }
-
-    if (
-      eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlit ||
-      eqMaterial.ShaderType === ShaderType.DiffuseSkydome ||
-      eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlitSkydome
-    ) {
-      // gltfMaterial.WithUnlitShader();
-    }
-    materials[eqMaterial.name] = gltfMaterial;
-  }
-  return materials;
-};
 
 export class S3DDecoder {
   /** @type {import('../model/file-handle').EQFileHandle} */
@@ -111,6 +36,19 @@ export class S3DDecoder {
    * @type {[Wld]}
    */
   wldFiles = [];
+
+  /**
+   * @type {Sound}
+   */
+  sound = null;
+
+  /**
+   *
+   * @type {PFSArchive}
+   */
+  pfsArchive;
+
+  
   gequip = false;
 
   constructor(fileHandle) {
@@ -128,57 +66,19 @@ export class S3DDecoder {
     if (buf.length === 0) {
       return;
     }
-    const reader = new TypedArrayReader(arrayBuffer);
-    const offset = reader.readUint32();
-    reader.setCursor(offset);
-    const fileList = [];
-    const count = reader.readUint32();
-    let directory = null;
-    for (let i = 0; i < count; i++) {
-      reader.setCursor(offset + 4 + i * 12);
-      const crc = reader.readUint32();
-      const fileOffset = reader.readUint32();
-      const size = reader.readUint32();
-      const data = Buffer.alloc(size);
-      let writeCursor = 0;
-      reader.setCursor(fileOffset);
-      while (writeCursor < size) {
-        const deflen = reader.readUint32();
-        const inflen = reader.readUint32();
-        const inflated = Buffer.from(
-          zlib.inflate(
-            buf.slice(reader.getCursor(), reader.getCursor() + deflen)
-          )
-        );
-        if (inflated.length !== inflen) {
-          throw new Error('ZLib Decompression failed');
-        }
-        inflated.copy(data, writeCursor);
-        reader.setCursor(reader.getCursor() + deflen);
-        writeCursor += inflen;
-      }
-      if (crc === 0x61580ac9) {
-        directory = data;
-      } else {
-        fileList.push({ fileOffset, data });
-      }
-    }
-    fileList.sort((a, b) => a.fileOffset - b.fileOffset);
-
-    const dirBufferReader = new TypedArrayReader(directory.buffer);
-    const _dirlen = dirBufferReader.readUint32();
+    this.pfsArchive = new PFSArchive();
+    this.pfsArchive.openFromFile(arrayBuffer);
 
     this.files = {};
     const images = [];
     // Preprocess images
     const shaderMap = {};
-    for (const f of fileList) {
-      const fileName = dirBufferReader.readString(dirBufferReader.readUint32());
-      this.files[fileName] = f.data;
+    for (const [fileName, data] of this.pfsArchive.files.entries()) {
+      this.files[fileName] = this.pfsArchive.getFile(fileName);
 
       if (fileName.endsWith('.wld')) {
         console.log(`Processing WLD file - ${fileName}`);
-        const wld = new Wld(f.data, fileName);
+        const wld = new Wld(this.files[fileName], fileName);
         for (const mat of wld.materialList.flatMap((ml) => ml.materialList)) {
           for (const bitmapName of mat.bitmapInfo?.reference?.bitmapNames ??
             []) {
@@ -192,12 +92,12 @@ export class S3DDecoder {
       }
 
       if (fileName.endsWith('.bmp') || fileName.endsWith('.dds')) {
-        images.push({ name: fileName, data: f.data.buffer });
+        images.push({ name: fileName, data: this.files[fileName].buffer });
         continue;
       }
     }
 
-    console.log('Files', Object.keys(this.files));
+    console.log(`Files ${file.name}`, Object.keys(this.files));
 
     for (const image of images) {
       image.shaderType = shaderMap[image.name];
@@ -350,7 +250,7 @@ export class S3DDecoder {
 
         scene.addChild(node);
 
-        const materials = await getMaterials(material.materialList, document);
+        const materials = await this.getMaterials(material.materialList, document);
 
         const primitiveMap = {};
 
@@ -550,8 +450,9 @@ export class S3DDecoder {
       const diskFileName = this.#fileHandle.name.includes('gequip') || true ? `${scrubbedName}.glb` :
         `[${this.#fileHandle.name}] ${scrubbedName}.glb`
       if (await getEQFileExists(path, diskFileName)) {
-        continue;
+       continue;
       }
+      await appendObjectMetadata(scrubbedName, wld.name.replace('.wld', ''));
       const document = new Document(scrubbedName);
       const buffer = document.createBuffer();
       const scene = document.createScene(scrubbedName);
@@ -565,7 +466,7 @@ export class S3DDecoder {
 
       scene.addChild(node);
 
-      const materials = await getMaterials(material.materialList, document);
+      const materials = await this.getMaterials(material.materialList, document);
 
       const primitiveMap = {};
 
@@ -704,13 +605,35 @@ export class S3DDecoder {
       version: VERSION,
       objects: {},
       lights : [],
-      music  : [],
-      sound2d: [],
-      sound3d: [],
+      sounds: [],
       regions: [],
     };
 
+
     wld.bspTree?.constructRegions(wld);
+    
+    // Lights
+    const lightWld = this.wldFiles.find((f) => f.type === WldType.Lights);
+    if (lightWld) {
+      for (const light of lightWld.lights) {
+        const [x,y,z] = light.position;
+        const l = {
+          x,
+          y: z,
+          z: y,
+          radius: 30,
+        }
+        const lightSource = light.reference.lightSource;
+        l.r = lightSource.colors?.[0]?.r ?? 1;
+        l.g = lightSource.colors?.[0]?.g ?? 1;
+        l.b = lightSource.colors?.[0]?.b ?? 1;
+        zoneMetadata.lights.push(l);
+      }
+    }
+
+    if (this.sound) {
+      zoneMetadata.sounds = this.sound.sounds;
+    }
 
     // BSP regions
     const regions = [];
@@ -730,7 +653,7 @@ export class S3DDecoder {
         center: [leafNode.center[0], leafNode.center[2], leafNode.center[1]],
       });
     }
-    zoneMetadata.unparsedRegions = regions;
+    zoneMetadata.unoptimizedRegions = regions;
 
     // Object Instances
     const objWld = this.wldFiles.find((f) => f.type === WldType.ZoneObjects);
@@ -766,7 +689,7 @@ export class S3DDecoder {
     );
 
     const primitiveMap = {};
-    const materials = await getMaterials(
+    const materials = await this.getMaterials(
       wld.materialList.flatMap((a) => a.materialList),
       document
     );
@@ -898,6 +821,83 @@ export class S3DDecoder {
     await writeEQFile('zones', zoneName, bytes.buffer);
   }
 
+  /**
+ *
+ * @param {[import('./materials/material-list').MaterialList]}
+ * @param {Document} document
+ */
+async getMaterials (materialList, document, roughness = 0.0) {
+  const materials = {};
+  for (const eqMaterial of materialList) {
+    if (materials[eqMaterial.name]) {
+      continue;
+    }
+    let [name] = eqMaterial.name.toLowerCase().split(/_mdf/i);
+
+    if (/m\d+/.test(name) && eqMaterial.bitmapInfo?.reference) {
+      name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
+    }
+    const gltfMaterial = document
+      .createMaterial()
+      .setDoubleSided(false)
+      .setRoughnessFactor(1)
+      .setMetallicFactor(0)
+      .setName(name);
+    if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {
+      name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
+      gltfMaterial.setName(name);
+      gltfMaterial.setExtras({
+        animationDelay: eqMaterial.bitmapInfo.reference.animationDelayMs,
+        frames        : eqMaterial.bitmapInfo.reference.bitmapNames.map((m) =>
+          m.name.toLowerCase()
+        ),
+      });
+    }
+
+    const texture = document
+      .createTexture(name.toLowerCase())
+      //.setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+      .setURI(`/eq/textures/${name}`)
+      .setExtras({
+        name,
+      })
+      .setMimeType('image/png');
+    gltfMaterial.setBaseColorTexture(texture);
+    switch (eqMaterial.shaderType) {
+      case ShaderType.TransparentMasked:
+        gltfMaterial.setAlpha(0.5).setAlphaMode('MASK');
+        break;
+      case ShaderType.Transparent25:
+      case ShaderType.Transparent50:
+      case ShaderType.Transparent75:
+      case ShaderType.TransparentAdditive:
+      case ShaderType.TransparentAdditiveUnlit:
+      case ShaderType.TransparentSkydome:
+      case ShaderType.TransparentAdditiveUnlitSkydome:
+        gltfMaterial.setAlphaMode('BLEND');
+        break;
+      case ShaderType.Boundary:
+        gltfMaterial.setAlphaMode('BLEND');
+        gltfMaterial.setAlpha(0);
+        gltfMaterial.setExtras({ boundary: true })
+        break;
+      default:
+        gltfMaterial.setAlphaMode('OPAQUE');
+        break;
+    }
+
+    if (
+      eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlit ||
+      eqMaterial.ShaderType === ShaderType.DiffuseSkydome ||
+      eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlitSkydome
+    ) {
+      // gltfMaterial.WithUnlitShader();
+    }
+    materials[eqMaterial.name] = gltfMaterial;
+  }
+  return materials;
+};
+
   async export() {
     /**
      * Textures first
@@ -972,6 +972,14 @@ export class S3DDecoder {
           }
           break;
         case 'eff':
+          if (file.name.endsWith('_sounds.eff')) {
+            const bank = this.#fileHandle.fileHandles.find(f => f.name.endsWith('sndbnk.eff'));
+            if (bank) {
+              const root = await getEQRootDir();
+              const mp3List = await root.getFileHandle('mp3index.txt').then(f => f.getFile().then(f => f.text()));
+              this.sound = new Sound(await file.arrayBuffer(), await bank.text(), mp3List, this.#fileHandle.name.split('.')[0]);
+            }
+          }
           break;
         case 'xmi':
           break;

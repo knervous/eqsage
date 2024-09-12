@@ -560,8 +560,9 @@ class ZoneController extends GameControllerChild {
       const regionNode = new TransformNode('regions', this.scene);
       this.regionNode = regionNode;
       regionNode.setEnabled(!!this.regionsShown);
-      if (!metadata.regions?.length && metadata.unparsedRegions?.length) {
-        metadata.regions = await optimizeBoundingBoxes(metadata.unparsedRegions);
+      if (!metadata.regions?.length && metadata.unoptimizedRegions?.length) {
+        metadata.regions = await optimizeBoundingBoxes(metadata.unoptimizedRegions);
+        delete metadata.unoptimizedRegions;
         await writeEQFile('zones', `${name}.json`, JSON.stringify(metadata));
       }
       let idx = 0;

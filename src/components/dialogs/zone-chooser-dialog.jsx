@@ -50,11 +50,15 @@ export const ZoneChooserDialog = ({ open }) => {
     selectedZone,
     setSelectedZone,
     setZoneDialogOpen,
+    setZoneBuilderDialogOpen,
+    audioDialogOpen,
+    setAudioDialogOpen,
     Spire,
     setModelExporter,
     setZones,
     recentList,
     setRecentList,
+    setZoneBuilder
   } = useMainContext();
   const [zoneList, setZoneList] = useState([]);
   const [expansionFilter, setExpansionFilter] = useState([]);
@@ -109,17 +113,37 @@ export const ZoneChooserDialog = ({ open }) => {
       }
       setSelectedZone(zone);
       setZoneDialogOpen(false);
+      setAudioDialogOpen(false);
     },
-    [setZoneDialogOpen, setSelectedZone, recentList]
+    [setZoneDialogOpen, setSelectedZone, recentList, setAudioDialogOpen]
   );
   const enterModelExporter = useCallback(() => {
     gameController.dispose();
     setSelectedZone(null);
     setModelExporter(true);
+    setAudioDialogOpen(false);
     setTimeout(() => {
       setZoneDialogOpen(false);
-    }, 500);
-  }, [setSelectedZone, setModelExporter, setZoneDialogOpen]);
+    }, 250);
+  }, [setSelectedZone, setModelExporter, setZoneDialogOpen, setAudioDialogOpen]);
+
+  const enterAudio = useCallback(() => {
+    gameController.dispose();
+    setSelectedZone(null);
+    setZoneBuilder(false);
+    setZoneBuilderDialogOpen(false);
+    setZoneDialogOpen(false);
+    setAudioDialogOpen(true);
+
+  }, [setSelectedZone, setZoneBuilderDialogOpen, setZoneBuilder, setZoneDialogOpen, setAudioDialogOpen]);
+  const enterZoneBuilder = useCallback(() => {
+    gameController.dispose();
+    setSelectedZone(null);
+    setZoneBuilder(true);
+    setZoneBuilderDialogOpen(true);
+    setZoneDialogOpen(false);
+    setAudioDialogOpen(false);
+  }, [setSelectedZone, setZoneBuilderDialogOpen, setZoneBuilder, setZoneDialogOpen, setAudioDialogOpen]);
 
 
   useEffect(() => {
@@ -132,9 +156,7 @@ export const ZoneChooserDialog = ({ open }) => {
           .then(zones => {
             if (!Array.isArray(zones)) {
               console.log('Error with spire zones', zones);
-
               throw new Error('Error with zones response');
-
             }
             setZoneList(zones);
           })
@@ -146,6 +168,7 @@ export const ZoneChooserDialog = ({ open }) => {
       } else {
         import('../../data/zoneData.json').then((zl) => {
           setZoneList(Array.from(zl.default));
+          // enterZoneBuilder();
         });
       }
     }
@@ -280,9 +303,24 @@ export const ZoneChooserDialog = ({ open }) => {
           variant="outlined"
           sx={{ margin: '5px auto' }}
         >
-          Select Zone
+          Enter Zone
         </Button>
-
+        {/* <Button
+          color="primary"
+          onClick={enterZoneBuilder}
+          variant="outlined"
+          sx={{ margin: '5px auto' }}
+        >
+          Zone Builder
+        </Button> */}
+        <Button
+          color="primary"
+          onClick={enterAudio}
+          variant="outlined"
+          sx={{ margin: '5px auto' }}
+        >
+          Audio Explorer
+        </Button>
         <Button
           color="primary"
           onClick={enterModelExporter}

@@ -3,6 +3,7 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 
 import { mat4, quat, vec3 } from 'gl-matrix';
 import {
+  appendObjectMetadata,
   getEQFile,
   getEQFileExists,
   writeEQFile,
@@ -93,6 +94,7 @@ export async function writeModels(modelFile, mod) {
   ) {
     return;
   }
+  await appendObjectMetadata(modelFile, `${this.name}.eqg`);
   const document = new Document();
   const objectName = mod.name.replace('.mod', '');
   const buffer = document.createBuffer();
@@ -128,9 +130,7 @@ export async function writeModels(modelFile, mod) {
     }
     recurse(0);
   }
-  console.log('mod', mod.name);
-  console.log('bi', boneIndices);
-  console.log('bones', mod.bones);
+
   scene.addChild(node);
   const materials = {};
   for (const mat of mod.geometry.mats) {
@@ -150,7 +150,7 @@ export async function writeModels(modelFile, mod) {
       const texture = document
         .createTexture(name)
         .setMimeType('image/png')
-        .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+        // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
         .setURI(`/eq/textures/${name}`)
         .setExtras({
           name,
@@ -210,7 +210,7 @@ export async function writeModels(modelFile, mod) {
       gltfMesh.addPrimitive(sharedPrimitive.gltfPrim);
     }
     const ln = sharedPrimitive.indices.length;
-    if (b1.length && b2.length && b3.length) {
+    if (false && b1.length && b2.length && b3.length) {
       const reducer = (acc, val, idx, obj) => {
         const boneVal = boneIndices[val.bone];
         let boneIdx, weight;
@@ -344,7 +344,7 @@ export async function writeModels(modelFile, mod) {
       .setAttribute('WEIGHTS_0', primWeights);
   }
 
-  if (mod.bones.length) {
+  if (false && mod.bones.length) {
     const animWriter = new EQGAnimationWriter(
       document,
       skeletonNodes,

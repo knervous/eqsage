@@ -3,13 +3,14 @@
 import { imageProcessor } from "../util/image/image-processor";
 import { Zone } from "./zone/zone";
 import { ZoneData } from "./zone/v4-zone";
-import { Model, Animation } from "./model/model";
+import { Model, Animation, Lit } from "./model/model";
 import { Eco } from "./eco/eco";
 import { exportv4 } from "./gltf-export/v4";
 import { exportv3 } from "./gltf-export/v3";
 import { writeModels } from "./gltf-export/common";
 import { PFSArchive } from "../pfs/pfs";
-import {  getEQRootDir } from "../util/fileHandler";
+import {  getEQRootDir, writeEQFile } from "../util/fileHandler";
+import { S3DDecoder } from "../s3d/s3d-decoder";
 
 export class EQGDecoder {
   /** @type {import('../model/file-handle').EQFileHandle} */
@@ -30,6 +31,11 @@ export class EQGDecoder {
    */
   animations = {};
 
+   /**
+   * @type {Object.<string, import('./model/model').Lit>}
+   */
+  lits = {};
+
   /**
    * @type {Object.<string, import('./eco/eco').Eco>}
    */
@@ -42,7 +48,7 @@ export class EQGDecoder {
 
   /**
    *
-   * @type {PFSArchive
+   * @type {PFSArchive}
    */
   pfsArchive;
 
@@ -61,10 +67,20 @@ export class EQGDecoder {
     this.files = {};
     console.log("l dev", import.meta.env.VITE_LOCAL_DEV);
     for (const [fileName, data] of this.pfsArchive.files.entries()) {
-      console.log('File', fileName)
       this.files[fileName] = this.pfsArchive.getFile(fileName);
+      if (fileName.includes('broodlands') || fileName.includes('ter')) {
+     // console.log('File', fileName)
+
+      }
       if (fileName.endsWith(".lit")) {
-        // console.log('Filename', fileName, 'data', this.files[fileName])
+      //  console.log('Filename', fileName, 'data', this.files[fileName])
+        const lit = new Lit(
+          this.files[fileName],
+          this.#fileHandle,
+          fileName
+        );
+        this.lits[lit.name] = lit;
+
       }
       if (import.meta.env.VITE_LOCAL_DEV === "true") {
         //await writeEQFile(name, fileName, this.files[fileName]);
@@ -104,7 +120,7 @@ export class EQGDecoder {
         this.eco[fileName.replace(".eco", "")] = new Eco(this.files[fileName]);
       }
       if (fileName.endsWith(".mds")) {
-        console.log("Had MDS! ", fileName);
+        //console.log("Had MDS! ", fileName);
       }
     }
 
@@ -144,14 +160,32 @@ export class EQGDecoder {
 
     const arrayBuffer = await file.arrayBuffer();
     await this.processBuffer(file.name, arrayBuffer);
-    console.log('pfs', this.pfsArchive)
+  //  console.log('pfs', this.pfsArchive)
     // Entrypoint for testing
-    if (import.meta.env.VITE_LOCAL_DEV === "true" && this.zone?.version === 3) {
+    if (import.meta.env.VITE_LOCAL_DEV === "true") {
       // const serZone = Zone.write(this.zone.terrain);
       // this.pfsArchive.setFile('broodlands.zon', serZone)
-      // const eqgFile = await this.pfsArchive.saveToFile();
+      // const eqgFile = await this.pfsArchive.saveToFile()
+      // this.pfsArchive.deleteFile('ter_broodlands.lit');
       // await this.processBuffer(file.name, eqgFile);
       // await writeEQFile('zones_out', file.name, eqgFile);
+      // console.log('Test wld in eqg');
+      // const dir = getEQRootDir();
+      // const fh = await dir.getFileHandle('qeynos2_obj.s3d').then(f => f.getFile());
+      // const decoder = new S3DDecoder(fh);
+      // await decoder.processS3D(fh);
+      // const newOne = new PFSArchive();
+      // console.log('dec', decoder)
+      // for (const [fileName, _data] of decoder.pfsArchive.files.entries()) {
+      //   if (!['.bmp', '.dds', '.wld'].some(ext => fileName.endsWith(ext))) {
+      //     continue;
+      //   }
+      //   newOne.setFile(fileName.endsWith('wld') ? 'stillmoon_eqs1.wld' : fileName, decoder.pfsArchive.getFile(fileName));
+      // }
+      // const newEqg = await newOne.saveToFile();
+      // await writeEQFile('zones_out', 'stillmoon_eqs1.s3d', newEqg);
+      //this.pfsArchive.setFile('qeynos2_obj.wld', decoder.files)
+
     }
   }
 
