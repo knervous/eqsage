@@ -32,9 +32,7 @@ export async function exportv4(zoneName) {
     version: VERSION,
     objects: {},
     lights : [],
-    music  : [],
-    sound2d: [],
-    sound3d: [],
+    sounds : [],
     regions: [],
   };
 

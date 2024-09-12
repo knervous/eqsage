@@ -7,6 +7,17 @@ import { Placeable, PlaceableGroup, Region, Terrain } from "../common/models";
 import { ZoneV4 } from "./v4-zone";
 
 const rotChange = Math.PI / 180;
+
+export class Light {
+  name = '';
+  x = 0.0;
+  y = 0.0;
+  z = 0.0;
+  r = 0.0;
+  g = 0.0;
+  b = 0.0;
+  radius = 0.0;
+}
 export class Zone {
   name = "";
   version = 3;
@@ -30,6 +41,11 @@ export class Zone {
    * @type {[Region]}
    */
   regions = [];
+
+  /**
+   * @type {[Light]}
+   */
+  lights = [];
 
   /**
    *
@@ -240,6 +256,22 @@ export class Zone {
       region.extZ = extZ;
       region.flags = [flag_unk1, flag_unk2];
       this.terrain.regions.push(region);
+    }
+
+    // Lights
+    for (let i = 0; i < lightCount; i++) {
+      const light = new Light();
+      const loc = reader.readUint32();
+      const [x,y,z,r,g,b,radius] = reader.readManyFloat32(7);
+      light.name = reader.readCStringFromIdx(postHeaderIdx + loc);
+      light.x = x;
+      light.y = y;
+      light.z = z;
+      light.r = r;
+      light.g = g;
+      light.b = b;
+      light.radius = radius;
+      this.lights.push(light);
     }
   }
 

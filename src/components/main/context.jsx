@@ -69,7 +69,10 @@ export const MainProvider = ({ children }) => {
   const [selectedZone, setSelectedZone] = useState(null);
   const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [zoneBuilderDialogOpen, setZoneBuilderDialogOpen] = useState(false);
+  const [audioDialogOpen, setAudioDialogOpen] = useState(false);
   const [modelExporter, setModelExporter] = useState(false);
+  const [zoneBuilder, setZoneBuilder] = useState(false);
   const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
   const [zones, setZones] = useState([]);
   const [spire, setSpire] = useState(null);
@@ -152,8 +155,14 @@ export const MainProvider = ({ children }) => {
         setZoneDialogOpen,
         statusDialogOpen,
         setStatusDialogOpen,
+        audioDialogOpen,
+        setAudioDialogOpen,
+        zoneBuilderDialogOpen,
+        setZoneBuilderDialogOpen,
         modelExporter,
         setModelExporter,
+        zoneBuilder,
+        setZoneBuilder,
         modelExporterLoaded, 
         setModelExporterLoaded,
         rootFileSystemHandle,

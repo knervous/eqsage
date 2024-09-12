@@ -1,0 +1,82 @@
+.exporter-left-nav,
+.exporter-right-nav {
+  max-width: 100vh;
+  overflow-y: scroll;
+  background-image: url("../../components/images/super_fancy_bg.png");
+  position: fixed;
+  background-repeat: repeat;
+  background-position: center;
+  width: 270px;
+  height: 100vh;
+  padding: 15px;
+  border-width: 2px;
+  border-style: solid;
+  color: white;
+  border-color: rgb(180, 173, 134) rgb(142, 134, 107) rgb(61, 58, 48)
+    rgb(177, 170, 142);
+  transition: right 0.5s ease;
+  z-index: 10;
+  p {
+    width: 100%;
+    text-align: center;
+  }
+  .MuiStack-root {
+    button {
+      margin: 5px 0px;
+    }
+  }
+  .MuiAccordionSummary-root {
+    padding: 0;
+  }
+  .MuiAccordion-root {
+    & {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+    .MuiAccordionDetails-root {
+        padding: 0;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    .MuiAutocomplete-root {
+        width: 270px;
+    }
+    // &, div {
+    //     padding: 0;
+    //     margin: 0;
+    // }
+  }
+
+}
+.exporter-left-nav {
+  left: 0px;
+}
+
+.exporter-right-nav {
+  right: 0px;
+}
+
+.nav-bg-open {
+  right: 0px;
+}
+
+.nav-bg-closed {
+  right: -500px;
+}
+
+.outline-text-strong {
+  color: white; /* Text color */
+  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000,
+    2px 2px 0 #000, -1px -2px 0 #000, 1px -2px 0 #000, -2px -1px 0 #000,
+    2px -1px 0 #000, -2px 1px 0 #000, 2px 1px 0 #000, -1px 2px 0 #000,
+    1px 2px 0 #000; /* More detailed outline effect */
+}
+
+.zone-overlay-text {
+    &:hover {
+        color: white;
+    }
+}

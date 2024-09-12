@@ -80,8 +80,7 @@ export default defineConfig({
     },
     client: {
       overlay: {
-        warnings: true,
-        errors  : true,
+        errors: true,
       },
     },
     port: 4100

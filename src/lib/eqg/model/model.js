@@ -201,6 +201,53 @@ export class Animation {
   }
 }
 
+
+export class Lit {
+  /**
+   * @type {TypedArrayReader}
+   */
+  reader = null;
+  /**
+   * @type {import('../../model/file-handle').EQFileHandle}
+   */
+  fileHandle;
+
+  /**
+   * @type {[BoneAnimation]}
+   */
+  lights = [];
+
+  /**
+   *
+   * @param {Uint8Array} data
+   * @param {import('../../model/file-handle').EQFileHandle} fileHandle
+   */
+  constructor(data, fileHandle, name) {
+    this.reader = new TypedArrayReader(data.buffer);
+    this.fileHandle = fileHandle;
+    this.name = name;
+    this.init();
+  }
+
+  static write() {
+    const preamble = "EQGA";
+  }
+
+  init() {
+    const reader = this.reader;
+    const magic = reader.readString(4);
+    if (magic.slice(0, 3) !== "EQG") {
+      throw new Error("Model does not contain EQG header", magic);
+    }
+    const count = reader.readUint32();
+   
+    for (let i = 0; i < count; i++) {
+      this.lights.push(reader.readManyUint8(4))
+    }
+    const stop = 123;
+  }
+}
+
 export class Model {
   /**
    * @type {TypedArrayReader}

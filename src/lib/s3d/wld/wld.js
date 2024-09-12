@@ -95,6 +95,12 @@ export class Wld {
    * @type {[ActorDef]}
    */
   objects = [];
+
+  /**
+   * @type {[LightInstance]}
+   */
+  lights = [];
+
   /**
    *
    * @param {Uint8Array} data
@@ -249,7 +255,7 @@ export class Wld {
         addFragment(LightSourceReference);
         break;
       case 0x28:
-        addFragment(LightInstance);
+        this.lights.push(addFragment(LightInstance));
         break;
       case 0x2a:
         addFragment(AmbientLight);

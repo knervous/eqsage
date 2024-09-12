@@ -13,6 +13,31 @@ async function* getDirFiles(entry, path = '') {
   }
 }
 
+/**
+ * Get top-level files from the root directory
+ * 
+ * @returns {Promise<FileSystemFileHandle[]>} An array of file handles at the root level
+ */
+export const getRootFiles = async (filter, forName = false) => {
+  const rootDir = getEQRootDir();
+  const files = [];
+
+  if (rootDir) {
+    for await (const [name, entry] of rootDir.entries()) {
+      const push = () => files.push(forName ? name : entry);
+      if (filter && typeof filter === 'function') {
+        if (filter(name)) {
+          push();
+        }
+      } else {
+        push();
+      }
+    }
+  }
+
+  return files;
+};
+
 export async function getFiles(entry, filter = undefined, forName = false) {
   const files = [];
   for await (const file of getDirFiles(entry)) {
@@ -104,8 +129,9 @@ export const writeEQFile = async (directory, name, buffer) => {
   );
   if (fileHandle) {
     const writable = await fileHandle.createWritable();
-    if (writable.locked) {
-      return false;
+    while (writable.locked) {
+      console.log('Locked');
+      await new Promise(res => setTimeout(res, 50));
     }
     await writable.write(buffer);
     await writable.getWriter().releaseLock();
@@ -122,7 +148,7 @@ export const writeEQFile = async (directory, name, buffer) => {
  * @returns {Promise<ArrayBuffer> | Promise<object>}
  */
 export const getEQFile = async (directory, name, type = 'arrayBuffer') => {
-  const dir = await getEQDir(directory);
+  const dir = directory === 'root' ? getEQRootDir() : await getEQDir(directory);
   const fh = await dir.getFileHandle(name).catch(() => undefined);
   const contents = await fh?.getFile().then(f => f.arrayBuffer());
 
@@ -130,10 +156,16 @@ export const getEQFile = async (directory, name, type = 'arrayBuffer') => {
     default:
     case 'arrayBuffer':
       return contents;
-    case 'json':
-      return contents ? JSON.parse(
-        new TextDecoder('utf-8').decode(new Uint8Array(contents))
-      ) : undefined;
+    case 'json': {
+      try {
+        return contents ? JSON.parse(
+          new TextDecoder('utf-8').decode(new Uint8Array(contents))
+        ) : {};
+      } catch {
+        return {};
+      }
+    }
+      
   }
 };
 
@@ -151,4 +183,17 @@ export const getEQFileExists = async (directory, name) => {
       .then(f => !!f.name)
       .catch(() => false)
   );
+};
+
+let existingMetadata = null;
+export const appendObjectMetadata = async (key, path) => {
+  existingMetadata = existingMetadata || (await getEQFile('data', 'objectPaths.json', 'json'));
+  const upperKey = key.toUpperCase();
+  const existing = existingMetadata[upperKey];
+  if (!existing) {
+    existingMetadata[upperKey] = path;
+    await writeEQFile('data', 'objectPaths.json', JSON.stringify(existingMetadata, null, 4));
+  } else if (existing !== path) {
+    console.log(`Tried writing same object ${upperKey} different path ${path}`);
+  }
 };

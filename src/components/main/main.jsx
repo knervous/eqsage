@@ -9,6 +9,8 @@ import { ZoneProvider } from '../zone/zone-context';
 import { LoadingDialog } from '../spire/dialogs/loading-dialog';
 import './main.scss';
 import { useMainContext } from './context';
+import { ZoneBuilderDialog } from '../dialogs/zone-builder-dialog';
+import { AudioDialog } from '../dialogs/audio-dialog';
 
 const CONSTANTS = {
   BONE         : '#ccc',
@@ -23,7 +25,9 @@ export const Main = () => {
     rootFileSystemHandle,
     onDrop,
     requestPermissions,
-    permissionStatus
+    permissionStatus,
+    zoneBuilderDialogOpen,
+    audioDialogOpen
   } = useMainContext();
 
   return (
@@ -75,6 +79,8 @@ export const Main = () => {
             />
           )}
           {zoneDialogOpen && <ZoneChooserDialog open={true} />}
+          {zoneBuilderDialogOpen && <ZoneBuilderDialog open={true} />}
+          {audioDialogOpen && <AudioDialog open={true} />}
           <ZoneProvider>
             <BabylonZoneOverlay />
             <BabylonZone />
