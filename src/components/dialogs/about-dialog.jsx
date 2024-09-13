@@ -78,7 +78,7 @@ export const AboutDialog = ({ open, setOpen }) => {
           <Link
             Icon={DiscordIcon}
             text="EQEmu Discord (in channel #project-requiem)"
-            link="https://discord.com/invite/Pn8U4QGa?utm_source=Discord%20Widget&utm_medium=Connect"
+            link="https://discord.gg/785p886eCw"
           />
           <Link
             Icon={YouTubeIcon}
