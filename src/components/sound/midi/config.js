@@ -26,12 +26,6 @@ export const FORMATS = [
 export const SOUNDFONT_MOUNTPOINT = '/soundfonts';
 export const SOUNDFONTS = [
   {
-    label: 'User SoundFonts (Drop .sf2 to add)',
-    items: [
-      { label: 'Creative 28MBGM (29.7 MB)', value: '28MBGM.sf2' },
-    ],
-  },
-  {
     label: 'Small Soundfonts',
     items: [
       { label: 'GMGSx Plus (6.2 MB)', value: 'gmgsx-plus.sf2' },
@@ -59,8 +53,6 @@ export const SOUNDFONTS = [
       { label: 'NTONYX 32Mb GM Stereo (32.5 MB)', value: '32MbGMStereo.sf2' },
       { label: 'Weeds GM 3 (54.9 MB)', value: 'weedsgm3.sf2' },
       { label: 'EmperorGrieferus SC-55 (58.7 MB)', value: 'SC-55.sf2' },
-      // https://www.youtube.com/watch?v=_J8-CgvC-As
-      // https://drive.google.com/open?id=1G53wKnIBMONgOVx0gCOWrBlJaXsyaKml
     ],
   },
   {

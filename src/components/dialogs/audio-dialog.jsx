@@ -9,11 +9,13 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
-  IconButton,
   Slider,
   Stack,
   TextField,
   Typography,
+  MenuItem,
+  Select,
+  InputLabel,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
@@ -26,6 +28,7 @@ import { getEQFile } from '../../lib/util/fileHandler';
 import { audioController } from '../sound/AudioController';
 
 import './audio.dialog.scss';
+import { SOUNDFONTS } from '../sound/midi/config';
 
 function formatMsToMinutesSeconds(ms) {
   const minutes = Math.floor(ms / 60000); // Convert ms to full minutes
@@ -39,6 +42,9 @@ export const AudioDialog = ({ open }) => {
   const [loading, setLoading] = useState(false);
   const [metadata, setMetadata] = useState(null);
   const [sound, setSound] = useState('');
+  const [selectedSoundfont, setSelectedSoundfont] = useState(
+    localStorage.getItem('sf2') || 'gmgsx-plus.sf2'
+  );
   const [playMs, setPlayMs] = useState(0);
   const prevSound = useRef();
   const [audioState, setAudioState] = useState({
@@ -69,7 +75,13 @@ export const AudioDialog = ({ open }) => {
     },
     [sound, audioState.state]
   );
+  useEffect(() => {
+    audioController.initPromise.then(() => {
+      audioController.sequencer.player.setParameter('soundfont', selectedSoundfont);
 
+    });
+    localStorage.setItem('sf2', selectedSoundfont);
+  }, [selectedSoundfont]);
   useEffect(() => {
     if (sound && prevSound.current !== sound) {
       setPlayMs(0);
@@ -156,8 +168,8 @@ export const AudioDialog = ({ open }) => {
             Audio Explorer handles extraction and conversion of audio files in
             your EverQuest directory and allows you to preview them here in the
             browser. Mp3 files are referenced, .wav files are extracted from
-            .pfs archives, and .mid files are extracted from .xmi files. Happy
-            listening!
+            .pfs archives, and .mid files are extracted from .xmi files.
+            Files that are processed will be stored under your EverQuest directory under eqsage/sounds and can be accessed there directly as well. Happy listening!
           </Typography>
         </Stack>
         {loading || !metadata ? (
@@ -187,6 +199,7 @@ export const AudioDialog = ({ open }) => {
                 borderColor : 'rgba(127,127,127, 0.7)',
                 padding     : '5px',
                 borderRadius: '5px',
+                maxWidth    : 'calc(100% - 12px)',
               }}
               fullWidth
             >
@@ -251,14 +264,31 @@ export const AudioDialog = ({ open }) => {
                   size="small"
                   sx={{ m: 1, width: 300, margin: '0' }}
                 >
+                  {/**
+                   * MIDI
+                   */}
                   <Autocomplete
+                    isOptionEqualToValue={(option, value) =>
+                      option.label === value
+                    }
+                    options={metadata.mid.map((mid, idx) => ({
+                      label: mid,
+                      id   : idx,
+                      key  : `${mid}-${idx}`,
+                    }))}
+                    renderOption={(props, option) => {
+                      return (
+                        <li {...props} key={option.key}>
+                          {option.label}
+                        </li>
+                      );
+                    }}
                     value={sound.endsWith('mid') ? sound : null}
                     size="small"
                     sx={{ margin: '5px 0', maxWidth: '270px' }}
                     onChange={async (e, values) => {
-                      setSound(values ?? '');
+                      setSound(values?.label ?? '');
                     }}
-                    options={metadata.mid}
                     renderInput={(params) => (
                       <TextField {...params} label="Midi" />
                     )}
@@ -288,22 +318,80 @@ export const AudioDialog = ({ open }) => {
                   Next
                   <KeyboardArrowRightIcon />
                 </Button>
+                <FormControl
+                  sx={{
+                    m         : 1,
+                    width     : 300,
+                    margin    : '0',
+                    marginTop : '5px',
+                    marginLeft: '32px',
+                  }}
+                >
+                  <InputLabel id="soundfont-select-label">
+                    Select Soundfont
+                  </InputLabel>
+                  <Select
+                    sx={{ height: '40px', width: '100%' }}
+                    labelId="soundfont-select-label"
+                    id="soundfont-select"
+                    value={selectedSoundfont}
+                    label="Select Soundfont"
+                    onChange={(e) => setSelectedSoundfont(e.target.value)}
+                  >
+                    {SOUNDFONTS.map((group) =>
+                      [
+                        {
+                          value   : group.label,
+                          disabled: true,
+                          label   : group.label,
+                        },
+                      ]
+                        .concat(group.items)
+                        .map((item) => (
+                          <MenuItem
+                            disabled={item.disabled}
+                            key={item.value}
+                            value={item.value}
+                          >
+                            {item.label}
+                          </MenuItem>
+                        ))
+                    )}
+                  </Select>
+                </FormControl>
               </Stack>
             </FormControl>
             <FormControl fullWidth>
               <Stack direction="row">
+                {/**
+                 * MP3
+                 */}
                 <FormControl
                   size="small"
                   sx={{ m: 1, width: 300, margin: '0' }}
                 >
                   <Autocomplete
+                    isOptionEqualToValue={(option, value) =>
+                      option.label === value
+                    }
+                    options={metadata.mp3.map((mid, idx) => ({
+                      label: mid,
+                      id   : idx,
+                      key  : `${mid}-${idx}`,
+                    }))}
+                    renderOption={(props, option) => {
+                      return (
+                        <li {...props} key={option.key}>
+                          {option.label}
+                        </li>
+                      );
+                    }}
                     value={sound.endsWith('mp3') ? sound : null}
                     size="small"
                     sx={{ margin: '5px 0', maxWidth: '270px' }}
                     onChange={async (e, values) => {
-                      setSound(values ?? '');
+                      setSound(values?.label ?? '');
                     }}
-                    options={metadata.mp3}
                     renderInput={(params) => (
                       <TextField {...params} label="Mp3" />
                     )}
@@ -337,18 +425,35 @@ export const AudioDialog = ({ open }) => {
             </FormControl>
             <FormControl fullWidth>
               <Stack direction="row">
+                {/**
+                 * WAV
+                 */}
                 <FormControl
                   size="small"
                   sx={{ m: 1, width: 300, margin: '0' }}
                 >
                   <Autocomplete
+                    isOptionEqualToValue={(option, value) =>
+                      option.label === value
+                    }
+                    options={metadata.wav.map((mid, idx) => ({
+                      label: mid,
+                      id   : idx,
+                      key  : `${mid}-${idx}`,
+                    }))}
+                    renderOption={(props, option) => {
+                      return (
+                        <li {...props} key={option.key}>
+                          {option.label}
+                        </li>
+                      );
+                    }}
                     value={sound.endsWith('wav') ? sound : null}
                     size="small"
                     sx={{ margin: '5px 0', maxWidth: '270px' }}
                     onChange={async (e, values) => {
-                      setSound(values ?? '');
+                      setSound(values?.label ?? '');
                     }}
-                    options={metadata.wav}
                     renderInput={(params) => (
                       <TextField {...params} label="Wav" />
                     )}
@@ -388,6 +493,7 @@ export const AudioDialog = ({ open }) => {
           onClick={() => {
             setAudioDialogOpen(false);
             setZoneDialogOpen(true);
+            audioController.stop();
           }}
           color="primary"
           variant="outlined"
