@@ -11,7 +11,7 @@ const CustomTooltip = styled(({ className, ...props }) => (
       font-size: 16px;
       padding: 10px 15px;
       margin-left: 5px !important;
-      background-image: url('src/components/images/super_fancy_bg.png');
+      background: #222;
   `);
 export const Flyout = ({ children }) => {
   return (
