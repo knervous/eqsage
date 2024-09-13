@@ -174,13 +174,13 @@ export class Sound {
       case EmissionType.None:
         return '';
       case EmissionType.Emit:
-        return this.emit[id - 1];
+        return this.emit[id - 1] ?? '';
       case EmissionType.Loop:
-        return this.loop[id - 162];
+        return this.loop[id - 162] ?? '';
       case EmissionType.Internal:
-        return clientSounds[id];
+        return clientSounds[id] ?? '';
       case EmissionType.Mp3:
-        return this.mp3List[-id];
+        return this.mp3List[-id] ?? '';
       default:
         return '';
     }

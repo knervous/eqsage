@@ -1,0 +1,20 @@
+.hover-link {
+    margin: 10px 5px;
+    p {
+        &:hover {
+            color: gold !important;
+            cursor: pointer;
+
+        }
+        &:active {
+            color: rgb(240, 212, 52) !important;
+
+        }
+    }
+}
+
+.about-content {
+    svg {
+        color: white !important;
+    }
+}
