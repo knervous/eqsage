@@ -187,7 +187,7 @@ export const AudioDialog = ({ open }) => {
                 width     : '70%',
               }}
             >
-              Loading EQ Assets
+              Loading EQ Sound Assets
             </Typography>
           </Stack>
         ) : (
