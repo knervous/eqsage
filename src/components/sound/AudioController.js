@@ -168,9 +168,7 @@ class AudioController {
   }
 
   loadedMetadata(e) {
-    console.log('loaded metadata', this.mediaSessionAudio.duration);
     const durationMs = this.mediaSessionAudio.duration * 1000; // duration in seconds, multiply by 1000 to get ms
-    console.log('Duration ms', durationMs);
     for (const fn of this.playerHandlers) {
       fn({ durationMs });
     }

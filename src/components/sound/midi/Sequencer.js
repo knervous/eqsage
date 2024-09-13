@@ -262,7 +262,6 @@ export default class Sequencer extends EventEmitter {
     this.player.setTempo(1);
     try {
       await this.player.loadData(uint8Array, filepath, subtune);
-      console.log('Loaded data');
     } catch (e) {
       console.log('Err', e);
       this.handlePlayerError(`Unable to play ${filepath} (${e.message}).`);

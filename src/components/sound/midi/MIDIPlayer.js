@@ -1,4 +1,3 @@
-import path from 'path';
 import MIDIFile from 'midifile';
 import autoBind from 'auto-bind';
 
@@ -6,8 +5,7 @@ import MIDIFilePlayer from './MIDIFilePlayer';
 import Player from './Player';
 import { SOUNDFONTS, SOUNDFONT_MOUNTPOINT } from './config';
 import { GM_DRUM_KITS, GM_INSTRUMENTS } from './gm-patch-map';
-import { ensureEmscFileWithUrl, getFilepathFromUrl, getMetadataUrlForFilepath, remap01 } from './util';
-import requestCache from './RequestCache';
+import { ensureEmscFileWithUrl, remap01 } from './util';
 
 let core = null;
 function range(start = 0, end, step = 1) {
@@ -83,10 +81,7 @@ export class MIDIPlayer extends Player {
       label       : 'Soundfont',
       type        : 'enum',
       options     : SOUNDFONTS,
-      // Small Soundfonts - GMGSx Plus
-      defaultValue: SOUNDFONTS[1].items[0].value,
-      // Better but bigger, swap out maybe sometime
-      // defaultValue: SOUNDFONTS[0].items[0].value,
+      defaultValue: SOUNDFONTS[0].items[0].value,
       dependsOn   : {
         param: 'synthengine',
         value: MIDI_ENGINE_LIBFLUIDLITE,
