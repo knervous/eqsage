@@ -21,7 +21,15 @@ import {
   Select,
   Stack,
   TextField,
+  Typography,
 } from '@mui/material';
+
+import InfoIcon from '@mui/icons-material/Info';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import AccessibilityIcon from '@mui/icons-material/Accessibility';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
+import TerrainIcon from '@mui/icons-material/Terrain';
+
 import { useMainContext } from '../main/context';
 import * as keyval from 'idb-keyval';
 import { useConfirm } from 'material-ui-confirm';
@@ -32,6 +40,8 @@ import {
   getEQFile,
   writeEQFile,
 } from '../../lib/util/fileHandler';
+import { Flyout, FlyoutButton } from '../common/flyout';
+import { AboutDialog } from './about-dialog';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -51,18 +61,18 @@ export const ZoneChooserDialog = ({ open }) => {
     setSelectedZone,
     setZoneDialogOpen,
     setZoneBuilderDialogOpen,
-    audioDialogOpen,
     setAudioDialogOpen,
     Spire,
     setModelExporter,
     setZones,
     recentList,
     setRecentList,
-    setZoneBuilder
+    setZoneBuilder,
   } = useMainContext();
   const [zoneList, setZoneList] = useState([]);
   const [expansionFilter, setExpansionFilter] = useState([]);
   const [zone, setZone] = useState(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   const autocompleteRef = useRef(null);
   const filteredZoneList = useMemo(() => {
@@ -125,7 +135,12 @@ export const ZoneChooserDialog = ({ open }) => {
     setTimeout(() => {
       setZoneDialogOpen(false);
     }, 250);
-  }, [setSelectedZone, setModelExporter, setZoneDialogOpen, setAudioDialogOpen]);
+  }, [
+    setSelectedZone,
+    setModelExporter,
+    setZoneDialogOpen,
+    setAudioDialogOpen,
+  ]);
 
   const enterAudio = useCallback(() => {
     gameController.dispose();
@@ -134,8 +149,14 @@ export const ZoneChooserDialog = ({ open }) => {
     setZoneBuilderDialogOpen(false);
     setZoneDialogOpen(false);
     setAudioDialogOpen(true);
+  }, [
+    setSelectedZone,
+    setZoneBuilderDialogOpen,
+    setZoneBuilder,
+    setZoneDialogOpen,
+    setAudioDialogOpen,
+  ]);
 
-  }, [setSelectedZone, setZoneBuilderDialogOpen, setZoneBuilder, setZoneDialogOpen, setAudioDialogOpen]);
   const enterZoneBuilder = useCallback(() => {
     gameController.dispose();
     setSelectedZone(null);
@@ -143,8 +164,13 @@ export const ZoneChooserDialog = ({ open }) => {
     setZoneBuilderDialogOpen(true);
     setZoneDialogOpen(false);
     setAudioDialogOpen(false);
-  }, [setSelectedZone, setZoneBuilderDialogOpen, setZoneBuilder, setZoneDialogOpen, setAudioDialogOpen]);
-
+  }, [
+    setSelectedZone,
+    setZoneBuilderDialogOpen,
+    setZoneBuilder,
+    setZoneDialogOpen,
+    setAudioDialogOpen,
+  ]);
 
   useEffect(() => {
     if (open) {
@@ -153,7 +179,7 @@ export const ZoneChooserDialog = ({ open }) => {
       }, 0);
       if (Spire) {
         Spire.Zones.getZones()
-          .then(zones => {
+          .then((zones) => {
             if (!Array.isArray(zones)) {
               console.log('Error with spire zones', zones);
               throw new Error('Error with zones response');
@@ -210,7 +236,34 @@ export const ZoneChooserDialog = ({ open }) => {
       >
         Select a Zone
       </DialogTitle>
-      <DialogContent>
+      <Flyout>
+        <FlyoutButton onClick={() => setAboutOpen(true)} Icon={InfoIcon} title="About / Contact" />
+        <FlyoutButton
+          onClick={enterModelExporter}
+          Icon={AccessibilityIcon}
+          title="Model Exporter"
+        />
+        <FlyoutButton
+          onClick={enterAudio}
+          isNew
+          Icon={MusicNoteIcon}
+          title="Audio Explorer"
+        />
+        <FlyoutButton
+          disabled={import.meta.env.VITE_LOCAL_DEV !== 'true'}
+          onClick={enterZoneBuilder}
+          Icon={TerrainIcon}
+          title="Zone Builder (Under Construction)"
+        />
+        <FlyoutButton
+          disabled={selectedZone}
+          onClick={unlinkDir}
+          Icon={LinkOffIcon}
+          title="Unlink EQ Directory"
+        />
+      </Flyout>
+      <DialogContent sx={{ minHeight: '200px' }}>
+        <AboutDialog open={aboutOpen} setOpen={setAboutOpen} />
         <Stack direction={'column'}>
           <FormControl
             size="small"
@@ -277,6 +330,15 @@ export const ZoneChooserDialog = ({ open }) => {
           </FormControl>
           <FormControl sx={{ maxWidth: '400px' }}>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              {!recentList.length && (
+                <Typography
+                  sx={{ fontSize: '15px', margin: '5px auto' }}
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  No recent zones. Select a zone to get started!
+                </Typography>
+              )}
               {recentList.map((zone) => (
                 <Chip
                   key={`chip-${zone.id}`}
@@ -313,31 +375,6 @@ export const ZoneChooserDialog = ({ open }) => {
         >
           Zone Builder
         </Button> */}
-        <Button
-          color="primary"
-          onClick={enterAudio}
-          variant="outlined"
-          sx={{ margin: '5px auto' }}
-        >
-          Audio Explorer
-        </Button>
-        <Button
-          color="primary"
-          onClick={enterModelExporter}
-          variant="outlined"
-          sx={{ margin: '5px auto' }}
-        >
-          Model Exporter
-        </Button>
-        {!selectedZone && (
-          <Button
-            onClick={unlinkDir}
-            variant="outlined"
-            sx={{ margin: '15px auto' }}
-          >
-            Unlink EQ Directory
-          </Button>
-        )}
       </Stack>
     </Dialog>
   );
