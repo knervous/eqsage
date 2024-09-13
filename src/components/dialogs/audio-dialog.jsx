@@ -172,7 +172,7 @@ export const AudioDialog = ({ open }) => {
             Files that are processed will be stored under your EverQuest directory under eqsage/sounds and can be accessed there directly as well. Happy listening!
           </Typography>
         </Stack>
-        {loading || !metadata ? (
+        {true || loading || !metadata ? (
           <Stack
             direction="row"
             justifyContent={'center'}
@@ -184,10 +184,9 @@ export const AudioDialog = ({ open }) => {
                 fontSize  : 18,
                 lineHeight: '25px',
                 margin    : '5px',
-                width     : '70%',
               }}
             >
-              Loading EQ Sound Assets
+              Loading and Converting EQ Sound Assets
             </Typography>
           </Stack>
         ) : (
