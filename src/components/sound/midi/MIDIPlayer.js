@@ -587,7 +587,7 @@ export class MIDIPlayer extends Player {
         }
         break;
       case 'soundfont':
-        const url = `/static/soundfonts/${value}`;
+        const url = `https://eqrequiem.blob.core.windows.net/soundfonts/${value}`;
         ensureEmscFileWithUrl(core, `${SOUNDFONT_MOUNTPOINT}/${value}`, url)
           .then(filename => this._loadSoundfont(filename));
         break;
