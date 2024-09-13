@@ -101,7 +101,7 @@ export const AboutDialog = ({ open, setOpen }) => {
             color="text.secondary"
             gutterBottom
           >
-            And I can be reached via at eqadvancedmaps@gmail.com. This game and the projects surrounding
+            And I can be reached via eqadvancedmaps@gmail.com. This game and the projects surrounding
             it are all about community--that means you! So don't hesitate to reach out and say hello, pitch an idea or provide some feedback.
           </Typography>
           <Typography
