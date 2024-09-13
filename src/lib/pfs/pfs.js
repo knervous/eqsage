@@ -128,7 +128,11 @@ export class PFSArchive {
       }
 
       const filenameBuffer = new Uint8Array(buffer.slice(offset, offset + size));
-      const filenameInflated = this.inflateByFileOffset(filenameBuffer, 0, size);
+      let filenameInflated;
+      try {
+        filenameInflated = this.inflateByFileOffset(filenameBuffer, 0, size);
+      } catch (e) {
+      }
 
       if (!filenameInflated) {
         console.error('Inflate directory failed');
