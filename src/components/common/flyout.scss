@@ -25,15 +25,16 @@
 
 .flyout-new {
     position: absolute;
-    right: -60px;
+    right: -270px;
+    text-align: start !important;
     p {
         font-weight: 700;
-        font-size: 17px;
+        font-size: 19px;
         color: #FFF;
-        // text-shadow: 
-        //     -0.5px -0.5px 0 rgba(255, 255, 255, 0.2),  
-        //     0.5px -0.5px 0 rgba(255, 255, 255, 0.2),  
-        //     -0.5px 0.5px 0 rgba(255, 255, 255, 0.2),  
-        //     0.5px 0.5px 0 rgba(255, 255, 255, 0.2);
+        text-shadow: 
+            -0.5px -0.5px 0 rgba(1, 1, 1, 0.7),  
+            0.5px -0.5px 0 rgba(1, 1, 1, 0.7),  
+            -0.5px 0.5px 0 rgba(1, 1, 1, 0.7),  
+            0.5px 0.5px 0 rgba(1, 1, 1, 0.7);
     }
 }

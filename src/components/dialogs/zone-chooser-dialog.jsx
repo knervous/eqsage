@@ -241,6 +241,8 @@ export const ZoneChooserDialog = ({ open }) => {
         <FlyoutButton
           onClick={enterModelExporter}
           Icon={AccessibilityIcon}
+          isNew
+          newText = "New! (3D Printing)"
           title="Model Exporter"
         />
         <FlyoutButton

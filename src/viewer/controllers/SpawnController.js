@@ -12,6 +12,7 @@ import {
   Texture,
   TransformNode,
   Vector3,
+  VertexBuffer,
 } from '@babylonjs/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { WebIO } from '@gltf-transform/core';
@@ -22,7 +23,7 @@ import { GameControllerChild } from './GameControllerChild';
 import { BabylonSpawn } from '../models/BabylonSpawn';
 import { MeshBuilder } from '@babylonjs/core';
 import { GlobalStore } from '../../state';
-import { GLTF2Export } from '@babylonjs/serializers';
+import { GLTF2Export, STLExport } from '@babylonjs/serializers';
 import { dedup, prune, textureCompress } from '@gltf-transform/functions';
 import { getEQFile } from '../../lib/util/fileHandler';
 import {
@@ -146,24 +147,33 @@ class SpawnController extends GameControllerChild {
   }
 
   npcLight(spawn) {
-    const light =
-      this.currentScene?.getLightById('spawn-light') ??
-      new PointLight('spawn-light', this.currentScene);
+    let light = this.currentScene?.getLightById('spawn-light');
+
+    if (!light) {
+      // Create the light if it doesn't exist
+      light = new PointLight('spawn-light', new Vector3(0, 0, 0), this.currentScene);
+    }
+
+    // Set light properties
     light.intensity = 500.0;
-    light.diffuse = new Color3(1, 0.84, 0); // RGB for gold color
+    light.diffuse = new Color3(1, 0.84, 0); // Gold color
     light.range = 300;
     light.radius = 50;
 
     if (!spawn) {
+      // If there's no spawn, dispose of the light
       if (light) {
         light.dispose();
       }
       return;
     }
+
     const spawnMesh = this.spawns[spawn.id]?.rootNode;
     if (spawnMesh) {
+      // Attach the light to the spawn mesh's position
       light.position = spawnMesh.position;
     } else {
+      // If spawnMesh doesn't exist, dispose of the light
       if (light) {
         light.dispose();
       }
@@ -503,12 +513,36 @@ class SpawnController extends GameControllerChild {
     ].includes(modelName);
   }
 
-  async exportModel() {
+  async exportSTL() {
+    const clone = this.modelExport.rootNode.clone();
+    clone.skeleton = this.modelExport.skeleton?.clone();
+    const children = clone.getChildMeshes().map(c => {
+      c?.clone();
+      c?.makeGeometryUnique();
+      return c;
+    });
+    clone.makeGeometryUnique();
+    const position = clone.getPositionData(true, true);
+    clone.setVerticesData(VertexBuffer.PositionKind, position);
+    STLExport.CreateSTL([clone, ...children], true, `${this.modelExport?.modelName}`, undefined, undefined, false);
+    clone.dispose();
+  }
+
+  async exportModel(withAnimations = true) {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(
-      `Exporting model ${this.modelExport?.modelName}`
+      `Exporting model ${this.modelExport?.modelName} with animations ${withAnimations}`
     );
     GlobalStore.actions.setLoadingText('LOADING, PLEASE WAIT...');
+
+    let originalPosition;
+    if (!withAnimations) {
+      const position = this.modelExport.rootNode.getPositionData(true, true);
+      originalPosition = this.modelExport.rootNode.getPositionData(false, false);
+      this.modelExport.rootNode.setVerticesData(VertexBuffer.PositionKind, position);
+      this.modelExport.rootNode.skeleton = null;
+    }
+  
     GLTF2Export.GLBAsync(this.currentScene, this.modelExport?.modelName, {
       shouldExportNode(node) {
         while (node.parent) {
@@ -516,8 +550,17 @@ class SpawnController extends GameControllerChild {
         }
         return node.id === 'model_export';
       },
+      shouldExportAnimation() {
+        return withAnimations;
+      },
+
     })
       .then(async (glb) => {
+        if (!withAnimations) {
+          this.modelExport.rootNode.skeleton = this.modelExport.skeleton;
+          this.modelExport.rootNode.setVerticesData(VertexBuffer.PositionKind, originalPosition);
+        }
+
         GlobalStore.actions.setLoadingTitle(
           `Optimizing model ${this.modelExport?.modelName}`
         );
@@ -942,7 +985,7 @@ class SpawnController extends GameControllerChild {
         // spawn.id !== 10783 // && // POD
         spawn.id !== 10847 // connie link
       ) {
-        if (process.env.LOCAL_DEV === 'true') {
+        if (import.meta.env.VITE_LOCAL_DEV === 'true') {
           continue;
         }
       }

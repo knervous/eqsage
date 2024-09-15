@@ -201,7 +201,6 @@ function SpawnNavBar() {
   const createGridEntry = useCallback(async () => {
     let updateSpawn = false;
     if (!selectedSpawn.grid) {
-      console.log('no grid');
       const gridApi = new GridApi(...Spire?.SpireApi.cfg());
       const freeIdRes = await Spire?.SpireApi.v1().get(
         '/api/v1/query/free-id-ranges/grid/id'
@@ -213,7 +212,6 @@ function SpawnNavBar() {
           id    : freeId,
         },
       });
-      console.log('new entry', newEntry);
       selectedSpawn.pathgrid = newEntry.data.id;
       const spawn2Api = new Spire.SpireApiTypes.Spawn2Api(
         ...Spire?.SpireApi.cfg()
