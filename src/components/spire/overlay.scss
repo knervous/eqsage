@@ -23,7 +23,17 @@
         opacity: 1.0;
     }
 }
+.clickable {
+    &:hover {
+        text-shadow:
+      -0.5px -1px 0 rgba(0,0,0,.1),  
+       0.5px -1px 0 rgba(0,0,0,.1),
+      -0.5px  1px 0 rgba(0,0,0,.1),
+       0.5px  1px 0 rgba(0,0,0,.1); /* Outline effect */
+    color: gold !important;
 
+    }
+}
 .text-outline {
     cursor: initial;
     user-select: none;

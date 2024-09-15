@@ -26,9 +26,9 @@ import PauseIcon from '@mui/icons-material/Pause';
 import { useMainContext } from '../main/context';
 import { getEQFile } from '../../lib/util/fileHandler';
 import { audioController } from '../sound/AudioController';
+import { SOUNDFONTS } from '../sound/midi/config';
 
 import './audio.dialog.scss';
-import { SOUNDFONTS } from '../sound/midi/config';
 
 function formatMsToMinutesSeconds(ms) {
   const minutes = Math.floor(ms / 60000); // Convert ms to full minutes

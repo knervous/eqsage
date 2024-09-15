@@ -164,7 +164,6 @@ export class BabylonSpawn {
       console.log('No root node for container spawn', this.spawn);
       return false;
     }
-
     this.rootNode.id = `spawn_${this.spawn.id}`;
     this.rootNode.name = this.spawn.name;
     const scale = this.modelName === 'fis' ? 0.005 : (this.spawn.size ?? 0) === 0 ? 1.5 : this.spawn.size / 4;

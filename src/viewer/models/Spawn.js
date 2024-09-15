@@ -90,7 +90,7 @@ export class Spawn {
     return this.#data.race;
   }
   get id() {
-    return this.#data.spawn_id;
+    return this.#data.id;
   }
   get raceInfo() {
     return raceData.find(r => r.id === this.race);

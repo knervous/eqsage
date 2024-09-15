@@ -11,7 +11,16 @@ import {
   TextField,
   Typography,
   Checkbox,
+  Slider,
+  Stack,
+  Button,
 } from '@mui/material';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import StopIcon from '@mui/icons-material/Stop';
+import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+import PauseIcon from '@mui/icons-material/Pause';
+
 import { useDebouncedCallback } from 'use-debounce';
 
 import { OverlayDialogs } from './dialogs/dialogs';
@@ -75,6 +84,105 @@ const animationNames = new Proxy(animationDefinitions, {
     return prop;
   },
 });
+function throttle(func, delay) {
+  let lastCall = 0;
+
+  return function (...args) {
+    const now = new Date().getTime();
+
+    if (now - lastCall >= delay) {
+      lastCall = now;
+      return func(...args);
+    }
+  };
+}
+
+/**
+ *
+ * @param {{animation: import('@babylonjs/core').AnimationGroup }} param0
+ * @returns
+ */
+const AnimationBar = ({ animation, name }) => {
+  const [playMs, setPlayMs] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    if (!animation || animation.to === 0) {
+      setPlayMs(0);
+      console.log('Here');
+      setPlaying(false);
+      return;
+    }
+    console.log('Animation', animation);
+    const cb = () => {
+      const currentFrame = animation.animatables[0]?.masterFrame ?? 0;
+      if (currentFrame !== 0) {
+        setPlayMs(Math.round(currentFrame));
+      }
+    };
+    gameController.currentScene.onAfterAnimationsObservable.add(cb);
+
+    return () => {
+      gameController.currentScene.onAfterAnimationsObservable.remove(cb);
+    };
+  }, [animation]);
+
+  return animation ? (
+    <Box className="animation-playback">
+      <Typography gutterBottom>Animation: {name}</Typography>
+      <Stack
+        direction="row"
+        sx={{ margin: '5px 15px' }}
+        alignContent={'center'}
+        justifyContent={'space-evenly'}
+      >
+        <Slider
+          sx={{
+            '& .MuiSlider-thumb': {
+              transition: 'none', // Disable transition on the thumb
+            },
+            '& .MuiSlider-track': {
+              transition: 'none', // Disable transition on the filled bar (track)
+            },
+            '& .MuiSlider-rail': {
+              transition: 'none', // Optional: Disable transition on the rail
+            },
+            width: 'calc(100% - 200px)',
+          }}
+          value={playMs}
+          min={0}
+          marks
+          max={Math.round(animation.to)}
+          step={1}
+          onChange={(e) => {
+            setPlayMs(e.target.value);
+            animation.pause();
+            animation.goToFrame(e.target.value);
+            // audioController.setMs(+e.target.value);
+          }}
+          valueLabelDisplay="auto"
+        />
+        <Button
+          onClick={() => {
+            setPlaying(!animation.isPlaying);
+
+            if (animation.isPlaying) {
+              animation.pause();
+            } else {
+              animation.play(true);
+            }
+          }}
+          sx={{
+            width    : '25px',
+            height   : '40px',
+            marginTop: '-15px !important',
+          }}
+        >
+          {animation.isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+        </Button>
+      </Stack>
+    </Box>
+  ) : null;
+};
 
 export const ExporterOverlayRightNav = ({
   babylonModel,
@@ -93,6 +201,7 @@ export const ExporterOverlayRightNav = ({
   const [primary, setPrimary] = useState(null);
   const [secondary, setSecondary] = useState(null);
   const [asShield, setAsShield] = useState(false);
+  const [currentAnimation, setCurrentAnimation] = useState(null);
   useEffect(() => {
     (async () => {
       setTexture(0);
@@ -145,11 +254,14 @@ export const ExporterOverlayRightNav = ({
       );
       if (ag) {
         babylonModel.animationGroups?.forEach((a) => a.stop());
+        setCurrentAnimation(ag);
         ag.play(true);
       } else {
         console.warn(`Animation not found ${animation}`);
+        setCurrentAnimation(null);
       }
     } else {
+      setCurrentAnimation(null);
       console.warn(`Animation not found ${animation}`);
     }
   }, [animation, babylonModel]);
@@ -209,6 +321,7 @@ export const ExporterOverlayRightNav = ({
         <Typography variant="h6" sx={{ textAlign: 'center' }}>
           Model
         </Typography>
+        <AnimationBar animation={currentAnimation} name={animation} />
         <Divider sx={{ margin: '5px' }} />
         <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
           <FormLabel id="head-group">Head</FormLabel>
