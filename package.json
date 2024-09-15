@@ -67,7 +67,7 @@
   },
   "scripts": {
     "start": "vite --mode development",
-    "build": "NODE_OPTIONS=--max-old-space-size=6144 vite build",
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "test": "craco test"
   },
   "eslintConfig": {
