@@ -10,17 +10,14 @@ import { spawnController } from './SpawnController';
 import { guiController } from './GUIController';
 import { itemController } from './ItemController';
 import { zoneController } from './ZoneController';
-import {
-  Engine,
-  Database,
-  SceneLoader,
-  ThinEngine,
-  WebGPUEngine,
-} from '@babylonjs/core';
-
-import { Inspector } from '@babylonjs/inspector';
-import { GlobalStore } from '../../state';
+import { Engine, } from '@babylonjs/core/Engines/engine';
+import { ThinEngine } from '@babylonjs/core/Engines/thinEngine';
+import { WebGPUEngine } from '@babylonjs/core/Engines/webgpuEngine';
+import { Database } from '@babylonjs/core/Offline/database';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { GLTFLoader } from '@babylonjs/loaders/glTF/2.0';
+
+import { GlobalStore } from '../../state';
 import { getEQFile } from '../../lib/util/fileHandler';
 
 /**
@@ -285,20 +282,24 @@ export class GameController {
     }
   }
 
-  keyDown(e) {
-    switch (`${e.key}`?.toLowerCase?.()) {
+  async keyDown(e) {
+    switch (`${e?.key}`?.toLowerCase?.()) {
       case 'i': {
         if (!this.currentScene) {
           break;
         }
-        if (Inspector.IsVisible) {
-          Inspector.Hide();
-        } else {
-          Inspector.Show(zoneController.scene, {
-            embedMode: true,
-            overlay  : true,
-          });
-        }
+        // let inspector;
+        // await import('@babylonjs/inspector').then(i => {
+        //   inspector = i.Inspector;
+        // });
+        // if (inspector.IsVisible) {
+        //   inspector.Hide();
+        // } else {
+        //   inspector.Show(zoneController.scene, {
+        //     embedMode: true,
+        //     overlay  : true,
+        //   });
+        // }
         break;
       }
       default:

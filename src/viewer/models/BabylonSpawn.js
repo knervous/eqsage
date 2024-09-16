@@ -1,16 +1,15 @@
-import {
-  AbstractMesh,
-  Color3,
-  DynamicTexture,
-  Mesh,
-  MeshBuilder,
-  PBRMaterial,
-  ParticleSystem,
-  StandardMaterial,
-  Texture,
-  Tools,
-  Vector3,
-} from '@babylonjs/core';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
+import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
+import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
+import { Tools } from '@babylonjs/core/Misc/tools';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+
 import { Spawn } from './Spawn';
 import { eqtoBabylonVector } from '../util/vector';
 import { AnimationNames, mapAnimations } from '../helpers/animationUtils';

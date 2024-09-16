@@ -1,4 +1,7 @@
-import { Engine, Sound, Vector3 } from '@babylonjs/core';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Sound } from '@babylonjs/core/Audio/sound';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+
 import { Vector3 as ThreeVector3 } from 'three';
 import { PointOctree } from 'sparse-octree';
 import { GameControllerChild } from './GameControllerChild';

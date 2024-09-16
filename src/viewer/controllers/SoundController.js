@@ -1,4 +1,5 @@
-import { Sound, Vector3 } from '@babylonjs/core';
+import { Sound } from '@babylonjs/core/Audio/sound';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { GameControllerChild } from './GameControllerChild';
 const musicUrl = 'https://eqrequiem.blob.core.windows.net/assets/sounds/';
 

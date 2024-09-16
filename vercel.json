@@ -2,6 +2,11 @@
     "buildCommand": "npm run build",
     "devCommand": "npm run start",
     "installCommand": "npm install",
+    "build": {
+      "env": {
+        "NODE_OPTIONS": "--max-old-space-size=8192"
+      }
+    },
     "functions": {
       "api/v1.js": {
         "memory": 1000,

@@ -1,4 +1,11 @@
-import { Color3, Engine, Material, MultiMaterial, Scene, SceneLoader, SubMesh } from '@babylonjs/core';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Material } from '@babylonjs/core/Materials/material';
+import { MultiMaterial } from '@babylonjs/core/Materials/multiMaterial';
+import { Scene } from '@babylonjs/core/scene';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
+import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
+
 import { GradientMaterial } from '@babylonjs/materials';
 import { GameControllerChild } from './GameControllerChild';
 
@@ -12,7 +19,7 @@ class SkyController extends GameControllerChild {
 
   /**
    * @param {import('@babylonjs/core/scene').Scene} scene
-   * @param {number} index 
+   * @param {number} index
    * @param {boolean} fromSerialized
    */
   async loadStaticSky(scene, index, fromSerialized) {
@@ -31,7 +38,6 @@ class SkyController extends GameControllerChild {
       skyRoot.scaling.y = 20000;
       skyRoot.scaling.z = 20000;
       skyRoot.name = '__sky__';
-     
     } else {
       skyRoot = scene.getMeshByName('__sky__');
     }
@@ -40,19 +46,17 @@ class SkyController extends GameControllerChild {
     const [cloudTexture] = cloudLayer.material.getActiveTextures();
     const [upperLayerTexture] = upperLayer.material.getActiveTextures();
 
-    
     this.#moveInterval = setInterval(() => {
       cloudTexture.uOffset += 0.0001;
       cloudTexture.vOffset += 0.0001;
       upperLayerTexture.vOffset -= 0.0001;
       upperLayerTexture.vOffset -= 0.0001;
     }, 10);
-
   }
 
   /**
    * @param {import('@babylonjs/core/scene').Scene} scene
-   * @param {number} index 
+   * @param {number} index
    * @param {boolean} fromSerialized
    */
   async loadSky(scene, index, fromSerialized) {
@@ -74,10 +78,10 @@ class SkyController extends GameControllerChild {
       const [cloudLayer] = skyRoot.getChildMeshes();
       const multimat = new MultiMaterial('multi', scene);
       const origMaterial = cloudLayer.material;
-  
+
       const gradientMaterial = new GradientMaterial('grad', scene);
       gradientMaterial.topColor = new Color3(119 / 255, 46 / 255, 146 / 255);
-      gradientMaterial.bottomColor = new Color3(190 / 255, 26 / 255, 22 / 255);// 
+      gradientMaterial.bottomColor = new Color3(190 / 255, 26 / 255, 22 / 255); //
       gradientMaterial.offset = 0;
       gradientMaterial.smoothness = 1;
       gradientMaterial.scale = 5;
@@ -86,12 +90,12 @@ class SkyController extends GameControllerChild {
       gradientMaterial.bottomColorAlpha = 0.6;
       gradientMaterial.transparencyMode = Material.MATERIAL_ALPHABLEND;
       gradientMaterial.alphaMode = Engine.ALPHA_COMBINE;
-  
+
       cloudLayer.material = multimat;
-  
+
       multimat.subMaterials.push(origMaterial);
       multimat.subMaterials.push(gradientMaterial);
-  
+
       const verticesCount = cloudLayer.getTotalVertices();
       const indc = cloudLayer.getTotalIndices();
       new SubMesh(0, 0, verticesCount, 0, indc, cloudLayer);
@@ -110,14 +114,13 @@ class SkyController extends GameControllerChild {
     // });
 
     // cloudLayer.material.disableLighting = true;
-    
+
     this.#moveInterval = setInterval(() => {
       cloudTexture.uOffset += 0.0001;
       cloudTexture.vOffset += 0.0001;
       upperLayerTexture.vOffset -= 0.0001;
       upperLayerTexture.vOffset -= 0.0001;
     }, 10);
-
 
     // this.setFog(scene);
   }
