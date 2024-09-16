@@ -29,7 +29,7 @@ import {
 } from '../../lib/s3d/bsp/region-utils';
 import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
-import { GLTF2Export } from '@babylonjs/serializers';
+import { GLTF2Export, STLExport } from '@babylonjs/serializers';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { WebIO } from '@gltf-transform/core';
 import { dedup, prune, textureCompress } from '@gltf-transform/functions';
@@ -98,7 +98,14 @@ class ZoneController extends GameControllerChild {
 
     this.zoneLoaded = false;
   }
-  c = 0;
+  async exportSTL(name) {
+    const zone = this.currentScene.getMeshByName('zone');
+    const objects = this.currentScene.getMeshByName('static-objects');
+    const zoneChildren = zone.getChildMeshes(false);
+    const objectsChildren = zone.getChildMeshes(false);
+
+    STLExport.CreateSTL([zone, objects, ...zoneChildren, ...objectsChildren], true, `${name}`, undefined, undefined, false);
+  }
   exportZone(name) {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(`Exporting zone ${name}`);
@@ -107,7 +114,6 @@ class ZoneController extends GameControllerChild {
     GLTF2Export.GLBAsync(this.scene, name, {
       shouldExportNode(node) {
         while (node.parent) {
-          console.log(this.c++);
           node = node.parent;
         }
         return node.name === 'zone' || node.name === 'static-objects';

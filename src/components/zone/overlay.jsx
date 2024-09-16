@@ -62,6 +62,22 @@ export const BabylonZoneOverlay = () => {
         >
           [Export GLB]
         </Typography>
+        <Typography
+          onClick={() => {
+            gameController.ZoneController.exportSTL(selectedZone.short_name);
+          }}
+          className="zone-overlay-text text-outline clickable"
+          sx={{
+            userSelect: 'none',
+            margin    : '10px 5px',
+            paddingTop: '2px',
+            textAlign : 'center',
+          }}
+          color="text.secondary"
+          variant="h6"
+        >
+          [Export STL]
+        </Typography>
       </Stack>
 
       <Typography
