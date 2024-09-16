@@ -5,7 +5,8 @@ import compassDot from './compass-dot.png';
 
 import { Box } from '@mui/material';
 import { gameController } from '../../viewer/controllers/GameController';
-import { Tools } from '@babylonjs/core';
+import { Tools } from '@babylonjs/core/Misc/tools';
+
 const initialOffset = {
   left: 45,
   top : 92,

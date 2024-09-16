@@ -1,4 +1,4 @@
-import { Vector3 } from '@babylonjs/core';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 
 export const eqtoBabylonVector = (x, y, z) => {
   return new Vector3(y, z, x);

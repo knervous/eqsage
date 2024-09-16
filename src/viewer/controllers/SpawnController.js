@@ -1,19 +1,18 @@
-import {
-  AbstractMesh,
-  Color3,
-  DynamicTexture,
-  Mesh,
-  PBRMaterial,
-  PointLight,
-  PointerDragBehavior,
-  PointerEventTypes,
-  SceneLoader,
-  StandardMaterial,
-  Texture,
-  TransformNode,
-  Vector3,
-  VertexBuffer,
-} from '@babylonjs/core';
+import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { PointerDragBehavior } from '@babylonjs/core/Behaviors/Meshes/pointerDragBehavior';
+import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
+import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
+
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { WebIO } from '@gltf-transform/core';
 
@@ -21,7 +20,7 @@ import raceData from '../common/raceData.json';
 
 import { GameControllerChild } from './GameControllerChild';
 import { BabylonSpawn } from '../models/BabylonSpawn';
-import { MeshBuilder } from '@babylonjs/core';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { GlobalStore } from '../../state';
 import { GLTF2Export, STLExport } from '@babylonjs/serializers';
 import { dedup, prune, textureCompress } from '@gltf-transform/functions';

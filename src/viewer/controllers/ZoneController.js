@@ -1,24 +1,23 @@
-import {
-  SceneLoader,
-  Vector3,
-  Tools,
-  Texture,
-  Scene,
-  MeshBuilder,
-  StandardMaterial,
-  CubeTexture,
-  Color3Gradient,
-  Color3,
-  Mesh,
-  TransformNode,
-  GlowLayer,
-  Color4,
-  PointerEventTypes,
-  PointLight,
-  VertexData,
-  SubMesh,
-  MultiMaterial,
-} from '@babylonjs/core';
+import '@babylonjs/core/Materials/Textures/Loaders/envTextureLoader';
+import '@babylonjs/core/Helpers/sceneHelpers';
+import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
+import { Tools } from '@babylonjs/core/Misc/tools';
+import { Scene } from '@babylonjs/core/scene';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
+import { Color3Gradient } from '@babylonjs/core/Misc/gradients';
+import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
+import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
+import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
+import { MultiMaterial } from '@babylonjs/core/Materials/multiMaterial';
 
 import { GameControllerChild } from './GameControllerChild';
 import {

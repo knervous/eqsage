@@ -1,4 +1,6 @@
-import { Mesh, SceneLoader } from '@babylonjs/core';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
+
 import { GameControllerChild } from './GameControllerChild';
 
 const itemsUrl = 'https://eqrequiem.blob.core.windows.net/assets/items/';

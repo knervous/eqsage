@@ -1,15 +1,12 @@
-import {
-  Texture,
-  Scene,
-  MeshBuilder,
-  StandardMaterial,
-  CubeTexture,
-  Color3Gradient,
-  Color3,
-  GlowLayer,
-  Color4,
-  PointerEventTypes,
-} from '@babylonjs/core';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { Scene } from '@babylonjs/core/scene';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
+import { Color3Gradient } from '@babylonjs/core/Misc/gradients';
+import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
+import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
+import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 
 import { GameControllerChild } from './GameControllerChild';
 

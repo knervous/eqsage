@@ -56,6 +56,37 @@ function proxyPlugin() {
   };
 }
 
+const silenceSomeSassDeprecationWarnings = {
+  verbose: true,
+  logger : {
+    warn(message, options) {
+      const { stderr } = process;
+      const span = options.span ?? undefined;
+      const stack = (options.stack === 'null' ? undefined : options.stack) ?? undefined;
+
+      if (options.deprecation) {
+        if (message.startsWith('Using / for division outside of calc() is deprecated')) {
+          // silences above deprecation warning
+          return;
+        }
+        stderr.write('DEPRECATION ');
+      }
+      stderr.write(`WARNING: ${message}\n`);
+
+      if (span !== undefined) {
+        // output the snippet that is causing this warning
+        stderr.write(`\n"${span.text}"\n`);
+      }
+
+      if (stack !== undefined) {
+        // indent each line of the stack
+        stderr.write(`    ${stack.toString().trimEnd().replace(/\n/gm, '\n    ')}\n`);
+      }
+
+      stderr.write('\n');
+    }
+  }
+};
 
 export default defineConfig({
   plugins: [
@@ -89,12 +120,43 @@ export default defineConfig({
     assetsDir    : 'static',
     rollupOptions: {
       output: {
+        manualChunks(id, { getModuleInfo }) {
+          const match = /.*\.strings\.(\w+)\.js/.exec(id);
+          if (match) {
+            const language = match[1]; // e.g. "en"
+            const dependentEntryPoints = [];
+        
+            // we use a Set here so we handle each module at most once. This
+            // prevents infinite loops in case of circular dependencies
+            const idsToHandle = new Set(getModuleInfo(id).dynamicImporters);
+        
+            for (const moduleId of idsToHandle) {
+              const { isEntry, dynamicImporters, importers } =
+                getModuleInfo(moduleId);
+              if (isEntry || dynamicImporters.length > 0)
+                dependentEntryPoints.push(moduleId);
+        
+              for (const importerId of importers) idsToHandle.add(importerId);
+            }
+        
+            if (dependentEntryPoints.length === 1) {
+              return `${
+                dependentEntryPoints[0].split('/').slice(-1)[0].split('.')[0]
+              }.strings.${language}`;
+            }
+            // For multiple entries, we put it into a "shared" chunk
+            if (dependentEntryPoints.length > 1) {
+              return `shared.strings.${language}`;
+            }
+          }
+        },
         chunkFileNames: 'static/js/eqsage-[name].[hash].js',
         entryFileNames: 'static/js/eqsage-[name].[hash].js',
       },
     },
     target   : 'esnext',
-    sourcemap: true,
+    minify   : 'esbuild',
+    sourcemap: process.env.NODE_ENV !== 'production',
   },
   worker: {
     format: 'es',
@@ -105,7 +167,18 @@ export default defineConfig({
       util  : 'util/',
     },
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        ...silenceSomeSassDeprecationWarnings,
+      },
+      sass: {
+        ...silenceSomeSassDeprecationWarnings,
+      },
+    },
+  },
   define: {
     'process.env': {},
   },
 });
+

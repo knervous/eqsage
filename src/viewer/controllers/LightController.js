@@ -1,4 +1,11 @@
-import { Color3, HemisphericLight, Light, Vector3, PointLight, Effect } from '@babylonjs/core';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { Light } from '@babylonjs/core/Lights/light';
+import { PointLight } from '@babylonjs/core/Lights/pointLight';
+import { Effect } from '@babylonjs/core/Materials/effect';
+
+
 import { cameraController } from './CameraController';
 import { Vector3 as ThreeVector3 } from 'three';
 import { PointOctree } from 'sparse-octree';
@@ -8,16 +15,16 @@ const maxLights = 8;
 
 class LightController extends GameControllerChild {
   /**
-     * @type {import('@babylonjs/core/Lights').PointLight[]}
-     */
+   * @type {import('@babylonjs/core/Lights').PointLight[]}
+   */
   zoneLights = [];
   /**
-     * @type {import('@babylonjs/core/Lights').HemisphericLight}
-     */
+   * @type {import('@babylonjs/core/Lights').HemisphericLight}
+   */
   ambientLight = null;
   /**
-     * @type {import('@babylonjs/core/Lights').PointLight}
-     */
+   * @type {import('@babylonjs/core/Lights').PointLight}
+   */
   playerLight = null;
 
   /**
@@ -30,7 +37,7 @@ class LightController extends GameControllerChild {
    */
   octree = null;
   dispose() {
-    this.zoneLights.forEach(z => {
+    this.zoneLights.forEach((z) => {
       z.dispose();
     });
     this.previousLights = [];
@@ -52,9 +59,12 @@ class LightController extends GameControllerChild {
    * @param {boolean} fromSerialized
    */
   async loadLights(scene, zoneLights, fromSerialized, aabbTree) {
-    this.ambientLight = scene.getLightByName('__ambient_light__') ?? new HemisphericLight('__ambient_light__', new Vector3(0, -0, 0), scene);
-    this.playerLight = scene.getLightByName('__player_light__') ?? new PointLight('__player_light__', new Vector3(0, 0, 0), scene);
-
+    this.ambientLight =
+      scene.getLightByName('__ambient_light__') ??
+      new HemisphericLight('__ambient_light__', new Vector3(0, -0, 0), scene);
+    this.playerLight =
+      scene.getLightByName('__player_light__') ??
+      new PointLight('__player_light__', new Vector3(0, 0, 0), scene);
 
     // Default intensity is 1. Let's dim the light a small amount
     this.ambientLight.intensity = 1.5;
@@ -77,7 +87,11 @@ class LightController extends GameControllerChild {
       for (const [idx, lightData] of Object.entries(zoneLights)) {
         const [x, y, z] = lightData.pos;
         const { r, g, b, radius } = lightData;
-        const light = new PointLight(`light_${idx}`, new Vector3(x, y, z), scene);
+        const light = new PointLight(
+          `light_${idx}`,
+          new Vector3(x, y, z),
+          scene
+        );
         light.diffuse = new Color3(r, g, b);
         light.intensity = 0.2;
         light.radius = radius;
@@ -85,21 +99,33 @@ class LightController extends GameControllerChild {
         light.falloffType = Light.FALLOFF_GLTF;
         light.specular.set(0, 0, 0);
         light.metadata = {
-          zoneLight: true
+          zoneLight: true,
         };
         this.zoneLights.push(light);
       }
     } else {
-      this.zoneLights = [...scene.lights.filter(l => l.metadata?.zoneLight)];
+      this.zoneLights = [...scene.lights.filter((l) => l.metadata?.zoneLight)];
     }
     // this.zoneLights.forEach(l => l.doNotSerialize = true);
-    
+
     const { min, max } = aabbTree;
-    this.octree = new PointOctree(new ThreeVector3(min.x, min.y, min.z), new ThreeVector3(max.x, max.y, max.z));
-    
+    this.octree = new PointOctree(
+      new ThreeVector3(min.x, min.y, min.z),
+      new ThreeVector3(max.x, max.y, max.z)
+    );
+
     this.zoneLights.forEach((light, idx) => {
       light.setEnabled(false);
-      if (!this.octree.set(new ThreeVector3(light.position.x, light.position.z, light.position.y), idx)) {
+      if (
+        !this.octree.set(
+          new ThreeVector3(
+            light.position.x,
+            light.position.z,
+            light.position.y
+          ),
+          idx
+        )
+      ) {
         console.log('Did not set light', light);
       }
     });
@@ -107,7 +133,11 @@ class LightController extends GameControllerChild {
 
   updateLights(position) {
     if (this.zoneLights.length >= maxLights) {
-      const threePosition = new ThreeVector3(position.x, position.z, position.y);
+      const threePosition = new ThreeVector3(
+        position.x,
+        position.z,
+        position.y
+      );
       let points = null;
       let radius = 50;
       while (true) {
@@ -117,7 +147,10 @@ class LightController extends GameControllerChild {
         }
         radius += 20;
       }
-      points = points.sort((a, b) => a.distance - b.distance).slice(0, maxLights).map(a => a.data);
+      points = points
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, maxLights)
+        .map((a) => a.data);
 
       for (const prevIdx of this.previousLights) {
         if (!points.includes(prevIdx)) {
@@ -127,12 +160,12 @@ class LightController extends GameControllerChild {
         }
       }
 
-      points.forEach(idx => {
+      points.forEach((idx) => {
         if (!this.zoneLights[idx].isEnabled()) {
           this.zoneLights[idx].setEnabled(true);
         }
       });
-      
+
       this.previousLights = points;
     }
   }
@@ -427,4 +460,3 @@ Effect.IncludesShadersStore.lightFragment = `
         #endif
         #endif
         `;
-
