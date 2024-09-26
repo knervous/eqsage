@@ -1,32 +1,29 @@
 /* eslint-disable */
-import zlib from 'pako';
-import { Buffer } from 'buffer';
-import { Wld, WldType } from './wld/wld';
-import { imageProcessor } from '../util/image/image-processor';
-import { Accessor, WebIO } from '@gltf-transform/core';
-import { mat4 } from 'gl-matrix';
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { Document } from '@gltf-transform/core';
-import { ShaderType } from './materials/material';
+import zlib from "pako";
+import { Buffer } from "buffer";
+import { Wld, WldType } from "./wld/wld";
+import { imageProcessor } from "../util/image/image-processor";
+import { Accessor, WebIO } from "@gltf-transform/core";
+import { mat4 } from "gl-matrix";
+import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
+import { Document } from "@gltf-transform/core";
+import { ShaderType } from "./materials/material";
 import {
   appendObjectMetadata,
   getEQFile,
   getEQFileExists,
   getEQRootDir,
   writeEQFile,
-} from '../util/fileHandler';
-import { VERSION } from '../model/constants';
-import { fragmentNameCleaner } from '../util/util';
-import {
-  S3DAnimationWriter,
-  animationMap,
-} from '../util/animation-helper';
-import { GlobalStore } from '../../state';
-import { EQGDecoder } from '../eqg/eqg-decoder';
-import { PFSArchive } from '../pfs/pfs';
-import { Sound } from './sound/sound';
+} from "../util/fileHandler";
+import { VERSION } from "../model/constants";
+import { fragmentNameCleaner } from "../util/util";
+import { S3DAnimationWriter, animationMap } from "../util/animation-helper";
+import { GlobalStore } from "../../state";
+import { EQGDecoder } from "../eqg/eqg-decoder";
+import { PFSArchive } from "../pfs/pfs";
+import { Sound } from "./sound/sound";
 
-const io = new WebIO().registerExtensions(ALL_EXTENSIONS)
+const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
 export class S3DDecoder {
   /** @type {import('../model/file-handle').EQFileHandle} */
@@ -48,7 +45,6 @@ export class S3DDecoder {
    */
   pfsArchive;
 
-  
   gequip = false;
 
   constructor(fileHandle) {
@@ -60,7 +56,7 @@ export class S3DDecoder {
    * @param {FileSystemHandle} file
    */
   async processS3D(file) {
-    console.log('handle s3d', file.name);
+    console.log("handle s3d", file.name);
     const arrayBuffer = await file.arrayBuffer();
     const buf = Buffer.from(arrayBuffer);
     if (buf.length === 0) {
@@ -76,7 +72,7 @@ export class S3DDecoder {
     for (const [fileName, data] of this.pfsArchive.files.entries()) {
       this.files[fileName] = this.pfsArchive.getFile(fileName);
 
-      if (fileName.endsWith('.wld')) {
+      if (fileName.endsWith(".wld")) {
         console.log(`Processing WLD file - ${fileName}`);
         const wld = new Wld(this.files[fileName], fileName);
         for (const mat of wld.materialList.flatMap((ml) => ml.materialList)) {
@@ -91,7 +87,7 @@ export class S3DDecoder {
         this.wldFiles.push(wld);
       }
 
-      if (fileName.endsWith('.bmp') || fileName.endsWith('.dds')) {
+      if (fileName.endsWith(".bmp") || fileName.endsWith(".dds")) {
         images.push({ name: fileName, data: this.files[fileName].buffer });
         continue;
       }
@@ -111,13 +107,13 @@ export class S3DDecoder {
    *
    * @param {Wld} wld
    */
-  async exportModels(wld, doExport = true, path = 'models') {
+  async exportModels(wld, doExport = true, path = "models") {
     for (const track of wld.tracks.filter(
       (t) => !t.isPoseAnimation && !t.isNameParsed
     )) {
       track.parseTrackData();
     }
-    GlobalStore.actions.setLoadingTitle('Exporting models');
+    GlobalStore.actions.setLoadingTitle("Exporting models");
 
     const AnimationSources = {};
     let newModel = false;
@@ -191,8 +187,8 @@ export class S3DDecoder {
       }
       for (const mesh of skeleton.meshes.concat(skeleton.secondaryMeshes)) {
         const material = mesh.materialList;
-        const baseName = mesh.name.split('_')[0].toLowerCase();
-        const scrubbedName = material.name.split('_')[0].toLowerCase();
+        const baseName = mesh.name.split("_")[0].toLowerCase();
+        const scrubbedName = material.name.split("_")[0].toLowerCase();
         const document = new Document(scrubbedName);
         const buffer = document.createBuffer();
         const scene = document.createScene(scrubbedName);
@@ -200,10 +196,12 @@ export class S3DDecoder {
 
         // Write skeleton data to json if we're a supplier of animations for other models
         if (!secondary && Object.values(animationMap).includes(baseName)) {
-          if (!(await getEQFileExists('data', `${baseName}-animations.json`))) {
-            GlobalStore.actions.setLoadingText(`Writing shared animations for ${baseName}`);
+          if (!(await getEQFileExists("data", `${baseName}-animations.json`))) {
+            GlobalStore.actions.setLoadingText(
+              `Writing shared animations for ${baseName}`
+            );
             await writeEQFile(
-              'data',
+              "data",
               `${baseName}-animations.json`,
               JSON.stringify(skeleton.serializeAnimations())
             );
@@ -223,7 +221,11 @@ export class S3DDecoder {
             );
           const existingAnimations =
             existingSkeleton?.animations ??
-            (await getEQFile('data', `${animationMap[baseName]}-animations.json`, 'json'));
+            (await getEQFile(
+              "data",
+              `${animationMap[baseName]}-animations.json`,
+              "json"
+            ));
           if (existingAnimations) {
             for (const [key, value] of Object.entries(existingAnimations)) {
               if (secondary) {
@@ -237,20 +239,27 @@ export class S3DDecoder {
               }
             }
           } else {
-            console.warn(`Unmet dependency for animations for ${baseName}. Wanted {{ ${animationMap[baseName]} }}`);
+            console.warn(
+              `Unmet dependency for animations for ${baseName}. Wanted {{ ${animationMap[baseName]} }}`
+            );
           }
-        
         }
 
         const node = document
           .createNode(scrubbedName)
           .setTranslation([0, 0, 0]);
 
-        node.setExtras({ secondaryMeshes: skeleton.secondaryMeshes.length, newModel });
+        node.setExtras({
+          secondaryMeshes: skeleton.secondaryMeshes.length,
+          newModel,
+        });
 
         scene.addChild(node);
 
-        const materials = await this.getMaterials(material.materialList, document);
+        const materials = await this.getMaterials(
+          material.materialList,
+          document
+        );
 
         const primitiveMap = {};
 
@@ -273,11 +282,11 @@ export class S3DDecoder {
                 .createPrimitive(name)
                 .setMaterial(gltfMat)
                 .setName(name),
-              indices     : [],
-              joints      : [],
-              vecs        : [],
-              normals     : [],
-              uv          : [],
+              indices: [],
+              joints: [],
+              vecs: [],
+              normals: [],
+              uv: [],
               polygonCount: 0,
             };
             gltfMesh.addPrimitive(sharedPrimitive.gltfPrim);
@@ -368,12 +377,12 @@ export class S3DDecoder {
           gltfPrim
             .setName(name)
             .setIndices(primIndices)
-            .setAttribute('POSITION', primPositions)
-            .setAttribute('NORMAL', primNormals)
-            .setAttribute('TEXCOORD_0', primUv)
-            .setAttribute('JOINTS_0', primJoints)
-            .setAttribute('WEIGHTS_0', primWeights);
-          const normalAccessor = gltfPrim.getAttribute('NORMAL');
+            .setAttribute("POSITION", primPositions)
+            .setAttribute("NORMAL", primNormals)
+            .setAttribute("TEXCOORD_0", primUv)
+            .setAttribute("JOINTS_0", primJoints)
+            .setAttribute("WEIGHTS_0", primWeights);
+          const normalAccessor = gltfPrim.getAttribute("NORMAL");
           if (normalAccessor) {
             const normals = normalAccessor.getArray();
             for (let i = 0; i < normals.length; i += 3) {
@@ -401,13 +410,12 @@ export class S3DDecoder {
         const skeletonNodes = animWriter.addNewSkeleton(skeleton);
         animWriter.applyAnimationToSkeleton(
           skeleton,
-          'pos',
+          "pos",
           true,
           true,
           skeletonNodes
         );
         if (!secondary) {
-          
           for (const animationKey of Object.keys(skeleton.animations)) {
             animWriter.applyAnimationToSkeleton(
               skeleton,
@@ -419,7 +427,7 @@ export class S3DDecoder {
           }
         }
 
-        const skin = document.createSkin('mesh-skeleton');
+        const skin = document.createSkin("mesh-skeleton");
         for (const n of skeletonNodes) {
           skin.addJoint(n);
         }
@@ -441,24 +449,25 @@ export class S3DDecoder {
    *
    * @param {Wld} wld
    */
-  async exportObjects(wld, path = 'objects') {
-
+  async exportObjects(wld, path = "objects") {
     for (let i = 0; i < wld.meshes.length; i++) {
       const mesh = wld.meshes[i];
       const material = mesh.materialList;
-      const scrubbedName = material.name.split('_')[0].toLowerCase();
-      const diskFileName = this.#fileHandle.name.includes('gequip') || true ? `${scrubbedName}.glb` :
-        `[${this.#fileHandle.name}] ${scrubbedName}.glb`
+      const scrubbedName = material.name.split("_")[0].toLowerCase();
+      const diskFileName =
+        this.#fileHandle.name.includes("gequip") || true
+          ? `${scrubbedName}.glb`
+          : `[${this.#fileHandle.name}] ${scrubbedName}.glb`;
       if (await getEQFileExists(path, diskFileName)) {
-       continue;
+        continue;
       }
-      await appendObjectMetadata(scrubbedName, wld.name.replace('.wld', ''));
+      await appendObjectMetadata(scrubbedName, wld.name.replace(".wld", ""));
       const document = new Document(scrubbedName);
       const buffer = document.createBuffer();
       const scene = document.createScene(scrubbedName);
       document.createPrimitive().setAttribute();
       const flipMatrix = mat4.create();
-      mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
+      mat4.scale(flipMatrix, flipMatrix, [1, 1, 1]);
       const node = document
         .createNode(scrubbedName)
         .setTranslation([0, 0, 0])
@@ -466,7 +475,10 @@ export class S3DDecoder {
 
       scene.addChild(node);
 
-      const materials = await this.getMaterials(material.materialList, document);
+      const materials = await this.getMaterials(
+        material.materialList,
+        document
+      );
 
       const primitiveMap = {};
 
@@ -502,16 +514,16 @@ export class S3DDecoder {
               .createPrimitive(name)
               .setMaterial(gltfMat)
               .setName(name),
-            indices     : [],
-            vecs        : [],
-            normals     : [],
-            uv          : [],
+            indices: [],
+            vecs: [],
+            normals: [],
+            uv: [],
             polygonCount: 0,
           };
           mesh.addPrimitive(sharedPrimitive.gltfPrim);
         }
         if (hasNotSolid) {
-          sharedPrimitive.gltfNode.setExtras({ solid: false });
+          sharedPrimitive.gltfNode.setExtras({ passThrough: true });
         }
 
         for (let i = 0; i < mat.polygonCount; i++) {
@@ -569,9 +581,9 @@ export class S3DDecoder {
         gltfPrim
           .setName(name)
           .setIndices(primIndices)
-          .setAttribute('POSITION', primPositions)
-          .setAttribute('NORMAL', primNormals)
-          .setAttribute('TEXCOORD_0', primUv);
+          .setAttribute("POSITION", primPositions)
+          .setAttribute("NORMAL", primNormals)
+          .setAttribute("TEXCOORD_0", primUv);
       }
 
       // await document.transform(
@@ -595,7 +607,7 @@ export class S3DDecoder {
     const flipMatrix = mat4.create();
     mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
     const node = document
-      .createNode(`zone-${wld.name.replace('.wld', '')}`)
+      .createNode(`zone-${wld.name.replace(".wld", "")}`)
       .setTranslation([0, 0, 0])
       .setMatrix(flipMatrix);
 
@@ -604,25 +616,24 @@ export class S3DDecoder {
     const zoneMetadata = {
       version: VERSION,
       objects: {},
-      lights : [],
+      lights: [],
       sounds: [],
       regions: [],
     };
 
-
     wld.bspTree?.constructRegions(wld);
-    
+
     // Lights
     const lightWld = this.wldFiles.find((f) => f.type === WldType.Lights);
     if (lightWld) {
       for (const light of lightWld.lights) {
-        const [x,y,z] = light.position;
+        const [x, y, z] = light.position;
         const l = {
           x,
           y: z,
           z: y,
           radius: 30,
-        }
+        };
         const lightSource = light.reference.lightSource;
         l.r = lightSource.colors?.[0]?.r ?? 1;
         l.g = lightSource.colors?.[0]?.g ?? 1;
@@ -639,7 +650,7 @@ export class S3DDecoder {
     const regions = [];
     for (const leafNode of wld.bspTree?.leafNodes ?? []) {
       regions.push({
-        region   : leafNode.region.regionType,
+        region: leafNode.region.regionType,
         minVertex: [
           leafNode.boundingBoxMin[0],
           leafNode.boundingBoxMin[2],
@@ -661,13 +672,13 @@ export class S3DDecoder {
       const actorInstances = objWld.actors;
       for (const actor of actorInstances) {
         const entry = {
-          y      : actor.location.z,
-          z      : actor.location.y,
-          x      : actor.location.x,
+          y: actor.location.z,
+          z: actor.location.y,
+          x: actor.location.x,
           rotateX: actor.location.rotateX,
-          rotateY: actor.location.rotateY,
+          rotateY: actor.location.rotateY + 180,
           rotateZ: actor.location.rotateZ,
-          scale  : actor.scaleFactor,
+          scale: actor.scaleFactor,
         };
         if (!zoneMetadata.objects[actor.objectName]) {
           zoneMetadata.objects[actor.objectName] = [entry];
@@ -683,8 +694,8 @@ export class S3DDecoder {
 
     // Object instances
     await writeEQFile(
-      'zones',
-      `${wld.name.replace('.wld', '.json')}`,
+      "zones",
+      `${wld.name.replace(".wld", ".json")}`,
       JSON.stringify(zoneMetadata)
     );
 
@@ -720,7 +731,7 @@ export class S3DDecoder {
             const [, n] = endDigitRegex.exec(name);
             name = name.replace(endDigitRegex, `-${+n + 1}`);
           } else {
-            name += '-0';
+            name += "-0";
           }
         }
 
@@ -736,16 +747,16 @@ export class S3DDecoder {
               .createPrimitive(name)
               .setMaterial(gltfMat)
               .setName(name),
-            indices     : [],
-            vecs        : [],
-            normals     : [],
-            uv          : [],
+            indices: [],
+            vecs: [],
+            normals: [],
+            uv: [],
             polygonCount: 0,
           };
           mesh.addPrimitive(sharedPrimitive.gltfPrim);
         }
         if (hasNotSolid) {
-          sharedPrimitive.gltfNode.setExtras({ solid: false });
+          sharedPrimitive.gltfNode.setExtras({ passThrough: true });
         }
 
         for (let i = 0; i < mat.polygonCount; i++) {
@@ -807,96 +818,111 @@ export class S3DDecoder {
       gltfPrim
         .setName(name)
         .setIndices(primIndices)
-        .setAttribute('POSITION', primPositions)
-        .setAttribute('NORMAL', primNormals)
-        .setAttribute('TEXCOORD_0', primUv);
+        .setAttribute("POSITION", primPositions)
+        .setAttribute("NORMAL", primNormals)
+        .setAttribute("TEXCOORD_0", primUv);
     }
     // await document.transform(
     //   // Compress mesh geometry with Draco.
     //   draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
     // );
     const bytes = await io.writeBinary(document);
-    const zoneName = `${wld.name.replace('wld', 'glb')}`;
+    const zoneName = `${wld.name.replace("wld", "glb")}`;
 
-    await writeEQFile('zones', zoneName, bytes.buffer);
+    await writeEQFile("zones", zoneName, bytes.buffer);
   }
 
   /**
- *
- * @param {[import('./materials/material-list').MaterialList]}
- * @param {Document} document
- */
-async getMaterials (materialList, document, roughness = 0.0) {
-  const materials = {};
-  for (const eqMaterial of materialList) {
-    if (materials[eqMaterial.name]) {
-      continue;
-    }
-    let [name] = eqMaterial.name.toLowerCase().split(/_mdf/i);
+   *
+   * @param {[import('./materials/material-list').MaterialList]}
+   * @param {Document} document
+   */
+  async getMaterials(materialList, document, roughness = 0.0) {
+    const materials = {};
+    for (const eqMaterial of materialList) {
+      if (materials[eqMaterial.name]) {
+        continue;
+      }
+      let [name] = eqMaterial.name.toLowerCase().split(/_mdf/i);
 
-    if (/m\d+/.test(name) && eqMaterial.bitmapInfo?.reference) {
-      name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
-    }
-    const gltfMaterial = document
-      .createMaterial()
-      .setDoubleSided(false)
-      .setRoughnessFactor(1)
-      .setMetallicFactor(0)
-      .setName(name);
-    if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {
-      name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
-      gltfMaterial.setName(name);
-      gltfMaterial.setExtras({
-        animationDelay: eqMaterial.bitmapInfo.reference.animationDelayMs,
-        frames        : eqMaterial.bitmapInfo.reference.bitmapNames.map((m) =>
-          m.name.toLowerCase()
-        ),
-      });
-    }
+      if (/m\d+/.test(name) && eqMaterial.bitmapInfo?.reference) {
+        name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
+      }
+      const gltfMaterial = document
+        .createMaterial()
+        .setDoubleSided(false)
+        .setRoughnessFactor(1)
+        .setMetallicFactor(0)
+        .setName(name);
+      if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {
+        name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
+        gltfMaterial.setName(name);
+        gltfMaterial.setExtras({
+          animationDelay: eqMaterial.bitmapInfo.reference.animationDelayMs,
+          frames: eqMaterial.bitmapInfo.reference.bitmapNames.map((m) =>
+            m.name.toLowerCase()
+          ),
+        });
+      }
+      let image = new Uint8Array(await getEQFile("textures", `${name}.png`));
+      if (!image.byteLength) {
+        console.log(`No byte length for image: ${name}`);
+        image = new Uint8Array([
+          0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00,
+          0x0d, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+          0x00, 0x01, 0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde,
+          0x00, 0x00, 0x00, 0x0c, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63,
+          0x68, 0x68, 0x68, 0x00, 0x00, 0x03, 0x04, 0x01, 0x81, 0x4b, 0xd3,
+          0xd2, 0x10, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
+          0x42, 0x60, 0x82,
+        ]);
+      }
+      const texture = document
+        .createTexture(name.toLowerCase())
+        .setImage(image)
+        .setURI(`/eq/textures/${name}`)
+        .setExtras({
+          name,
+        })
+        .setMimeType("image/png");
+      gltfMaterial.setBaseColorTexture(texture);
+      switch (eqMaterial.shaderType) {
+        case ShaderType.TransparentMasked:
+          gltfMaterial
+            .setAlphaMode("MASK")
+            .setDoubleSided(true)
+            .setAlphaCutoff(0.5);
+          break;
+        case ShaderType.Transparent25:
+        case ShaderType.Transparent50:
+        case ShaderType.Transparent75:
+        case ShaderType.TransparentAdditive:
+        case ShaderType.TransparentAdditiveUnlit:
+        case ShaderType.TransparentSkydome:
+        case ShaderType.TransparentAdditiveUnlitSkydome:
+          gltfMaterial.setAlphaMode("BLEND");
+          break;
+        case ShaderType.Boundary:
+          gltfMaterial.setAlphaMode("BLEND");
+          gltfMaterial.setAlpha(0);
+          gltfMaterial.setExtras({ boundary: true });
+          break;
+        default:
+          gltfMaterial.setAlphaMode("OPAQUE");
+          break;
+      }
 
-    const texture = document
-      .createTexture(name.toLowerCase())
-      //.setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
-      .setURI(`/eq/textures/${name}`)
-      .setExtras({
-        name,
-      })
-      .setMimeType('image/png');
-    gltfMaterial.setBaseColorTexture(texture);
-    switch (eqMaterial.shaderType) {
-      case ShaderType.TransparentMasked:
-        gltfMaterial.setAlpha(0.5).setAlphaMode('MASK');
-        break;
-      case ShaderType.Transparent25:
-      case ShaderType.Transparent50:
-      case ShaderType.Transparent75:
-      case ShaderType.TransparentAdditive:
-      case ShaderType.TransparentAdditiveUnlit:
-      case ShaderType.TransparentSkydome:
-      case ShaderType.TransparentAdditiveUnlitSkydome:
-        gltfMaterial.setAlphaMode('BLEND');
-        break;
-      case ShaderType.Boundary:
-        gltfMaterial.setAlphaMode('BLEND');
-        gltfMaterial.setAlpha(0);
-        gltfMaterial.setExtras({ boundary: true })
-        break;
-      default:
-        gltfMaterial.setAlphaMode('OPAQUE');
-        break;
+      if (
+        eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlit ||
+        eqMaterial.ShaderType === ShaderType.DiffuseSkydome ||
+        eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlitSkydome
+      ) {
+        // gltfMaterial.WithUnlitShader();
+      }
+      materials[eqMaterial.name] = gltfMaterial;
     }
-
-    if (
-      eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlit ||
-      eqMaterial.ShaderType === ShaderType.DiffuseSkydome ||
-      eqMaterial.ShaderType === ShaderType.TransparentAdditiveUnlitSkydome
-    ) {
-      // gltfMaterial.WithUnlitShader();
-    }
-    materials[eqMaterial.name] = gltfMaterial;
+    return materials;
   }
-  return materials;
-};
 
   async export() {
     /**
@@ -906,22 +932,22 @@ async getMaterials (materialList, document, roughness = 0.0) {
     for (const wld of this.wldFiles) {
       switch (wld.type) {
         case WldType.Zone:
-          GlobalStore.actions.setLoadingText('Exporting zone');
+          GlobalStore.actions.setLoadingText("Exporting zone");
           await this.exportZone(wld);
           break;
         case WldType.ZoneObjects:
           break;
         case WldType.Objects:
-          GlobalStore.actions.setLoadingText('Exporting zone objects');
+          GlobalStore.actions.setLoadingText("Exporting zone objects");
           await this.exportObjects(wld);
           break;
         case WldType.Characters:
-          GlobalStore.actions.setLoadingText('Exporting zone models');
+          GlobalStore.actions.setLoadingText("Exporting zone models");
           await this.exportModels(wld);
           break;
         case WldType.Equipment:
-          await this.exportModels(wld, true, 'items');
-          await this.exportObjects(wld, 'items');
+          await this.exportModels(wld, true, "items");
+          await this.exportObjects(wld, "items");
 
           break;
         case WldType.Lights:
@@ -929,61 +955,71 @@ async getMaterials (materialList, document, roughness = 0.0) {
         case WldType.Sky:
           break;
         default:
-          console.warn('Unknown type', wld.type);
+          console.warn("Unknown type", wld.type);
           break;
       }
     }
   }
 
   async process() {
-    console.log('process', this.#fileHandle.name);
+    console.log("process", this.#fileHandle.name);
     const micro = performance.now();
-    if (this.#fileHandle.name.startsWith('gequip')) {
+    if (this.#fileHandle.name.startsWith("gequip")) {
       this.gequip = true;
     }
     for (const file of this.#fileHandle.fileHandles) {
-      const extension = file.name.split('.').pop();
+      const extension = file.name.split(".").pop();
       switch (extension) {
-        case 's3d':
+        case "s3d":
           await this.processS3D(file);
           break;
-        case 'txt':
-          if (file.name.endsWith('_assets.txt')) {
-            const contents = (await file.text()).split('\r\n');
+        case "txt":
+          if (file.name.endsWith("_assets.txt")) {
+            const contents = (await file.text()).split("\r\n");
             for (const line of contents) {
-              if (line.endsWith('.eqg')) {
+              if (line.endsWith(".eqg")) {
                 console.log(`Loading dependent asset ${line}`);
                 try {
                   const dir = getEQRootDir();
-                  const fh = await dir.getFileHandle(line).then(f => f.getFile());
+                  const fh = await dir
+                    .getFileHandle(line)
+                    .then((f) => f.getFile());
                   const decoder = new EQGDecoder(fh);
                   await decoder.processEQG(fh);
                   for (const [name, mod] of Object.entries(decoder.models)) {
-                    if (!name.includes('ter_')) {
+                    if (!name.includes("ter_")) {
                       await decoder.writeModels(name, mod);
                     }
                   }
-                } catch(e) {
+                } catch (e) {
                   console.log(`Error loading dependent asset`, e);
                 }
-              
               }
             }
           }
           break;
-        case 'eff':
-          if (file.name.endsWith('_sounds.eff')) {
-            const bank = this.#fileHandle.fileHandles.find(f => f.name.endsWith('sndbnk.eff'));
+        case "eff":
+          if (file.name.endsWith("_sounds.eff")) {
+            const bank = this.#fileHandle.fileHandles.find((f) =>
+              f.name.endsWith("sndbnk.eff")
+            );
             if (bank) {
               const root = await getEQRootDir();
-              const mp3List = await root.getFileHandle('mp3index.txt').then(f => f.getFile().then(f => f.text()));
-              this.sound = new Sound(await file.arrayBuffer(), await bank.text(), mp3List, this.#fileHandle.name.split('.')[0]);
+              const mp3List = await root
+                .getFileHandle("mp3index.txt")
+                .then((f) => f.getFile().then((f) => f.text()));
+              this.sound = new Sound(
+                await file.arrayBuffer(),
+                await bank.text(),
+                mp3List,
+                this.#fileHandle.name.split(".")[0]
+              );
             }
           }
           break;
-        case 'xmi':
+        case "xmi":
           break;
-        case 'emt':
+        case "emt":
           break;
         default:
           console.warn(

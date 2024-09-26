@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Stack, Typography } from '@mui/material';
+import { Tools } from '@babylonjs/core/Misc/tools';
 
+import { gameController } from '../../../viewer/controllers/GameController';
 import compass from './CompassFinalLarge.webp';
 import compassDot from './compass-dot.png';
-
-import { Box } from '@mui/material';
-import { gameController } from '../../viewer/controllers/GameController';
-import { Tools } from '@babylonjs/core/Misc/tools';
 
 const initialOffset = {
   left: 45,
@@ -24,9 +23,10 @@ function getCardinalDirection(camera) {
   return degrees % 360;
 }
 
-export const Compass = () => {
+export const Compass = ({ forceOpen = false }) => {
   const [degrees, setDegrees] = useState(0);
   const [open, setOpen] = useState(true);
+  const [position, setPosition] = useState({ x: 0, y: 0, z: 0 });
   useEffect(() => {
     const interval = setInterval(() => {
       if (document?.querySelector('.nav-bg-open')) {
@@ -42,6 +42,16 @@ export const Compass = () => {
 
       window.deg = camDegrees;
       setDegrees(camDegrees);
+      const x = cam.position.x.toFixed(1);
+      const y = cam.position.z.toFixed(1);
+      const z = cam.position.y.toFixed(1);
+
+      setPosition((p) => {
+        if (p.x === x && p.y === y && p.z === z) {
+          return p;
+        }
+        return { x, y, z };
+      });
     }, 10);
     return () => {
       clearInterval(interval);
@@ -59,9 +69,8 @@ export const Compass = () => {
 
     return offset;
   }, [degrees]);
-
-  return !open ? null : (
-    <Box sx={{ position: 'fixed', right: '20px', top: '10px' }}>
+  return !open && !forceOpen ? null : (
+    <Box sx={{ position: 'fixed', right: '20px', top: '10px', zIndex: 10 }}>
       <img alt="compass" src={compass} width="100px"></img>
       <img
         alt="compass-pin"
@@ -73,6 +82,18 @@ export const Compass = () => {
         src={compassDot}
         width="10px"
       ></img>
+      <Stack direction={'column'} sx={{ textAlign: 'left', margin: '0 auto', marginLeft: '25px', marginTop: '5px' }}>
+        <Typography sx={{ color: 'white' }}>
+        X: {position.y}
+        </Typography>
+        <Typography sx={{ color: 'white' }}>
+        Y: {position.x}
+        </Typography>
+        <Typography sx={{ color: 'white' }}>
+        Z: {position.z}
+        </Typography>
+      </Stack>
+
     </Box>
   );
 };

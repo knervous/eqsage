@@ -11,7 +11,7 @@ import {
 import GitHubIcon from '@mui/icons-material/GitHub';
 import YouTubeIcon from '@mui/icons-material/YouTube';
 import CodeIcon from '@mui/icons-material/Code';
-import { DiscordIcon } from '../spire/icons/discord';
+import { DiscordIcon } from '../common/icons/discord';
 
 import './about-dialog.scss';
 

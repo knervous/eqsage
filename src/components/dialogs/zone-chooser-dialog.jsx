@@ -194,11 +194,17 @@ export const ZoneChooserDialog = ({ open }) => {
       } else {
         import('../../data/zoneData.json').then((zl) => {
           setZoneList(Array.from(zl.default));
-          // enterZoneBuilder();
         });
       }
+      const urlParams = new URLSearchParams(window.location.search);
+      const zb = urlParams.get('zb');
+      if (zb === 'true') {
+        setTimeout(() => {
+          enterZoneBuilder();
+        }, 200);
+      }
     }
-  }, [open, Spire]);
+  }, [open, Spire, enterZoneBuilder]);
 
   useEffect(() => setZones(zoneList), [zoneList, setZones]);
 

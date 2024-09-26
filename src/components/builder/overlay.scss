@@ -1,82 +1,125 @@
-.exporter-left-nav,
-.exporter-right-nav {
-  max-width: 100vh;
-  overflow-y: scroll;
-  background-image: url("../../components/images/super_fancy_bg.png");
-  position: fixed;
-  background-repeat: repeat;
-  background-position: center;
-  width: 270px;
-  height: 100vh;
-  padding: 15px;
-  border-width: 2px;
-  border-style: solid;
-  color: white;
-  border-color: rgb(180, 173, 134) rgb(142, 134, 107) rgb(61, 58, 48)
-    rgb(177, 170, 142);
-  transition: right 0.5s ease;
-  z-index: 10;
-  p {
-    width: 100%;
-    text-align: center;
-  }
-  .MuiStack-root {
-    button {
-      margin: 5px 0px;
-    }
-  }
-  .MuiAccordionSummary-root {
-    padding: 0;
-  }
-  .MuiAccordion-root {
-    & {
-        background: transparent !important;
-        background-color: transparent !important;
-    }
-    .MuiAccordionDetails-root {
-        padding: 0;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-    }
-    .MuiAutocomplete-root {
-        width: 270px;
-    }
-    // &, div {
-    //     padding: 0;
-    //     margin: 0;
+.builder-header {
+    background-image: url('./bg.png');
+    background-image: url('../images/super_fancy_bg.png');
+    background-repeat: repeat;
+    background-position: center;
+    width: 60vw !important;
+    height: 75px !important;
+    max-height: 75px !important;
+    position: fixed; /* Change position to relative to control stacking */
+    transition: left 0.2s ease;
+    left: 20vw;
+    color: white;
+    z-index: 5;
+    clip-path: polygon(0 0, 100% 0%, 90% 100%, 10% 100%);
+}
+
+.builder-header-bg {
+    position: absolute;
+    width: calc(60vw + 4px) !important;
+    left: calc(20vw - 2px);
+    transition: left 0.2s ease;
+    height: 77px;
+    z-index: 0;
+    top: 0;
+    clip-path: polygon(0 0, 100% 0%, 90% 100%, 10% 100%);
+    background: rgb(180, 173, 134) !important;
+}
+
+.builder-left-nav-bg {
+    position: absolute;
+    width: 84px;
+    transition: left 0.2s ease;
+    height  : calc(80vh + 6px);
+    z-index: 0;
+    top: calc(10vh - 2px);
+    clip-path: polygon(0 0, 100% 10%, 100% 90%, 0 100%);
+    background: rgb(180, 173, 134) !important;
+}
+
+.builder-left-nav {
+    // svg {
+    //     fill: #ddd !important;
+    //     color: #ddd !important;
     // }
-  }
+    height  : 80vh;
+    top: 10vh;
+    width   : 80px;
+    position: absolute;
+    left    : 0;
+    z-index  : 1000;
+    background-image: url('../images/super_fancy_bg.png');
+    clip-path: polygon(0 0, 100% 10%, 100% 90%, 0 100%);
+    border-right: 2px solid rgba(0,0,0,0.1);
+    position: absolute;
 
+    .builder-left-nav-button {
+        border-radius: 15px;
+        width: 70px;
+        height: 70px;
+        opacity: 0.85;
+        background-color: transparent;
+        transition: opacity 0.2s ease-out; // Transition effect for opacity change
+        transition: background-color 0.1s ease-out; // Transition effect for opacity change
+        &:hover {
+            opacity: 1.0;
+        }
+    }
+    .builder-left-nav-button-open {
+        opacity: 1.0;
+        background-color: rgba(180, 173, 134, 0.5) !important;
+       // border-radius: 10px 1px / 12px !important;
+    }
 }
-.exporter-left-nav {
-  left: 0px;
-}
+.clickable {
+    &:hover {
+        text-shadow:
+      -0.5px -1px 0 rgba(0,0,0,.1),  
+       0.5px -1px 0 rgba(0,0,0,.1),
+      -0.5px  1px 0 rgba(0,0,0,.1),
+       0.5px  1px 0 rgba(0,0,0,.1); /* Outline effect */
+    color: gold !important;
 
-.exporter-right-nav {
-  right: 0px;
+    }
 }
+.text-outline {
+    cursor: initial;
+    user-select: none;
+    transition: text-shadow 0.2s ease;
+    transition: color 0.2s ease;
+    & + .clickable {
+        &:hover {
+            text-shadow:
+          -0.5px -1px 0 rgba(0,0,0,.1),  
+           0.5px -1px 0 rgba(0,0,0,.1),
+          -0.5px  1px 0 rgba(0,0,0,.1),
+           0.5px  1px 0 rgba(0,0,0,.1); /* Outline effect */
+        color: gold !important;
 
-.nav-bg-open {
-  right: 0px;
-}
-
-.nav-bg-closed {
-  right: -500px;
+        }
+    }
+   
+    color: white !important; /* Text color */
+    text-shadow:
+      -1px -1px 0 rgba(0,0,0,0.5),  
+       1px -1px 0 rgba(0,0,0,0.5),
+      -1px  1px 0 rgba(0,0,0,0.5),
+       1px  1px 0 rgba(0,0,0,0.5); /* Outline effect */
 }
 
 .outline-text-strong {
-  color: white; /* Text color */
-  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000,
-    2px 2px 0 #000, -1px -2px 0 #000, 1px -2px 0 #000, -2px -1px 0 #000,
-    2px -1px 0 #000, -2px 1px 0 #000, 2px 1px 0 #000, -1px 2px 0 #000,
-    1px 2px 0 #000; /* More detailed outline effect */
-}
-
-.zone-overlay-text {
-    &:hover {
-        color: white;
-    }
-}
+    color: white; /* Text color */
+    text-shadow:
+      -2px -2px 0 #000,  
+       2px -2px 0 #000,
+      -2px  2px 0 #000,
+       2px  2px 0 #000,
+      -1px -2px 0 #000,
+       1px -2px 0 #000,
+      -2px -1px 0 #000,
+       2px -1px 0 #000,
+      -2px  1px 0 #000,
+       2px  1px 0 #000,
+      -1px  2px 0 #000,
+       1px  2px 0 #000; /* More detailed outline effect */
+  }

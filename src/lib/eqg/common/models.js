@@ -106,11 +106,26 @@ export class Region {
       (minVertex[0] + maxVertex[0]) / 2,
       (minVertex[1] + maxVertex[1]) / 2,
       (minVertex[2] + maxVertex[2]) / 2,
-    ] : [-x, z, y];
+    ] : [x, z, y];
     return {
       minVertex,
       maxVertex,
       center,
+    };
+  }
+
+  static translateToExtents(minVertex, maxVertex) {
+
+    // Calculate the extents (half the size of the bounding box)
+    const extX = (maxVertex[0] - minVertex[0]) / 2;
+    const extY = (maxVertex[1] - minVertex[1]) / 2;
+    const extZ = (maxVertex[2] - minVertex[2]) / 2;
+
+    return {
+
+      extX,
+      extY,
+      extZ,
     };
   }
 
@@ -138,6 +153,8 @@ export class Region {
         eqRegion.region.zoneLineInfo.index = id;
       }
     }
+    eqRegion.name = this.name;
+    eqRegion.flags = this.flags;
     return eqRegion;
   }
 }

@@ -68,8 +68,8 @@ export class EQGDecoder {
     console.log("l dev", import.meta.env.VITE_LOCAL_DEV);
     for (const [fileName, data] of this.pfsArchive.files.entries()) {
       this.files[fileName] = this.pfsArchive.getFile(fileName);
-      if (fileName.includes('broodlands') || fileName.includes('ter')) {
-     // console.log('File', fileName)
+      if (fileName.includes('broodlands')) {
+        console.log('File', fileName)
 
       }
       if (fileName.endsWith(".lit")) {
@@ -83,7 +83,7 @@ export class EQGDecoder {
 
       }
       if (import.meta.env.VITE_LOCAL_DEV === "true") {
-        //await writeEQFile(name, fileName, this.files[fileName]);
+        // await writeEQFile(name, fileName, this.files[fileName]);
       }
       if (fileName.endsWith(".zon")) {
         this.zone = Zone.Factory(
@@ -115,6 +115,9 @@ export class EQGDecoder {
       if (fileName.endsWith(".bmp") || fileName.endsWith(".dds")) {
         images.push({ name: fileName, data: this.files[fileName].buffer });
         continue;
+      }
+      if (fileName.endsWith('.png')) {
+        await writeEQFile('textures', fileName, this.files[fileName]);
       }
       if (fileName.endsWith(".eco")) {
         this.eco[fileName.replace(".eco", "")] = new Eco(this.files[fileName]);
@@ -231,20 +234,20 @@ export class EQGDecoder {
           break;
         case "txt":
           if (file.name.endsWith('_assets.txt')) {
-            const contents = (await file.text()).split('\r\n');
-            for (const line of contents) {
-              if (line.endsWith('.eqg')) {
-                console.log(`Loading dependent asset ${line}`);
-                try {
-                  const dir = getEQRootDir();
-                  const fh = await dir.getFileHandle(line).then(f => f.getFile());
-                  await this.processEQG(fh);
-                } catch(e) {
-                  console.log(`Error loading dependent asset`, e);
-                }
+            // const contents = (await file.text()).split('\r\n');
+            // for (const line of contents) {
+            //   if (line.endsWith('.eqg')) {
+            //     console.log(`Loading dependent asset ${line}`);
+            //     try {
+            //       const dir = getEQRootDir();
+            //       const fh = await dir.getFileHandle(line).then(f => f.getFile());
+            //       await this.processEQG(fh);
+            //     } catch(e) {
+            //       console.log(`Error loading dependent asset`, e);
+            //     }
               
-              }
-            }
+            //   }
+            // }
           }
           break;
         case "eff":

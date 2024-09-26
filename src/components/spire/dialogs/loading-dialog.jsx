@@ -25,7 +25,7 @@ export const LoadingDialog = () => {
         open={true}
         maxWidth="md"
         className="ui-dialog"
-        sx={{ pointerEvents: 'none' }}
+        sx={{ pointerEvents: 'none', zIndex: 1000000 }}
         slotProps={{ backdrop: { sx: { pointerEvents: 'none' } } }}
       >
         <DialogTitle className="ui-dialog-title">{loadingTitle}</DialogTitle>

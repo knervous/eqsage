@@ -19,7 +19,7 @@ import { useZoneContext } from '../../../zone/zone-context';
 import { getFiles } from './quest-dir';
 import { MonacoService } from './monaco';
 import LoadingSpinner from './Loading';
-import { CSharpIcon } from '../../icons/csharp';
+import { CSharpIcon } from '../../../common/icons/csharp';
 import { useAlertContext } from '../../../../context/alerts';
 
 const drawerWidth = 240;

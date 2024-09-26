@@ -61,7 +61,7 @@ export const CommonDialog = ({
     >
       <DialogTitle
         className="ui-dialog-title"
-        style={{ cursor: 'move' }}wd
+        style={{ cursor: 'move' }}
         id="draggable-dialog-title"
       >
         {title}

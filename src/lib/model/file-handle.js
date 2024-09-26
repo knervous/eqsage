@@ -3,6 +3,7 @@ import { S3DDecoder } from '../s3d/s3d-decoder';
 import { Document } from '@gltf-transform/core';
 import { EQGDecoder } from '../eqg/eqg-decoder';
 import { getEQFile } from '../util/fileHandler';
+import { gameController } from '../../viewer/controllers/GameController';
 
 
 export class EQFileHandle {
@@ -57,11 +58,16 @@ export class EQFileHandle {
   }
 
   get #type() {
-    if (this.#fileHandles.some((f) => f.name === `${this.name}.eqg`)) {
-      return FILE_TYPE.EQG;
+    const eqgExists = this.#fileHandles.some(f => f.name === `${this.name}.eqg`);
+    const s3dExists = this.#fileHandles.some(f => f.name === `${this.name}.s3d`);
+  
+    if (gameController.settings.preferEqg) {
+      return eqgExists ? FILE_TYPE.EQG : FILE_TYPE.S3D;
     }
-    return FILE_TYPE.S3D;
+  
+    return s3dExists ? FILE_TYPE.S3D : FILE_TYPE.EQG;
   }
+  
 
   async initialize() {
     if (this.#fileHandles.length === 0) {

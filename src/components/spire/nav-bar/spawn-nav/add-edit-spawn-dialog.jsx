@@ -114,7 +114,7 @@ export const AddEditSpawnDialog = ({
       }
       onClose();
     },
-    [onClose, spawn, npcList, loadCallback, Spire, openAlert]
+    [onClose, spawn, npcList, loadCallback, Spire, openAlert, setSelectedSpawn]
   );
 
   useEffect(() => {
