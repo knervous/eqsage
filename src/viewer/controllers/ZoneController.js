@@ -99,56 +99,65 @@ class ZoneController extends GameControllerChild {
   }
   async exportSTL(name) {
     const zone = this.currentScene.getMeshByName('zone');
-    const objects = this.currentScene.getMeshByName('static-objects');
+    const objects = this.currentScene.getNodeByName('static-objects')?.getChildMeshes() ?? [];
     const zoneChildren = zone.getChildMeshes(false);
     const objectsChildren = zone.getChildMeshes(false);
 
-    STLExport.CreateSTL([zone, objects, ...zoneChildren, ...objectsChildren], true, `${name}`, undefined, undefined, false);
+    STLExport.CreateSTL(
+      [zone, ...objects, ...zoneChildren, ...objectsChildren],
+      true,
+      `${name}`,
+      undefined,
+      undefined,
+      false
+    );
   }
   exportZone(name) {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(`Exporting zone ${name}`);
     GlobalStore.actions.setLoadingText('LOADING, PLEASE WAIT...');
-
+    const staticObjects = this.objectContainer?.getChildMeshes() ?? [];
     GLTF2Export.GLBAsync(this.scene, name, {
       shouldExportNode(node) {
         while (node.parent) {
           node = node.parent;
         }
-        return node.name === 'zone' || node.name === 'static-objects';
+        return node.name === 'zone' || staticObjects.includes(node);
       },
       shouldExportAnimation() {
         return false;
       },
-      
-    }).then(async (glb) => {
-      GlobalStore.actions.setLoadingTitle(`Optimizing ${name}`);
-      GlobalStore.actions.setLoadingText('Applying GLB optimizations');
-      let blob = Object.values(glb.glTFFiles)[0];
-      try {
-        const arr = new Uint8Array(await blob.arrayBuffer());
-        const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
-        const doc = await io.readBinary(arr);
-        await doc.transform(
-          dedup(),
-          prune(),
-          textureCompress({
-            targetFormat: this.gc.settings.imgCompression,
-          }));
-        const bin = await io.writeBinary(doc);
-        blob = new Blob([bin]);
-      } catch (e) {
-        console.warn(e);
-      }
-     
-      const assetUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = assetUrl;
-      link.download = `${name}.glb`;
-      link.click();
-    }).finally(() => {
-      GlobalStore.actions.setLoading(false);
-    });
+    })
+      .then(async (glb) => {
+        GlobalStore.actions.setLoadingTitle(`Optimizing ${name}`);
+        GlobalStore.actions.setLoadingText('Applying GLB optimizations');
+        let blob = Object.values(glb.glTFFiles)[0];
+        try {
+          const arr = new Uint8Array(await blob.arrayBuffer());
+          const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+          const doc = await io.readBinary(arr);
+          await doc.transform(
+            dedup(),
+            prune(),
+            textureCompress({
+              targetFormat: this.gc.settings.imgCompression,
+            })
+          );
+          const bin = await io.writeBinary(doc);
+          blob = new Blob([bin]);
+        } catch (e) {
+          console.warn(e);
+        }
+
+        const assetUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = assetUrl;
+        link.download = `${name}.glb`;
+        link.click();
+      })
+      .finally(() => {
+        GlobalStore.actions.setLoading(false);
+      });
   }
 
   loadViewerScene() {
@@ -163,23 +172,48 @@ class ZoneController extends GameControllerChild {
     this.CameraController.createCamera(new Vector3(0, 250, 0));
     this.CameraController.camera.rotation = new Vector3(1.57, 1.548, 0);
     const glowLayer = new GlowLayer('glow', this.scene, {
-      blurKernelSize: 10
+      blurKernelSize: 10,
     });
     this.glowLayer = glowLayer;
     glowLayer.intensity = 0.7;
-    glowLayer.customEmissiveColorSelector = function (mesh, subMesh, material, result) {
+    glowLayer.customEmissiveColorSelector = function (
+      mesh,
+      subMesh,
+      material,
+      result
+    ) {
       if (mesh?.metadata?.emissiveColor) {
-        result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.5);
+        result.set(
+          mesh?.metadata?.emissiveColor.r,
+          mesh?.metadata?.emissiveColor.g,
+          mesh?.metadata?.emissiveColor.b,
+          0.5
+        );
         if (mesh?.metadata?.occludedColor) {
-          if (mesh.isOccluded) { 
-            result.set(mesh?.metadata?.occludedColor.r, mesh?.metadata?.occludedColor.g, mesh?.metadata?.occludedColor.b, 0.5);
+          if (mesh.isOccluded) {
+            result.set(
+              mesh?.metadata?.occludedColor.r,
+              mesh?.metadata?.occludedColor.g,
+              mesh?.metadata?.occludedColor.b,
+              0.5
+            );
           }
         }
         if (mesh?.metadata?.onlyOccluded) {
           if (mesh.isOccluded) {
-            result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.5);
+            result.set(
+              mesh?.metadata?.emissiveColor.r,
+              mesh?.metadata?.emissiveColor.g,
+              mesh?.metadata?.emissiveColor.b,
+              0.5
+            );
           } else {
-            result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.00);
+            result.set(
+              mesh?.metadata?.emissiveColor.r,
+              mesh?.metadata?.emissiveColor.g,
+              mesh?.metadata?.emissiveColor.b,
+              0.0
+            );
           }
         }
       }
@@ -190,7 +224,10 @@ class ZoneController extends GameControllerChild {
     this.regionMaterial.diffuseColor = new Color3(0, 127, 65); // Red color
     this.regionMaterial.emissiveColor = new Color4(0, 127, 65, 0.3); // Red color
 
-    const hdrTexture = CubeTexture.CreateFromPrefilteredData('/static/environment.env', this.scene);
+    const hdrTexture = CubeTexture.CreateFromPrefilteredData(
+      '/static/environment.env',
+      this.scene
+    );
     this.scene.environmentTexture = hdrTexture;
     this.scene.environmentIntensity = 1.0;
 
@@ -223,7 +260,6 @@ class ZoneController extends GameControllerChild {
         break;
     }
   }
-
 
   renderHook() {
     if (window.aabbPerf === undefined) {
@@ -275,7 +311,6 @@ class ZoneController extends GameControllerChild {
       spawnMesh.metadata = { spawn };
     }
   }
-
 
   pickRaycastForLoc(callback) {
     const zoneMesh = this.scene.getMeshByName('zone');
@@ -392,9 +427,7 @@ class ZoneController extends GameControllerChild {
     }
     this.glowLayer.intensity = value ? 0.7 : 0;
     if (value) {
-
     } else {
-
     }
   }
 
@@ -410,13 +443,11 @@ class ZoneController extends GameControllerChild {
     const subMeshes = [];
     const materials = [];
 
-
     // Create a new mesh for the merged result
     const newMergedMesh = new Mesh('mergedMesh', scene);
 
-    
     // Iterate through each mesh
-    meshes.forEach(mesh => {
+    meshes.forEach((mesh) => {
       // Ensure the mesh has been updated (i.e., make sure the vertex data is up to date)
       mesh.bakeCurrentTransformIntoVertices();
 
@@ -435,18 +466,22 @@ class ZoneController extends GameControllerChild {
       uvs.push(...vertexData.uvs);
 
       // Adjust the indices and add them
-      const adjustedIndices = vertexData.indices.map(index => index + currentIndex);
+      const adjustedIndices = vertexData.indices.map(
+        (index) => index + currentIndex
+      );
       indices.push(...adjustedIndices);
 
       // Create a new submesh for the current mesh
-      subMeshes.push(new SubMesh(
-        materials.length - 1, // materialIndex
-        vertexStart, // verticesStart
-        vertexData.positions.length / 3, // verticesCount
-        indexStart, // indexStart
-        adjustedIndices.length, // indexCount
-        mesh
-      ));
+      subMeshes.push(
+        new SubMesh(
+          materials.length - 1, // materialIndex
+          vertexStart, // verticesStart
+          vertexData.positions.length / 3, // verticesCount
+          indexStart, // indexStart
+          adjustedIndices.length, // indexCount
+          mesh
+        )
+      );
 
       // Update the current index
       currentIndex += vertexData.positions.length / 3;
@@ -497,9 +532,7 @@ class ZoneController extends GameControllerChild {
     const png_array = [];
     const map = ['px', 'py', 'pz', 'nx', 'ny', 'nz'];
     for (let i = 0; i < 6; i++) {
-      png_array.push(
-        `/static/skybox_${map[i]}.jpg`
-      );
+      png_array.push(`/static/skybox_${map[i]}.jpg`);
     }
     skyboxMaterial.reflectionTexture = new CubeTexture(
       '/',
@@ -526,50 +559,47 @@ class ZoneController extends GameControllerChild {
       undefined,
       '.glb'
     );
-    zone.meshes.forEach(m => {
+    zone.meshes.forEach((m) => {
       if (m.material?.metadata?.gltf?.extras?.boundary) {
         m.dispose();
       }
     });
     // const zoneMesh = this.mergeMeshesWithMaterials(zone.meshes.filter((m) => m.getTotalVertices() > 0), this.currentScene);
-    const zoneMesh = Mesh.MergeMeshes(
-      zone.meshes.filter((m) => m.getTotalVertices() > 0),
-      true,
-      true,
-      undefined,
-      false,
-      true
-    );
-    zoneMesh.name = 'zone';
-    zoneMesh.isPickable = false;
-
-    const metadata = await getEQFile('zones', `${name}.json`, 'json');
-    if (metadata) {
-      const meshes = [];
-      for (const [key, value] of Object.entries(metadata.objects)) {
-        meshes.push(...(await this.instantiateObjects(key, value)));
-      }
-      const mergedMesh = Mesh.MergeMeshes(
-        meshes.filter((m) => m?.getTotalVertices() > 0),
+    if (import.meta.env.VITE_LOCAL_DEV !== 'true') {
+      const zoneMesh = Mesh.MergeMeshes(
+        zone.meshes.filter((m) => m.getTotalVertices() > 0),
         true,
         true,
         undefined,
         false,
         true
       );
-      if (mergedMesh) {
-        mergedMesh.name = 'static-objects';
-        mergedMesh.isPickable = false;
+      zoneMesh.name = 'zone';
+      zoneMesh.isPickable = false;
+    }
+
+    const metadata = await getEQFile('zones', `${name}.json`, 'json');
+    if (metadata) {
+      this.metadata = metadata;
+      this.objectContainer = new TransformNode('static-objects', this.currentScene);
+
+      for (const [key, value] of Object.entries(metadata.objects)) {
+        for (const mesh of await this.instantiateObjects(key, value)) {
+          mesh.parent = this.objectContainer;
+        }
       }
-    
+
       const regionNode = new TransformNode('regions', this.scene);
       this.regionNode = regionNode;
       regionNode.setEnabled(!!this.regionsShown);
-      if (!metadata.regions?.length && metadata.unoptimizedRegions?.length) {
-        metadata.regions = await optimizeBoundingBoxes(metadata.unoptimizedRegions);
-        delete metadata.unoptimizedRegions;
-        await writeEQFile('zones', `${name}.json`, JSON.stringify(metadata));
-      }
+      // if (!metadata.regions?.length && metadata.unoptimizedRegions?.length) {
+      //   metadata.regions = await optimizeBoundingBoxes(
+      //     metadata.unoptimizedRegions
+      //   );
+      //   delete metadata.unoptimizedRegions;
+      //   await writeEQFile('zones', `${name}.json`, JSON.stringify(metadata));
+      // }
+
       let idx = 0;
       this.aabbTree = buildAABBTree(
         metadata.regions.map(
@@ -605,9 +635,8 @@ class ZoneController extends GameControllerChild {
           this.scene
         );
 
-
         box.metadata = region.region;
-        box.name = `Region-${idx++}`;
+        box.name = region.name || `Region-${idx++}`;
         // Set the position of the box to the center
         box.position = new Vector3(
           region.center[0],
@@ -627,7 +656,7 @@ class ZoneController extends GameControllerChild {
     GlobalStore.actions.setLoading(false);
   }
 
-  async instantiateObjects(modelName, model, forEditing = false) {
+  async instantiateObjects(modelName, model) {
     const container = await SceneLoader.LoadAssetContainerAsync(
       '/eq/objects/',
       `${modelName}.glb`,
@@ -637,14 +666,15 @@ class ZoneController extends GameControllerChild {
     );
     const mergedMeshes = [];
 
-    const meshes = [];
     const rn = [];
     for (const [idx, v] of Object.entries(model)) {
+      const meshes = [];
+
       const { x, y, z, rotateX, rotateY, rotateZ, scale } = v;
       const instanceContainer = container.instantiateModelsToScene(
         () => `${modelName}_${idx}`,
         undefined,
-        { doNotInstantiate: forEditing ? false : true }
+        { doNotInstantiate: true }
       );
       instanceContainer.animationGroups?.forEach((ag) =>
         this.scene.removeAnimationGroup(ag)
@@ -653,38 +683,57 @@ class ZoneController extends GameControllerChild {
       const hasAnimations = instanceContainer.animationGroups.length > 0;
       rn.push(instanceContainer);
       for (const mesh of instanceContainer.rootNodes[0].getChildMeshes()) {
-        mesh.position = new Vector3(x, y, z);
-
-        mesh.rotation = new Vector3(
-          Tools.ToRadians(rotateX),
-          Tools.ToRadians(180) + Tools.ToRadians(-1 * rotateY),
-          Tools.ToRadians(rotateZ)
-        );
-
-        mesh.checkCollisions = true;
-        mesh.scaling.z = mesh.scaling.y = mesh.scaling.x = scale;
-        mesh.metadata = {
-          animated  : hasAnimations,
-          zoneObject: true,
-        };
-        if (forEditing) {
-          mesh.addLODLevel(1000, null);
-        }
-        mesh.id = `${modelName}_${idx}`;
-        if (!hasAnimations) {
-          mesh.freezeWorldMatrix();
-        }
         if (mesh.getTotalVertices() > 0) {
+          // mesh.rotation = new Vector3(
+          //   Tools.ToRadians(rotateX),
+          //   Tools.ToRadians(-rotateY) + Tools.ToRadians(90),
+          //   Tools.ToRadians(rotateZ)
+          // );
           meshes.push(mesh);
         }
       }
+      try {
+        const mergedMesh = Mesh.MergeMeshes(
+          meshes,
+          true,
+          true,
+          undefined,
+          false,
+          true
+        );
+        if (mergedMesh) {
+          mergedMesh.name = mergedMesh.id = `${modelName}_${idx}`;
+          mergedMesh.position = new Vector3(x, y, z);
+  
+          mergedMesh.rotation = new Vector3(
+            Tools.ToRadians(rotateX),
+            Tools.ToRadians(rotateY),
+            Tools.ToRadians(rotateZ)
+          );
+          
+          mergedMesh.checkCollisions = true;
+          mergedMesh.scaling.z =
+            mergedMesh.scaling.y =
+            mergedMesh.scaling.x =
+              scale;
+          mergedMesh.metadata = {
+            animated  : hasAnimations,
+            zoneObject: true,
+          };
+          mergedMesh.addLODLevel(2000, null);
+          mergedMesh.id = `${modelName}_${idx}`;
+          if (!hasAnimations) {
+            mergedMesh.freezeWorldMatrix();
+          }
+          mergedMeshes.push(mergedMesh);
+        }
+      } catch (e) {
+        console.warn(`Warning merging object ${modelName}`, e);
+      }
+     
+      instanceContainer.rootNodes[0].dispose();
     }
-    if (!forEditing) {
-      mergedMeshes.push(
-        Mesh.MergeMeshes(meshes, true, true, undefined, true, true)
-      );
-      rn.forEach((r) => r.dispose());
-    }
+
     return mergedMeshes;
   }
 

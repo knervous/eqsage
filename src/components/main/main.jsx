@@ -27,7 +27,7 @@ export const Main = () => {
     requestPermissions,
     permissionStatus,
     zoneBuilderDialogOpen,
-    audioDialogOpen
+    audioDialogOpen,
   } = useMainContext();
 
   return (
@@ -81,10 +81,13 @@ export const Main = () => {
           {zoneDialogOpen && <ZoneChooserDialog open={true} />}
           {zoneBuilderDialogOpen && <ZoneBuilderDialog open={true} />}
           {audioDialogOpen && <AudioDialog open={true} />}
-          <ZoneProvider>
-            <BabylonZoneOverlay />
-            <BabylonZone />
-          </ZoneProvider>
+          {!zoneBuilderDialogOpen && (
+            <ZoneProvider>
+              <BabylonZoneOverlay />
+              <BabylonZone />
+            </ZoneProvider>
+          )}
+
           <Stack
             onDragOver={(e) => {
               e.stopPropagation();

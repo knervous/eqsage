@@ -746,4 +746,4 @@ export const modelDefinitions = {
   gd3        : 'Phara Dar'
 
 };
-export const VERSION = 1.93;
+export const VERSION = 1.95;

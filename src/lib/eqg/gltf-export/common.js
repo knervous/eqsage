@@ -13,51 +13,21 @@ import { EQGAnimationWriter } from './eqg-animation';
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
 export async function writeMetadata(
-  p,
+  infP,
   zoneMetadata,
   modelFile,
   writtenModels,
-  v3
+  _v3
 ) {
-  const position = vec3.fromValues(p.x, p.y, p.z); // Replace x, y, z with the object's position
-
-  // let flippedPosition;
-  let x, y, z;
-  if (v3) {
-    const flipMatrix = mat4.create();
-    mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]); // Scale X and Z by -1
-
-    // Apply the flip transformation to the rotated position
-    const flippedPosition = vec3.create();
-    vec3.transformMat4(flippedPosition, position, flipMatrix);
-    x = flippedPosition[0];
-    y = flippedPosition[2];
-    z = flippedPosition[1];
-  } else {
-    // Create a quaternion representing a 270-degree rotation around the X-axis
-    const rotation = quat.create();
-    quat.rotateY(rotation, rotation, 3 * (Math.PI / 2)); // Rotate 270 degrees
-
-    // Apply the rotation to the position
-    const rotatedPosition = vec3.create();
-    vec3.transformQuat(rotatedPosition, position, rotation);
-
-    const flipMatrix = mat4.create();
-    mat4.scale(flipMatrix, flipMatrix, [-1, -1, 1]); // Scale X and Z by -1
-
-    // Apply the flip transformation to the rotated position
-    const flippedPosition = vec3.create();
-    vec3.transformMat4(flippedPosition, rotatedPosition, flipMatrix);
-    x = flippedPosition[1];
-    y = flippedPosition[0];
-    z = flippedPosition[2];
-  }
-
+  const p = JSON.parse(JSON.stringify(infP));
+  const position = vec3.fromValues(p.x, p.y, p.z);
+  const x = position[0], y = position[2], z = position[1];
+  
   const entry = {
     x,
     y,
     z,
-    rotateX: 0, // p.rotateX * -1,
+    rotateX: 0,
     rotateY: p.rotateX,
     rotateZ: p.rotateZ,
     scale  : p.scaleY,
@@ -99,7 +69,9 @@ export async function writeModels(modelFile, mod) {
   const objectName = mod.name.replace('.mod', '');
   const buffer = document.createBuffer();
   const scene = document.createScene(objectName);
-  const node = document.createNode(objectName).setTranslation([0, 0, 0]);
+  const flipMatrix = mat4.create();
+  mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]);
+  const node = document.createNode(objectName).setTranslation([0, 0, 0]).setMatrix(flipMatrix);
   const skeletonNodes = [];
   const boneIndices = [];
 
@@ -150,7 +122,7 @@ export async function writeModels(modelFile, mod) {
       const texture = document
         .createTexture(name)
         .setMimeType('image/png')
-        // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+        .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
         .setURI(`/eq/textures/${name}`)
         .setExtras({
           name,
@@ -165,8 +137,16 @@ export async function writeModels(modelFile, mod) {
         gltfMaterial.setBaseColorTexture(texture);
       }
     }
+    switch (mat.shader) {
+      case 'Alpha_MaxCBSG1.fx':
+      case 'Chroma_MaxC1.fx':
+        gltfMaterial.setAlpha(0.5).setAlphaMode('MASK');
+        break;
+      default:
+        gltfMaterial.setAlphaMode('OPAQUE');
 
-    gltfMaterial.setAlphaMode('OPAQUE');
+        break;
+    }
 
     // Check shaders
     materials[mat.name] = gltfMaterial;
@@ -179,9 +159,9 @@ export async function writeModels(modelFile, mod) {
       continue;
     }
     const mat = mod.geometry.mats[p.material];
-    const linkedMat = materials[mat.name];
+    const linkedMat = materials[mat?.name];
     if (!linkedMat) {
-      console.warn(`Linked mat not found! ${mat.name}`);
+      console.warn(`Linked mat not found! ${mat?.name}`);
       continue;
     }
     const v1 = mod.geometry.verts[p.verts[0]];
@@ -278,9 +258,7 @@ export async function writeModels(modelFile, mod) {
     }
 
     sharedPrimitive.indices.push(ln + 0, ln + 1, ln + 2);
-    if (v1.pos[0] === 0 && v1.pos[1] === 0 && v1.pos[2] === 0) {
-      console.log('is 0 0 0 ');
-    }
+
     sharedPrimitive.vecs.push(
       ...[v1, v2, v3].flatMap((v) => [v.pos[0], v.pos[2], v.pos[1]])
     );

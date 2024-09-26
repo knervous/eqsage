@@ -29,6 +29,7 @@ export const SettingsDialog = ({ onClose }) => {
     spawnLOD = 500,
     remoteUrl = '',
     showCompass = true,
+    preferEqg = false,
   } = useSettingsContext();
   const [testState, setTestState] = useState('Ready');
   const [user, setUser] = useState('');
@@ -176,6 +177,18 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Show Compass"
+      />
+      <br />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={preferEqg}
+            onChange={({ target: { checked } }) =>
+              setOption('preferEqg', checked)
+            }
+          />
+        }
+        label="Prefer EQG when parsing zones"
       />
       <br />
       <FormControl size={'small'}>

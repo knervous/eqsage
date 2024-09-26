@@ -4,22 +4,23 @@ import { Box, Stack, Typography } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 
 import IconButton from '@mui/material/IconButton';
-import { ZoneIcon } from './icons/zone';
-import { SpawnIcon } from './icons/spawn';
-import { DoorIcon } from './icons/door';
-import { ItemIcon } from './icons/item';
-import { RegionIcon } from './icons/region';
-import { QuestIcon } from './icons/quest';
+import { ZoneIcon } from '../common/icons/zone';
+import { SpawnIcon } from '../common/icons/spawn';
+import { DoorIcon } from '../common/icons/door';
+import { ItemIcon } from '../common/icons/item';
+import { RegionIcon } from '../common/icons/region';
+import { QuestIcon } from '../common/icons/quest';
 import { useOverlayContext } from './provider';
 import { OverlayDialogs } from './dialogs/dialogs';
 import classNames from 'classnames';
 import { useSettingsHook } from './hooks';
 import SpawnNavBar from './nav-bar/spawn-nav/spawn-nav';
-import { Compass } from './compass';
 
-import './overlay.scss';
 import { useMainContext } from '../main/context';
 import { useSettingsContext } from '../../context/settings';
+
+import './overlay.scss';
+import { Compass } from '../common/compass/component';
 
 
 const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
@@ -40,9 +41,6 @@ const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
         alignItems={'center'}
       >
         <Icon
-          fill={'#000'}
-          color="#000"
-          fillColor="#000"
           width={30}
           height={30}
         />

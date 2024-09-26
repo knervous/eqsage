@@ -15,6 +15,7 @@ const defaultOptions = {
   spawnLOD      : 500,
   remoteUrl     : '',
   showCompass   : true,
+  preferEqg     : false
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(

@@ -1,0 +1,21 @@
+
+.drawer-bg {
+    background-image: url('../../images/super_fancy_bg.png');
+    background-repeat: repeat;
+    background-position: center;
+    border-width: 2px;
+    position: absolute;
+    border-style: solid;
+    color: white;
+    z-index: 10;
+    border-color: rgb(180, 173, 134) rgb(142, 134, 107) rgb(61, 58, 48) rgb(177, 170, 142);
+    transition: right 0.2s ease;
+}
+
+.drawer-bg-open {
+    right: -2px;
+}
+
+.drawer-bg-closed {
+    right: -500px;
+}

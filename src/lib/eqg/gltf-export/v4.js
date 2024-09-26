@@ -242,7 +242,7 @@ export async function exportv4(zoneName) {
       p.rotateZ = p.rotateY;
       p.rotateZ = 0;
       p.rotateX = 0;
-      await writeMetadata(p, zoneMetadata, modelFile, writtenModels, false);
+      await writeMetadata.call(this, p, zoneMetadata, modelFile, writtenModels, false);
     }
   }
 

@@ -21,6 +21,8 @@ export class Light {
 export class Zone {
   name = "";
   version = 3;
+  zoneRotation = 0;
+  zoneOffset = null;
   /**
    * @type {TypedArrayReader}
    */
@@ -60,135 +62,6 @@ export class Zone {
     this.files = files;
     this.name = name;
     this.load();
-  }
-
-  /**
-   * Write the .zon file data
-   * @param {string} name
-   * @param {Terrain} terrain
-   * @param {Object.<string, Uint8Array>} files
-   * @returns {Uint8Array}
-   */
-  static write(terrain) {
-    // Calculate necessary sizes and offsets
-    const preamble = "EQGZ";
-    const headerSize = 24;
-    const placeableGroup = terrain.placeableGroups[0];
-    // Calculate the total length of model names
-    const modelNames = Object.values(terrain.modelNames);
-    const modelIds = Object.keys(terrain.modelNames);
-    const modelNamesLength = modelNames.reduce(
-      (acc, name) => acc + name.length + 1,
-      0
-    ); // +1 for null terminator
-
-    // Calculate the total length of region names
-    const regionNames = new Map();
-    let regionId = 0;
-    terrain.regions.forEach((region) => {
-      const regionName = region.name;
-      if (!regionNames.has(regionName)) {
-        regionNames.set(regionName, regionId++);
-      }
-    });
-    const regionNamesLength = Array.from(regionNames.keys()).reduce(
-      (acc, name) => acc + name.length + 1,
-      0
-    ); // +1 for null terminator
-
-    const objectCount = terrain.placeableGroups.reduce(
-      (acc, pg) => acc + pg.placeables.length,
-      0
-    );
-    const regionCount = terrain.regions.length;
-
-    const objectNameLength = placeableGroup.placeables.reduce(
-      (acc, val) => acc + val.modelName.length + 1,
-      0
-    ); // +1 for null term
-
-    // Calculate the total length for objects and regions
-    const postHeaderIdx = preamble.length + headerSize;
-    const objectSize = 4 + 4 + 7 * 4; // Model ID (int32) + Location (uint32) + 7 floats (7 * float32)
-    const regionSize = 4 + 3 * 4 + 4 + 2 * 4 + 3 * 4; // Location (uint32) + 3 floats + rotation + 2 flags + 3 extents
-    const modelIndicesLength = modelNames.length * 4;
-    const listLength = modelNamesLength + regionNamesLength + objectNameLength;
-    const totalLength =
-      modelIndicesLength +
-      postHeaderIdx +
-      listLength +
-      objectCount * objectSize +
-      regionCount * regionSize;
-    const buffer = new ArrayBuffer(totalLength);
-    const writer = new TypedArrayWriter(buffer);
-
-    // Write preamble
-    writer.writeString(preamble);
-
-    // Write header
-    writer.writeUint32(1); // Version
-    writer.writeUint32(listLength); // List length
-    writer.writeUint32(modelNames.length); // Model count
-    writer.writeUint32(objectCount); // Object count
-    writer.writeUint32(regionCount); // Region count
-    writer.writeUint32(0); // Light count (assuming 0 for simplicity)
-
-    // Write model names
-    const modelNameIdx = {};
-    modelNames.forEach((name) => {
-      modelNameIdx[name] = writer.getCursor() - postHeaderIdx;
-      writer.writeCString(name); // Write null-terminated string
-    });
-
-    placeableGroup.placeables.forEach((p) => {
-      p.MODEL_NAME_LOC = writer.getCursor() - postHeaderIdx;
-      writer.writeCString(p.modelName);
-
-      modelNames.forEach((name, idx) => {
-        if (p.modelFile === name) {
-          p.MODEL_FILE_LOC = idx;
-        }
-      });
-    });
-
-    const regionNameIdx = {};
-    // Write region names
-    regionNames.forEach((id, name) => {
-      regionNameIdx[name] = writer.getCursor() - postHeaderIdx;
-      writer.writeCString(name); // Write null-terminated string
-    });
-
-    for (const [_key, idx] of Object.entries(modelNameIdx)) {
-      writer.writeUint32(idx);
-    }
-
-    placeableGroup.placeables.forEach((p, _i) => {
-      writer.writeInt32(p.MODEL_FILE_LOC); // Placeholder for location
-      writer.writeUint32(p.MODEL_NAME_LOC); // Placeholder for location
-      writer.writeFloat32(p.x);
-      writer.writeFloat32(p.y);
-      writer.writeFloat32(p.z);
-      writer.writeFloat32(p.rotateX * rotChange);
-      writer.writeFloat32(p.rotateY * rotChange);
-      writer.writeFloat32(p.rotateZ * rotChange);
-      writer.writeFloat32(p.scaleX * 4); // Assuming uniform scale
-    });
-
-    // Write regions
-    terrain.regions.forEach((region) => {
-      writer.writeUint32(regionNameIdx[region.name]); // Location
-      writer.writeFloat32(region.x);
-      writer.writeFloat32(region.y);
-      writer.writeFloat32(region.z);
-      writer.writeFloat32((region.rotateZ / 360) * 512);
-      writer.writeUint32(region.flags[0]); // Flag unknown 1
-      writer.writeUint32(region.flags[1]); // Flag unknown 2
-      writer.writeFloat32(region.extX);
-      writer.writeFloat32(region.extY);
-      writer.writeFloat32(region.extZ);
-    });
-
-    return new Uint8Array(buffer);
   }
 
   load() {
@@ -236,6 +109,12 @@ export class Zone {
       p.rotateY = ry * rotChange;
       p.rotateZ = rz * rotChange;
       p.scaleX = p.scaleY = p.scaleZ = scale;
+      if (p.modelFile?.toLowerCase().includes('.ter')) {
+        this.zoneRotation = p.rotateX;
+        this.zoneOffset = {
+          x,y,z
+        }
+      }
       pg.placeables.push(p);
     }
 

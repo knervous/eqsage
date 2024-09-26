@@ -178,7 +178,6 @@ class CameraController extends GameControllerChild {
     );
     this.camera.setTarget(new Vector3(1, 10, 1));
     this.camera.touchAngularSensibility = 5000;
-
     this.camera.ellipsoid = new Vector3(4, 4.5, 2);
     this.camera.checkCollisions = false;
     this.camera.attachControl(this.canvas, true);

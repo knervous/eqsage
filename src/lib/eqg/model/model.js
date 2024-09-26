@@ -237,6 +237,7 @@ export class Lit {
     const reader = this.reader;
     const magic = reader.readString(4);
     if (magic.slice(0, 3) !== "EQG") {
+      return;
       throw new Error("Model does not contain EQG header", magic);
     }
     const count = reader.readUint32();

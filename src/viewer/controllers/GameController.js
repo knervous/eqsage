@@ -10,6 +10,7 @@ import { spawnController } from './SpawnController';
 import { guiController } from './GUIController';
 import { itemController } from './ItemController';
 import { zoneController } from './ZoneController';
+import { zoneBuilderController } from './ZoneBuilderController';
 import { Engine, } from '@babylonjs/core/Engines/engine';
 import { ThinEngine } from '@babylonjs/core/Engines/thinEngine';
 import { WebGPUEngine } from '@babylonjs/core/Engines/webgpuEngine';
@@ -78,7 +79,12 @@ class EQDatabase extends Database {
         errorCallback();
         return;
       }
-      await sceneLoaded(fileBuffer);
+      try {
+        await sceneLoaded(fileBuffer);
+
+      } catch (e) {
+        console.warn(e);
+      }
       return;
     }
 
@@ -130,6 +136,7 @@ export class GameController {
   ItemController = itemController;
   ZoneController = zoneController;
   ModelController = modelController;
+  ZoneBuilderController = zoneBuilderController;
 
   constructor() {
     this.CameraController.setGameController(this);
@@ -142,6 +149,7 @@ export class GameController {
     this.ItemController.setGameController(this);
     this.ZoneController.setGameController(this);
     this.ModelController.setGameController(this);
+    this.ZoneBuilderController.setGameController(this);
 
     this.keyDown = this.keyDown.bind(this);
     this.resize = this.resize.bind(this);
@@ -172,7 +180,7 @@ export class GameController {
     ThinEngine.prototype.createTexture = function(
       url, noMipmap, _invertY, scene, samplingMode, onLoad, onError, buffer, fallback, format, forcedExtension, mimeType, loaderOptions, creationFlags, useSRGBBuffer
     ) {
-      const doFlip = !url.includes('eq/models') && !/\w+\d{4}/.test(url);
+      const doFlip = zoneBuilderController.scene || (!url.includes('eq/models') && !/\w+\d{4}/.test(url));
       return origCreate.call(
         this, url, noMipmap, doFlip, scene, samplingMode, onLoad, onError, buffer, fallback, format, forcedExtension, mimeType, loaderOptions, creationFlags, useSRGBBuffer
       );
@@ -190,8 +198,17 @@ export class GameController {
         disableManifestCheck
       );
     };
-
+    const originalLoadImageAsync = GLTFLoader.prototype.loadImageAsync;
     GLTFLoader.prototype.loadImageAsync = async function (context, image) {
+      if (zoneBuilderController?.scene) {
+        try {
+          const result = await originalLoadImageAsync.apply(this, arguments);
+          return result;
+        } catch (e) {
+          console.warn('Error with image', image);
+        }
+
+      }
       if (!image._data) {
         const data = await getEQFile('textures', `${image.name}.png`);
 
@@ -225,7 +242,7 @@ export class GameController {
   }
 
   get currentScene() {
-    return zoneController.scene ?? modelController.scene;
+    return zoneController.scene ?? modelController.scene ?? zoneBuilderController.scene;
   }
 
   async loadEngine(canvas, webgpu = false) {
@@ -288,18 +305,18 @@ export class GameController {
         if (!this.currentScene) {
           break;
         }
-        // let inspector;
-        // await import('@babylonjs/inspector').then(i => {
-        //   inspector = i.Inspector;
-        // });
-        // if (inspector.IsVisible) {
-        //   inspector.Hide();
-        // } else {
-        //   inspector.Show(zoneController.scene, {
-        //     embedMode: true,
-        //     overlay  : true,
-        //   });
-        // }
+        let inspector;
+        await import('@babylonjs/inspector').then(i => {
+          inspector = i.Inspector;
+        });
+        if (inspector.IsVisible) {
+          inspector.Hide();
+        } else {
+          inspector.Show(zoneController.scene, {
+            embedMode: true,
+            overlay  : true,
+          });
+        }
         break;
       }
       default:

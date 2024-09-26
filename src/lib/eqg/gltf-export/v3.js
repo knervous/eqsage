@@ -3,7 +3,7 @@ import { Accessor, Document, WebIO } from '@gltf-transform/core';
 
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { quat } from 'gl-matrix';
-import { writeEQFile } from '../../util/fileHandler';
+import { getEQFile, writeEQFile } from '../../util/fileHandler';
 import { VERSION } from '../../model/constants';
 import { writeMetadata } from './common';
 
@@ -25,7 +25,6 @@ export async function exportv3(zoneName) {
     .setTranslation([0, 0, 0])
     .setScale([-1, 1, 1]);
   const zoneRotation = quat.create();
-  // quat.fromEuler(zoneRotation, 0, -90, 0); // Rotate 90 degrees around the Y axis
   
   node.setRotation(zoneRotation);
   scene.addChild(node);
@@ -63,6 +62,7 @@ export async function exportv3(zoneName) {
         const [name] = prop.valueS.toLowerCase().split('.');
         const texture = document
           .createTexture(name)
+          .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
           .setURI(`/eq/textures/${name}`)
           .setExtras({
             name,
@@ -103,8 +103,8 @@ export async function exportv3(zoneName) {
       if (!mod) {
         continue;
       }
-      if (!mod?.name.includes('ter_')) {
-        await writeMetadata(p, zoneMetadata, modelFile, writtenModels, true);
+      if (!mod?.name.toLowerCase().endsWith('.ter')) {
+        await writeMetadata.call(this, p, zoneMetadata, modelFile, writtenModels, true);
         continue;
       }
       if (mod) {
@@ -153,10 +153,10 @@ export async function exportv3(zoneName) {
           const ln = sharedPrimitive.indices.length;
           sharedPrimitive.indices.push(ln + 0, ln + 1, ln + 2);
           sharedPrimitive.vecs.push(
-            ...[v1, v2, v3].flatMap((v) => [v.pos[0], v.pos[2], v.pos[1]])
+            ...[v1, v2, v3].flatMap((v) => [-v.pos[0], v.pos[2], -v.pos[1]])
           );
           sharedPrimitive.normals.push(
-            ...[v1, v2, v3].flatMap((v) => [v.nor[0], v.nor[2], v.nor[1]])
+            ...[v1, v2, v3].flatMap((v) => [-v.nor[0], v.nor[2], -v.nor[1]])
           );
           sharedPrimitive.uv.push(
             ...[v1, v2, v3].flatMap((v) => [v.tex[0], v.tex[1]])
