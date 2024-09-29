@@ -111,7 +111,10 @@ export async function processEquip(settings, rootFileSystemHandle, standalone = 
 export async function processZone(zoneName, settings, rootFileSystemHandle, _onlyChr = false) {
   gameController.rootFileSystemHandle = rootFileSystemHandle;
   GlobalStore.actions.setLoading(true);
-
+  const v = await getEQFile('data', 'global.json', 'json');
+  if (v?.version !== GLOBAL_VERSION) {
+    await processGlobal(gameController.settings, gameController.rootFileSystemHandle);
+  }
   console.log('Zone name', zoneName);
   GlobalStore.actions.setLoadingTitle(`Processing Zone ${zoneName}`);
   GlobalStore.actions.setLoadingText('Loading Zone', zoneName);
