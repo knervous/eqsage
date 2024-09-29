@@ -153,6 +153,10 @@ export class BabylonSpawn {
 
     const assetContainer =
       await window.gameController.SpawnController.getAssetContainer(modelVariation);
+    if (!assetContainer) {
+      console.warn('Asset container not found for', modelVariation);
+      return;
+    }
     this.instanceContainer = assetContainer.instantiateModelsToScene();
     this.animationGroups = this.instanceContainer.animationGroups;
 
