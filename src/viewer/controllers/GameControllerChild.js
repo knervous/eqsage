@@ -53,6 +53,10 @@ export class GameControllerChild {
     return this.#gc.ZoneController;
   }
 
+  get ZoneBuilderController() {
+    return this.#gc.ZoneBuilderController;
+  }
+
   get CameraController () {
     return this.#gc.CameraController;
   }

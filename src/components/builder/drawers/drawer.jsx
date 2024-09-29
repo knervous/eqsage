@@ -1,30 +1,50 @@
-import React, { useMemo } from 'react';
-import { Box, Stack, Typography } from '@mui/material';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Box, Typography } from '@mui/material';
 import classNames from 'classnames';
 import { useOverlayContext } from '../provider';
 
 import './drawer.scss';
 import { RegionDrawer } from './regions';
 import { ObjectsDrawer } from './objects';
-import { useZoneBuilderContext } from '../context';
-
+import { gameController } from '../../../viewer/controllers/GameController';
+import { ZoneDrawer } from './zone';
+const zb = gameController.ZoneBuilderController;
 
 export const Drawer = () => {
-  const { openDrawer } = useOverlayContext();
-  const {
-    zone: { modelFiles },
-    setProject,
-  } = useZoneBuilderContext();
+  const { openDrawer, toggleDrawer } = useOverlayContext();
+  const [selectedObject, setSelectedObject] = useState(null);
+
+  useEffect(() => {
+    if (openDrawer) {
+      return;
+    }
+    const clickCallback = (mesh) => {
+      if (mesh.parent === zb.objectContainer) {
+        setSelectedObject(mesh);
+        toggleDrawer('objects', true, true);
+      }
+    };
+    zb.addClickCallback(clickCallback);
+
+    return () => zb.removeClickCallback(clickCallback);
+  }, [openDrawer, toggleDrawer]);
   const content = useMemo(() => {
     switch (openDrawer) {
       case 'regions':
         return <RegionDrawer />;
+      case 'zone':
+        return <ZoneDrawer />;
       case 'objects':
-        return <ObjectsDrawer modelFiles={modelFiles} setProject={setProject} />;
+        return (
+          <ObjectsDrawer
+
+            selectedObject={selectedObject}
+          />
+        );
       default:
         return null;
     }
-  }, [openDrawer, modelFiles, setProject]);
+  }, [openDrawer, selectedObject]);
 
   return (
     <>

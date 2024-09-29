@@ -92,13 +92,36 @@ async function parseTexture(name, shaderType, data) {
     // header for bitmap
     try {
       const img = await Jimp.read(data);
+      let maskColor;
+
+      // If TransparentMasked shader type, set maskColor to the first pixel
+      if (shaderType === ShaderType.TransparentMasked) {
+        const firstPixelIdx = 0;
+        maskColor = {
+          r: img.bitmap.data[firstPixelIdx],
+          g: img.bitmap.data[firstPixelIdx + 1],
+          b: img.bitmap.data[firstPixelIdx + 2],
+          a: img.bitmap.data[firstPixelIdx + 3],
+        };
+      }
+
       img.scan(0, 0, img.bitmap.width, img.bitmap.height, (x, y, idx) => {
         const r = img.bitmap.data[idx];
         const g = img.bitmap.data[idx + 1];
         const b = img.bitmap.data[idx + 2];
         let alpha = img.bitmap.data[idx + 3];
 
-        if (alphaShaderMap[shaderType]) {
+        if (shaderType === ShaderType.TransparentMasked) {
+          // If the current pixel matches the mask color, set alpha to 0
+          if (
+            r === maskColor.r &&
+            g === maskColor.g &&
+            b === maskColor.b &&
+            alpha === maskColor.a
+          ) {
+            alpha = 0;
+          }
+        } else if (alphaShaderMap[shaderType]) {
           alpha = alphaShaderMap[shaderType];
         } else {
           const maxRgb = Math.max(r, g, b);
@@ -109,6 +132,7 @@ async function parseTexture(name, shaderType, data) {
 
         img.bitmap.data[idx + 3] = alpha;
       });
+
       return await img.getBufferAsync(Jimp.MIME_PNG);
     } catch (e) {
       console.warn('Error processing BMP:', e, name);
@@ -121,14 +145,38 @@ async function parseTexture(name, shaderType, data) {
     const h = dds.mipmaps[0].height;
     const bmp = new Jimp(w, h);
 
+    let maskColor;
+
+    // If TransparentMasked shader type, set maskColor to the first pixel of decompressed data
+    if (shaderType === ShaderType.TransparentMasked) {
+      maskColor = {
+        r: decompressed[0],
+        g: decompressed[1],
+        b: decompressed[2],
+        a: decompressed[3],
+      };
+    }
+
     bmp.scan(0, 0, w, h, (x, y, idx) => {
       bmp.bitmap.data[idx] = decompressed[idx]; // r
       bmp.bitmap.data[idx + 1] = decompressed[idx + 1]; // g
       bmp.bitmap.data[idx + 2] = decompressed[idx + 2]; // b
       let alpha = decompressed[idx + 3]; // a
-      if (alphaShaderMap[shaderType]) {
+
+      if (shaderType === ShaderType.TransparentMasked) {
+        // If the current pixel matches the mask color, set alpha to 0
+        if (
+          bmp.bitmap.data[idx] === maskColor.r &&
+          bmp.bitmap.data[idx + 1] === maskColor.g &&
+          bmp.bitmap.data[idx + 2] === maskColor.b &&
+          alpha === maskColor.a
+        ) {
+          alpha = 0;
+        }
+      } else if (alphaShaderMap[shaderType]) {
         alpha = alphaShaderMap[shaderType];
       }
+
       bmp.bitmap.data[idx + 3] = alpha;
     });
 
@@ -137,6 +185,7 @@ async function parseTexture(name, shaderType, data) {
     return await bmp.getBufferAsync(Jimp.MIME_PNG);
   }
 }
+
 
 const exports = { parseTextures };
 

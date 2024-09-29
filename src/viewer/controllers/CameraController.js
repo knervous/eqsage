@@ -7,7 +7,7 @@ import { eqtoBabylonVector } from '../util/vector';
 
 class CameraController extends GameControllerChild {
   /**
-   * @type {import('@babylonjs/core/Cameras').UniversalCamera | import('@babylonjs/core/Cameras').ArcRotateCamera}
+   * @type {import('@babylonjs/core/Cameras').UniversalCamera}
    */
   camera = null;
   isLocked = false;
@@ -62,6 +62,8 @@ class CameraController extends GameControllerChild {
     this.keyDownHandler = this.keyDownHandler.bind(this);
     this.keyUpHandler = this.keyUpHandler.bind(this);
     this.scrollHandler = this.scrollHandler.bind(this);
+    this.sceneMouseDown = this.sceneMouseDown.bind(this);
+    this.sceneMouseUp = this.sceneMouseUp.bind(this);
   }
 
   scrollHandler(event) {

@@ -228,6 +228,8 @@ export const ZoneBuilderDialog = ({ open }) => {
     }
   }, [zone, saveZone]);
 
+  console.log('ZONE', zone);
+
   return zone ? (
     <ZoneBuilder
       zone={zone}
