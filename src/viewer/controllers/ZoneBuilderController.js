@@ -3,10 +3,7 @@ import '@babylonjs/core/Helpers/sceneHelpers';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { BoundingSphere } from '@babylonjs/core/Culling/boundingSphere';
-import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
-
-import { Octree } from '@babylonjs/core/Culling/Octrees';
+import { Material } from '@babylonjs/core/Materials/material';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { Light } from '@babylonjs/core/Lights/light';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
@@ -21,16 +18,9 @@ import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { Color3Gradient } from '@babylonjs/core/Misc/gradients';
 import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
-import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
-import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
-import { MultiMaterial } from '@babylonjs/core/Materials/multiMaterial';
-
 import { GameControllerChild } from './GameControllerChild';
-import {
-  AABBNode,
-  buildAABBTree,
-} from '../../lib/s3d/bsp/region-utils';
 import { GlobalStore } from '../../state';
+import '@babylonjs/core/Rendering/edgesRenderer';
 
 class ZoneBuilderController extends GameControllerChild {
   /**
@@ -97,7 +87,7 @@ class ZoneBuilderController extends GameControllerChild {
 
     this.zoneLoaded = false;
   }
-
+  downButtons = 0;
   loadViewerScene() {
     this.dispose();
     this.scene = null;
@@ -108,8 +98,18 @@ class ZoneBuilderController extends GameControllerChild {
     this.scene = new Scene(this.engine);
 
     this.scene.registerBeforeRender(this.renderLoop.bind(this));
-    this.scene.onPointerDown = this.sceneMouseDown;
-    this.scene.onPointerUp = this.sceneMouseUp;
+    this.scene.onPointerDown = (...args) => {
+      if (this.pickingRaycast) {
+        this.downButtons = args[0].buttons;
+      }
+      // this.CameraController.sceneMouseDown(...args);
+    };
+    // this.scene.onPointerUp = this.CameraController.sceneMouseUp;
+    this.scene.onPointerMove = (...args) => {
+      if (this.raycastMouseMove) {
+        this.raycastMouseMove(...args);
+      }
+    };
     this.CameraController.createCamera(new Vector3(0, 250, 0));
     this.CameraController.camera.rotation = new Vector3(1.57, 1.548, 0);
     const glowLayer = new GlowLayer('glow', this.scene, {
@@ -128,7 +128,7 @@ class ZoneBuilderController extends GameControllerChild {
           mesh?.metadata?.emissiveColor.r,
           mesh?.metadata?.emissiveColor.g,
           mesh?.metadata?.emissiveColor.b,
-          0.5
+          mesh?.metadata?.emissiveColor.a ?? 0.5,
         );
         if (mesh?.metadata?.occludedColor) {
           if (mesh.isOccluded) {
@@ -183,22 +183,17 @@ class ZoneBuilderController extends GameControllerChild {
    * @param {PointerInfo} pointerInfo
    */
   onClick(pointerInfo) {
+    if (pointerInfo.event.buttons !== 1) {
+      return;
+    }
     switch (pointerInfo.type) {
       case PointerEventTypes.POINTERDOWN:
-        if (
-          pointerInfo.pickInfo.hit &&
-          (pointerInfo.pickInfo.pickedMesh?.metadata?.spawn ?? null) !== null
-        ) {
-          this.clickCallbacks.forEach((c) =>
-            c(pointerInfo.pickInfo.pickedMesh?.metadata?.spawn)
-          );
-        }
+        this.clickCallbacks.forEach((c) => c(pointerInfo.pickInfo.pickedMesh));
         break;
       default:
         break;
     }
   }
-
 
   showRegions(value) {
     this.regionsShown = value;
@@ -218,28 +213,149 @@ class ZoneBuilderController extends GameControllerChild {
     }
   }
 
+  /**
+   *
+   * @param {Mesh} mesh
+   * @param {(commit: boolean) => void} cb
+   */
+  async editMesh(mesh, cb) {
+    const originalPosition = mesh.position.clone();
+    const originalScale = mesh.scaling.clone();
+    const originalRotation = mesh.rotation.clone();
+    this.pickingRaycast = true;
+    mesh.isPickable = false;
+
+    const pointLight = new PointLight(
+      'pointLight',
+      new Vector3(0, 10, 0),
+      this.scene
+    );
+    // pointLight.parent = raycastMesh;
+    // Set the intensity of the point light
+    pointLight.intensity = 500.0;
+    pointLight.range = 300;
+    pointLight.radius = 50;
+
+    // Optional: Adjust other properties like the light's color
+    pointLight.diffuse = new Color3(1, 1, 1); // White light
+    pointLight.position = mesh.position;
+
+    let chosenLocation = null;
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'raycast-tooltip';
+    document.body.appendChild(tooltip);
+
+    let lastX = null;
+    let lastY = null;
+    /**
+     * @param {MouseEvent} e
+     */
+    this.raycastMouseMove = (e) => {
+      if (e.buttons === 1) {
+        let diffX = 0,
+          diffY = 0;
+        if (lastX !== null && lastY !== null) {
+          diffX = e.clientX - lastX;
+          diffY = e.clientY - lastY;
+        }
+        if (e.shiftKey) {
+          mesh.scaling.setAll(mesh.scaling.y - diffY / 50);
+        } else {
+          mesh.rotation.y += Tools.ToRadians(diffX);
+        }
+        lastX = e.clientX;
+        lastY = e.clientY;
+        e.stopPropagation();
+        e.preventDefault();
+        return;
+      }
+      // Reset lastX and lastY when mouse button is not held down or Shift is not pressed
+      lastX = null;
+      lastY = null;
+      // Calculate the pick ray from the camera position and mouse position
+
+      const pickResult = this.scene.pick(
+        this.scene.pointerX,
+        this.scene.pointerY,
+        null,
+        false,
+        this.CameraController.camera,
+        (p0, p1, p2, ray) => {
+          const p0p1 = p0.subtract(p1);
+          const p2p1 = p2.subtract(p1);
+          const normal = Vector3.Cross(p0p1, p2p1);
+          return Vector3.Dot(ray.direction, normal) > 0;
+        }
+      );
+
+      // Check if the ray intersects with the specific mesh
+      if (pickResult.hit && mesh !== pickResult.pickedMesh) {
+        // Perform actions based on the hit
+        const hitPoint = pickResult.pickedPoint;
+        mesh.position.set(hitPoint.x, hitPoint.y, hitPoint.z);
+        chosenLocation = { x: hitPoint.x, y: hitPoint.y, z: hitPoint.z };
+
+        tooltip.style.left = `${e.pageX - tooltip.clientWidth / 2}px`;
+        tooltip.style.top = `${e.pageY + tooltip.clientHeight / 2}px`;
+        tooltip.innerHTML = `<p>[T] Commit - [ESC] Cancel</p>
+         <p>X: ${hitPoint.z.toFixed(2)}, Y: ${hitPoint.x.toFixed(2)}, Z: ${(
+          hitPoint.y + 5
+        ).toFixed(2)}</p>
+         <p>Left Mouse: Rotate and [Shift] Scale</p>`;
+      }
+    };
+    this.CameraController.camera.inputs.attached.mouse.buttons = [2];
+
+    const finish = async (commit) => {
+      mesh.isPickable = true;
+      this.CameraController.camera.inputs.attached.mouse.buttons = [0, 1, 2];
+      this.pickingRaycast = false;
+      if (!commit) {
+        mesh.position = originalPosition;
+        mesh.rotation = originalRotation;
+        mesh.scaling = originalScale;
+      }
+      await cb(commit);
+      window.removeEventListener('keydown', keyHandler);
+      this.raycastMouseMove = null;
+      pointLight.dispose();
+      document.body.removeChild(tooltip);
+    };
+    function keyHandler(e) {
+      if (e.key === 'Escape') {
+        finish(false);
+      }
+
+      if (e.key?.toLowerCase() === 't') {
+        finish(true);
+      }
+    }
+    window.addEventListener('keydown', keyHandler);
+  }
+
   async pickRaycastForLoc({
     commitCallback = null,
-    stampCallback = null,
-    modelName = ''
+    modelName = '',
+    extraHtml = '',
   }) {
-    const meshes = [];
-    this.zoneContainer.getChildMeshes().forEach(m => {
-      m.isPickable = true;
-      meshes.push(m);
-    });
     this.pickingRaycast = true;
 
+    /**
+     * @type {Mesh}
+     */
     let raycastMesh;
     if (modelName) {
       let container;
       try {
         // Create a Blob from the Uint8Array
-        const blob = new Blob([this.project.modelFiles[modelName]], { type: 'model/gltf-binary' });
-  
+        const blob = new Blob([this.project.modelFiles[modelName]], {
+          type: 'model/gltf-binary',
+        });
+
         // Create a URL for the blob
         const url = URL.createObjectURL(blob);
-  
+
         container = await SceneLoader.LoadAssetContainerAsync(
           '',
           url,
@@ -255,67 +371,10 @@ class ZoneBuilderController extends GameControllerChild {
         instanceContainer.animationGroups?.forEach((ag) =>
           this.scene.removeAnimationGroup(ag)
         );
-        const meshesToMerge = []; 
+        const meshesToMerge = [];
         instanceContainer.rootNodes[0].getChildMeshes().forEach((mesh) => {
           if (mesh.getTotalVertices() > 0) {
-            const vertexCount = mesh.getTotalVertices();
-        
-            // Ensure all meshes have positions
-            const positions = mesh.getVerticesData(VertexBuffer.PositionKind);
-            if (!positions) {
-              console.error('Mesh missing position data, skipping...');
-              return; // Cannot merge meshes without positions
-            }
-        
-            // Ensure all meshes have normals
-            const normals = mesh.getVerticesData(VertexBuffer.NormalKind);
-            if (!normals) {
-              // If the mesh is missing normals, generate them
-              VertexData.ComputeNormals(positions, mesh.getIndices(), normals);
-              mesh.setVerticesData(VertexBuffer.NormalKind, normals);
-            }
-        
-            // Ensure all meshes have colors
-            let colors = mesh.getVerticesData(VertexBuffer.ColorKind);
-            if (!colors) {
-              // If the mesh doesn't have colors, create a default color array (white)
-              colors = new Float32Array(vertexCount * 4);
-              for (let i = 0; i < colors.length; i += 4) {
-                colors[i] = 1; // R
-                colors[i + 1] = 1; // G
-                colors[i + 2] = 1; // B
-                colors[i + 3] = 1; // A
-              }
-              mesh.setVerticesData(VertexBuffer.ColorKind, colors);
-            } else {
-              // Ensure colors array has the correct length (padding if necessary)
-              const requiredLength = vertexCount * 4;
-              if (colors.length < requiredLength) {
-                const paddedColors = new Float32Array(requiredLength);
-                paddedColors.set(colors);
-                for (let i = colors.length; i < requiredLength; i += 4) {
-                  paddedColors[i] = 1; // R
-                  paddedColors[i + 1] = 1; // G
-                  paddedColors[i + 2] = 1; // B
-                  paddedColors[i + 3] = 1; // A
-                }
-                mesh.setVerticesData(VertexBuffer.ColorKind, paddedColors);
-              }
-            }
-        
-            // Ensure all meshes have UVs
-            let uvs = mesh.getVerticesData(VertexBuffer.UVKind);
-            if (!uvs) {
-              // If the mesh doesn't have UVs, create a default UV array
-              uvs = new Float32Array(vertexCount * 2); // Two values per vertex
-              for (let i = 0; i < uvs.length; i += 2) {
-                uvs[i] = 0; // U
-                uvs[i + 1] = 0; // V
-              }
-              mesh.setVerticesData(VertexBuffer.UVKind, uvs);
-            }
-        
-            meshesToMerge.push(mesh); // Add the mesh to the list for merging
+            meshesToMerge.push(mesh);
           }
         });
         if (meshesToMerge.length > 0) {
@@ -332,8 +391,12 @@ class ZoneBuilderController extends GameControllerChild {
           } catch (e) {
             console.warn('Error merging mesh', e);
             mergedMesh = instanceContainer.rootNodes[0].clone();
+            mergedMesh.isPickable = false;
+            mergedMesh.getChildMeshes().forEach((m) => {
+              m.isPickable = false;
+            });
           }
-         
+
           mergedMesh.name = mergedMesh.id = 'raycast-mesh';
           if (mergedMesh) {
             raycastMesh = mergedMesh; // Add the merged mesh to the array of meshes
@@ -357,7 +420,8 @@ class ZoneBuilderController extends GameControllerChild {
       material.emissiveColor = new Color3(1, 1, 0);
       raycastMesh.material = material;
     }
-    console.log('Mesh', raycastMesh);
+    raycastMesh.isPickable = false;
+
     const pointLight = new PointLight(
       'pointLight',
       new Vector3(0, 10, 0),
@@ -379,7 +443,33 @@ class ZoneBuilderController extends GameControllerChild {
     tooltip.className = 'raycast-tooltip';
     document.body.appendChild(tooltip);
 
-    const mouseMove = (e) => {
+    let lastX = null;
+    let lastY = null;
+    /**
+     * @param {MouseEvent} e
+     */
+    this.raycastMouseMove = (e) => {
+      if (e.buttons === 1) {
+        let diffX = 0,
+          diffY = 0;
+        if (lastX !== null && lastY !== null) {
+          diffX = e.clientX - lastX;
+          diffY = e.clientY - lastY;
+        }
+        if (e.shiftKey) {
+          raycastMesh.scaling.setAll(raycastMesh.scaling.y - diffY / 50);
+        } else {
+          raycastMesh.rotation.y += Tools.ToRadians(diffX);
+        }
+        lastX = e.clientX;
+        lastY = e.clientY;
+        e.stopPropagation();
+        e.preventDefault();
+        return;
+      }
+      // Reset lastX and lastY when mouse button is not held down or Shift is not pressed
+      lastX = null;
+      lastY = null;
       // Calculate the pick ray from the camera position and mouse position
 
       const pickResult = this.scene.pick(
@@ -397,7 +487,7 @@ class ZoneBuilderController extends GameControllerChild {
       );
 
       // Check if the ray intersects with the specific mesh
-      if (pickResult.hit && meshes.includes(pickResult.pickedMesh)) {
+      if (pickResult.hit && raycastMesh !== pickResult.pickedMesh) {
         // Perform actions based on the hit
         const hitPoint = pickResult.pickedPoint;
         raycastMesh.position.set(hitPoint.x, hitPoint.y, hitPoint.z);
@@ -405,41 +495,40 @@ class ZoneBuilderController extends GameControllerChild {
 
         tooltip.style.left = `${e.pageX - tooltip.clientWidth / 2}px`;
         tooltip.style.top = `${e.pageY + tooltip.clientHeight / 2}px`;
-        tooltip.innerHTML = `<p>[T] Commit - ${stampCallback ? ' [E] Stamp - ' : ''}[ESC] Cancel</p><p>X: ${hitPoint.z.toFixed(
-          2
-        )}, Y: ${hitPoint.x.toFixed(2)}, Z: ${(hitPoint.y + 5).toFixed(2)}</p>`;
+        tooltip.innerHTML = `<p>[T] Commit - [ESC] Cancel</p>
+         <p>X: ${hitPoint.z.toFixed(2)}, Y: ${hitPoint.x.toFixed(2)}, Z: ${(
+          hitPoint.y + 5
+        ).toFixed(2)}</p>
+         ${extraHtml}`;
       }
     };
-    const self = this;
-    const finish = async (loc, stamp = false) => {
-      this.pickingRaycast = false;
-      if (stamp) {
-        stampCallback?.(loc, raycastMesh);
+    this.CameraController.camera.inputs.attached.mouse.buttons = [2];
+
+    const finish = async (loc, cleanup = false) => {
+      if (!cleanup) {
+        commitCallback?.(loc, raycastMesh);
         return;
       }
+      this.CameraController.camera.inputs.attached.mouse.buttons = [0, 1, 2];
+
+      this.pickingRaycast = false;
       await commitCallback?.(loc, raycastMesh);
       window.removeEventListener('keydown', keyHandler);
-      self.canvas.removeEventListener('mousemove', mouseMove);
-      meshes.forEach(m => m.isPickable = false);
+      this.raycastMouseMove = null;
       raycastMesh.dispose();
       pointLight.dispose();
       document.body.removeChild(tooltip);
     };
     function keyHandler(e) {
       if (e.key === 'Escape') {
-        finish(null);
+        finish(null, true);
       }
 
       if (e.key?.toLowerCase() === 't') {
         finish(chosenLocation);
       }
-
-      if (e.key?.toLowerCase() === 'e') {
-        finish(chosenLocation, true);
-      }
     }
     window.addEventListener('keydown', keyHandler);
-    this.canvas.addEventListener('mousemove', mouseMove);
   }
 
   setFlySpeed(value) {
@@ -533,11 +622,21 @@ class ZoneBuilderController extends GameControllerChild {
     zone.meshes.forEach((m) => {
       if (m.material?.metadata?.gltf?.extras?.boundary) {
         m.parent = this.boundaryContainer;
+        m.isPickable = false;
       } else {
+        m.isPickable = true;
         m.parent = this.zoneContainer;
       }
+      if (m.name.endsWith('-passthrough')) {
+        m.metadata = {
+          gltf: {
+            extras: {
+              passThrough: true,
+            }
+          }
+        };
+      }
     });
-
 
     const metadata = project.metadata;
     if (metadata) {
@@ -564,7 +663,6 @@ class ZoneBuilderController extends GameControllerChild {
 
     this.loadCallbacks.forEach((l) => l());
     this.zoneLoaded = true;
-
 
     GlobalStore.actions.setLoading(false);
   }
@@ -617,14 +715,101 @@ class ZoneBuilderController extends GameControllerChild {
         emissiveColor: new Color3(0, 0.5, 1),
       };
     }
-  
+  }
+
+  /**
+   * 
+   * @param {Mesh} mesh 
+   */
+  overlayWireframe(mesh) {
+    if (this.wireframeMesh) {
+      this.wireframeMesh.dispose();
+    }
+
+    this.wireframeMesh = mesh.clone('wireframeMesh');
+    const wireframeMaterial = new StandardMaterial(
+      'wireframeMaterial',
+      this.scene
+    );
+    const threshold = 0.5;
+    this.glowLayer.addIncludedOnlyMesh(mesh);
+    mesh.metadata = {
+      ...mesh.metadata,
+      emissiveColor: new Color4(0, 0.5, 1, 0.05), 
+    }
+    this.editingMesh = mesh;
+    wireframeMaterial.emissiveColor = new Color3(threshold, threshold, threshold);
+    wireframeMaterial.diffuseColor = new Color3(threshold, threshold, threshold);
+    wireframeMaterial.wireframe = true;
+    this.wireframeMesh.material = wireframeMaterial;
+    this.wireframeMesh.position = mesh.position.clone();
+    this.wireframeMesh.position.y += 0.5;
+    this.wireframeMesh.parent = null;
+    this.wireframeMesh.isPickable = false;
+    let direction = 1;
+    let intensity = 0;
+    this.wireframeMeshInterval = setInterval(() => {
+      intensity += direction * 0.05;
+
+      if (intensity >= 1) {
+        intensity = 1;
+        direction = -1;
+      } else if (intensity <= threshold) {
+        intensity = threshold;
+        direction = 1;
+      }
+      wireframeMaterial.emissiveColor = new Color3(
+        intensity,
+        intensity,
+        intensity
+      );
+    }, 75);
+  }
+
+  disposeOverlayWireframe() {
+    if (this.editingMesh) {
+      this.editingMesh.metadata = {
+        ...this.editingMesh.metadata,
+        emissiveColor: undefined
+      }
+      this.glowLayer.removeIncludedOnlyMesh(this.editingMesh);
+
+    }
+    this.wireframeMesh?.dispose();
+    clearInterval(this.wireframeMeshInterval);
+    this.wireframeMesh = null;
+  }
+
+  assignGlow(mesh) {
+    if (!mesh) {
+      return;
+    }
+    this.glowLayer.addIncludedOnlyMesh(mesh);
+    mesh.forceRenderingWhenOccluded = true;
+    mesh.occlusionType = AbstractMesh.OCCLUSION_TYPE_OPTIMISTIC;
+    mesh.metadata = {
+      emissiveColor: new Color3(0, 0.5, 1),
+    };
+  }
+  unassignGlow(mesh) {
+    if (!mesh) {
+      return;
+    }
+    this.glowLayer.removeIncludedOnlyMesh(mesh);
+    mesh.forceRenderingWhenOccluded = false;
+    mesh.occlusionType = AbstractMesh.OCCLUSION_TYPE_OPTIMISTIC;
+    mesh.metadata = {};
   }
 
   toggleOpen(name) {
     if (!this.scene) {
       return;
     }
-    for (const node of [this.lightContainer, this.soundContainer, this.regionContainer]) {
+    for (const node of [
+      this.lightContainer,
+      this.soundContainer,
+      this.regionContainer,
+    ]) {
       if (node.name !== name) {
         node.setEnabled(false);
       } else {
@@ -635,7 +820,6 @@ class ZoneBuilderController extends GameControllerChild {
 
   renderLoop() {
     if (!this.lightContainer.isEnabled()) {
-      
     }
   }
 
@@ -656,14 +840,14 @@ class ZoneBuilderController extends GameControllerChild {
 
       box.name = `Light-${idx++}`;
       // Set the position of the box to the center
-      box.position = new Vector3(
-        light.x,
-        light.y,
-        light.z
-      );
+      box.position = new Vector3(light.x, light.y, light.z);
       this.glowLayer.addIncludedOnlyMesh(box);
 
-      const pointLight = new PointLight(`light_${idx}`, box.position, this.scene);
+      const pointLight = new PointLight(
+        `light_${idx}`,
+        box.position,
+        this.scene
+      );
       pointLight.diffuse = new Color3(light.r, light.g, light.b);
       pointLight.intensity = 1.2;
       pointLight.radius = light.radius;
@@ -709,11 +893,7 @@ class ZoneBuilderController extends GameControllerChild {
 
       box.name = `Sound-${idx++}`;
       // Set the position of the box to the center
-      box.position = new Vector3(
-        sound.x,
-        sound.z,
-        sound.y
-      );
+      box.position = new Vector3(sound.x, sound.z, sound.y);
       this.glowLayer.addIncludedOnlyMesh(box);
       box.material = this.regionMaterial;
       box.parent = this.soundContainer;
@@ -729,10 +909,11 @@ class ZoneBuilderController extends GameControllerChild {
   async instantiateObjects(modelName, model) {
     let container;
 
-
     try {
       // Create a Blob from the Uint8Array
-      const blob = new Blob([this.project.modelFiles[modelName]], { type: 'model/gltf-binary' });
+      const blob = new Blob([this.project.modelFiles[modelName]], {
+        type: 'model/gltf-binary',
+      });
 
       // Create a URL for the blob
       const url = URL.createObjectURL(blob);
@@ -795,7 +976,10 @@ class ZoneBuilderController extends GameControllerChild {
           mergedMesh.scaling.setAll(scale);
           mergedMesh.parent = this.objectContainer; // Set the parent to the object container
           mergedMesh.checkCollisions = true; // Enable collisions for the merged mesh
+          mergedMesh.isPickable = true;
           meshes.push(mergedMesh); // Add the merged mesh to the array of meshes
+          mergedMesh.dataReference = v;
+          mergedMesh.dataContainerReference = model;
         }
       }
       instanceContainer.rootNodes[0].dispose();

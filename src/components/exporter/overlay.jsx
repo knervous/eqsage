@@ -293,7 +293,7 @@ export const ExporterOverlay = () => {
               sx={{ margin: '2.5px auto', width: '100%' }}
               color="primary"
               onClick={async () => {
-                await deleteEqFolder('data');
+                // await deleteEqFolder('data');
                 await processGlobal(settings, rootFileSystemHandle, true);
                 refreshModelFiles();
               }}
@@ -591,6 +591,7 @@ export const ExporterOverlay = () => {
                 setSelectedObject(null);
                 setBabylonModel(null);
                 refreshModelFiles();
+                gameController.SpawnController.assetContainers = {};
                 gameController.currentScene
                   .getMeshById('model_export')
                   ?.dispose();

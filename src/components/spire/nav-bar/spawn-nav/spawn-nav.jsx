@@ -331,6 +331,8 @@ function SpawnNavBar() {
         selectedGridIdx,
         updateGrid
       );
+    } else {
+      gameController.SpawnController.showSpawnPath([]);
     }
   }, [selectedGridIdx, selectedSpawn?.grid, updateGrid, gridUpdater]);
   return open ? (

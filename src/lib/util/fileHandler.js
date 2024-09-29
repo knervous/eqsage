@@ -198,9 +198,13 @@ export const getEQFileExists = async (directory, name) => {
 };
 
 let existingMetadata = {};
+let needFirst = true;
 export const appendObjectMetadata = async (key, path) => {
-  existingMetadata =
-    existingMetadata || (await getEQFile('data', 'objectPaths.json', 'json'));
+  existingMetadata = needFirst ? (await getEQFile('data', 'objectPaths.json', 'json')) : existingMetadata;
+  if (existingMetadata === false) {
+    existingMetadata = {};
+  }
+  needFirst = false;
   const upperKey = key.toUpperCase();
   const existing = existingMetadata[upperKey];
   if (!existing) {

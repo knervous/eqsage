@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Autocomplete,
   Box,
@@ -11,20 +17,24 @@ import {
   FormControlLabel,
   TextField,
   Typography,
+  Slider,
 } from '@mui/material';
-import Slider from '@mui/material/Slider';
+
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Tools } from '@babylonjs/core/Misc/tools';
 import { useZoneBuilderContext } from '../context';
 import { gameController } from '../../../viewer/controllers/GameController';
 import { ObjectDialog } from './object-dialog';
+import { getEQDir, getEQFile } from '../../../lib/util/fileHandler';
 
 function getRandomNumber(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-export const ObjectsDrawer = () => {
+const zb = gameController.ZoneBuilderController;
+
+export const ObjectsDrawer = ({ selectedObject }) => {
   const {
     zone,
     zone: { modelFiles },
@@ -36,24 +46,107 @@ export const ObjectsDrawer = () => {
   const [rotateClamp, setRotateClamp] = useState([0, 360]);
   const [scaleClamp, setScaleClamp] = useState([1, 3]);
   const [importOpen, setImportOpen] = useState(false);
+  const [, forceRender] = useState({});
+  const [objectMap, setObjectMap] = useState({});
+  const [selectedMesh, setSelectedMesh] = useState(selectedObject);
+  const editing = useRef(false);
+  const editMesh = useCallback(() => {
+    editing.current = true;
+
+    zb.editMesh(selectedMesh, (commit) => {
+      editing.current = false;
+      if (!commit) {
+        return;
+      }
+      selectedMesh.dataReference.x = selectedMesh.position.x;
+      selectedMesh.dataReference.y = selectedMesh.position.y;
+      selectedMesh.dataReference.z = selectedMesh.position.z;
+
+      selectedMesh.dataReference.rotateX = Tools.ToDegrees(
+        selectedMesh.rotation.x
+      );
+      selectedMesh.dataReference.rotateY = Tools.ToDegrees(
+        selectedMesh.rotation.y
+      );
+      selectedMesh.dataReference.rotateZ = Tools.ToDegrees(
+        selectedMesh.rotation.z
+      );
+
+      selectedMesh.dataReference.scale = selectedMesh.scaling.y;
+      updateProject(zone);
+    });
+  }, [selectedMesh, updateProject, zone]);
+
+  const deleteMesh = useCallback(() => {
+    if (!selectedMesh) {
+      return;
+    }
+
+    selectedMesh.dataContainerReference =
+      selectedMesh.dataContainerReference.filter(
+        (v) => v !== selectedMesh.dataReference
+      );
+    updateProject(zone);
+    selectedMesh.dispose();
+    setSelectedMesh(null);
+  }, [selectedMesh, updateProject, zone]);
+
+  useEffect(() => {
+    const clickCallback = (mesh) => {
+      if (editing.current) {
+        return;
+      }
+      if (mesh.parent === zb.objectContainer) {
+        setSelectedMesh(mesh);
+      }
+    };
+
+    zb.addClickCallback(clickCallback);
+    const keydown = (e) => {
+      if (e.key.toLowerCase() === 'r') {
+        editMesh();
+      }
+      if (e.key === 'Delete') {
+        deleteMesh();
+      }
+    };
+
+    document.addEventListener('keydown', keydown);
+    return () => {
+      document.removeEventListener('keydown', keydown);
+      zb.removeClickCallback(clickCallback);
+      zb.unassignGlow(selectedMesh);
+    };
+  }, [editMesh, selectedMesh, deleteMesh]);
+
+  useEffect(() => {
+    zb.assignGlow(selectedMesh);
+
+    return () => zb.unassignGlow(selectedMesh);
+  }, [selectedMesh]);
+
+  useEffect(() => {
+    (async () => {
+      const objectDir = await getEQDir('objects');
+      if (objectDir) {
+        const objectPaths = await getEQFile('data', 'objectPaths.json', 'json');
+        setObjectMap(objectPaths || {});
+      }
+    })();
+  }, []);
+
   const stamp = useCallback(() => {
     if (!selectedModel) {
       return;
     }
-    window.gameController.ZoneBuilderController.pickRaycastForLoc({
-      async commitCallback(loc, mesh) {
-        if (!loc) {
-          return;
-        }
-        console.log('commit', loc);
-      },
+    zb.pickRaycastForLoc({
       /**
        *
        * @param {{x: number, y: number, z: number} | null} loc
        * @param {import('@babylonjs/core/Meshes/mesh').Mesh} mesh
        * @returns
        */
-      async stampCallback(loc, mesh) {
+      async commitCallback(loc, mesh) {
         if (!loc) {
           return;
         }
@@ -64,35 +157,36 @@ export const ObjectsDrawer = () => {
           z,
           rotateX: 0,
           rotateY: doRandom
-            ? getRandomNumber(rotateClamp[0], rotateClamp[1])
-            : 0,
+            ? Tools.ToRadians(getRandomNumber(rotateClamp[0], rotateClamp[1]))
+            : mesh.rotation.y,
           rotateZ: 0,
-          scale  : doRandom ? getRandomNumber(scaleClamp[0], scaleClamp[1]) : 1,
+          scale  : doRandom
+            ? getRandomNumber(scaleClamp[0], scaleClamp[1])
+            : mesh.scaling.y,
         };
-        const newName = `${selectedModel}_${
-          zone.metadata.objects[selectedModel].length + 1
-        }`;
-        const clone = mesh.clone(
-          newName,
-          gameController.ZoneBuilderController.objectContainer
-        );
-        clone.rotation.y = Tools.ToRadians(newEntry.rotateY);
+        const newName = `${selectedModel}_${zone.metadata.objects[selectedModel].length}`;
+        const clone = mesh.clone(newName, zb.objectContainer);
+        clone.rotation.y = newEntry.rotateY;
         clone.scaling.setAll(newEntry.scale);
+        clone.isPickable = true;
         const newZone = zone;
         newZone.metadata.objects[selectedModel].push(newEntry);
+        clone.dataContainerReference = newZone.metadata.objects[selectedModel];
+        clone.dataReference = newEntry;
         updateProject(newZone);
-        console.log('zone', zone);
-        //  const clone = mesh.clone();
-        console.log('stamp', loc);
       },
       modelName: selectedModel,
+      extraHtml: '<p>Left Mouse: Rotate and [Shift] Scale</p>',
     });
   }, [selectedModel, zone, updateProject, doRandom, rotateClamp, scaleClamp]);
   const modelOptions = useMemo(() => {
     return models
       .map((model, idx) => {
         const modelLabel = `${model}`;
-        const label = models[modelLabel] ?? modelLabel;
+        let label = models[modelLabel] ?? modelLabel;
+        if (objectMap[label.toUpperCase()]) {
+          label = `[${objectMap[label.toUpperCase()]}] ${label}`;
+        }
         return {
           model: modelLabel,
           label,
@@ -102,13 +196,145 @@ export const ObjectsDrawer = () => {
       })
       .filter(Boolean)
       .sort((a, b) => (a.label > b.label ? 1 : -1));
-  }, [models]);
+  }, [models, objectMap]);
 
   const optionIdx = modelOptions.findIndex((m) => m.model === selectedModel);
-  console.log('Option idx', optionIdx);
   return (
-    <>
+    <Stack direction="column" justifyContent={'space-around'} sx={{ height: '90%' }}>
       <ObjectDialog open={importOpen} setOpen={setImportOpen} models={models} />
+      <Button
+        fullWidth
+        variant={'outlined'}
+        sx={{ margin: '10px auto' }}
+        onClick={() => setImportOpen(true)}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            color     : 'text.primary',
+            textAlign : 'center',
+            userSelect: 'none',
+            fontSize  : '17px',
+          }}
+        >
+          Import New Model
+        </Typography>
+      </Button>
+      <Divider sx={{ margin: '5px' }} />
+      <Box sx={{ padding: '10px' }}>
+        <Stack direction="column" sx={{ marginBottom: '5px' }}>
+          <Typography
+            sx={{
+              fontSize   : '17px',
+              marginTop  : '5px',
+              paddingLeft: '5px',
+            }}
+          >
+            Selected Object [{selectedMesh?.name ?? 'None'}]
+          </Typography>
+          <>
+            <Button
+              fullWidth
+              variant={'outlined'}
+              sx={{ margin: '5px auto' }}
+              disabled={!selectedMesh}
+              onClick={editMesh}
+            >
+              <Typography
+                variant="h6"
+                sx={{
+                  textAlign : 'center',
+                  userSelect: 'none',
+                  fontSize  : '17px',
+                  color     : selectedMesh ? 'text.primary' : 'text.secondary',
+                }}
+              >
+                Move/Rotate/Scale [R]
+              </Typography>
+            </Button>
+            <Button
+              fullWidth
+              variant={'outlined'}
+              sx={{ margin: '5px auto' }}
+              disabled={!selectedMesh}
+              onClick={deleteMesh}
+            >
+              <Typography
+                variant="h6"
+                sx={{
+                  textAlign : 'center',
+                  userSelect: 'none',
+                  fontSize  : '17px',
+                  color     : selectedMesh ? 'text.primary' : 'text.secondary',
+                }}
+              >
+                Remove Mesh [Delete]
+              </Typography>
+            </Button>
+            <Stack
+              sx={{ margin: '10px' }}
+              direction="row"
+              justifyContent={'space-around'}
+            >
+              <Typography sx={{ fontSize: 18 }}>X</Typography>
+              <Typography sx={{ fontSize: 18 }}>Y</Typography>
+              <Typography sx={{ fontSize: 18 }}>Z</Typography>
+            </Stack>
+            <Stack direction="row">
+              <TextField
+                disabled = {!selectedMesh?.dataReference}
+                size="small"
+                type="number"
+                inputProps={{
+                  style: { textAlign: 'center' },
+                }}
+                sx={{ margin: 0, padding: 0 }}
+                value={selectedMesh?.dataReference?.z}
+                onChange={(e) => {
+                  selectedMesh.dataReference.z = selectedMesh.position.z = +Math.round(e.target.value);
+                  updateProject(zone);
+                  forceRender({});
+
+                }}
+              ></TextField>
+              <TextField
+                disabled = {!selectedMesh?.dataReference}
+                size="small"
+                type="number"
+                inputProps={{
+                  style: { textAlign: 'center' },
+                }}
+                sx={{ margin: 0, padding: 0 }}
+                value={selectedMesh?.dataReference?.x}
+                onChange={(e) => {
+                  selectedMesh.dataReference.x = selectedMesh.position.x = +Math.round(e.target.value);
+                  updateProject(zone);
+                  forceRender({});
+                }}
+              ></TextField>
+              <TextField
+                disabled = {!selectedMesh?.dataReference}
+
+                size="small"
+                type="number"
+                inputProps={{
+                  style: { textAlign: 'center' },
+                }}
+                sx={{ margin: 0, padding: 0 }}
+                value={selectedMesh?.dataReference?.y}
+                onChange={(e) => {
+                  selectedMesh.dataReference.y = selectedMesh.position.y = +Math.round(e.target.value);
+                  updateProject(zone);
+                  forceRender({});
+
+                }}
+              ></TextField>
+
+            </Stack>
+          </>
+        </Stack>
+      </Box>
+      <Divider sx={{ margin: '5px' }} />
 
       <Box sx={{ padding: '10px' }}>
         <Stack direction="row" sx={{ marginBottom: '5px' }}>
@@ -119,7 +345,7 @@ export const ObjectsDrawer = () => {
               paddingLeft: '5px',
             }}
           >
-            Available Objects ({modelOptions.length})
+            Placable Objects ({modelOptions.length})
           </Typography>
           <Stack
             direction="row"
@@ -175,7 +401,11 @@ export const ObjectsDrawer = () => {
             }}
             options={modelOptions}
             renderInput={(params) => (
-              <TextField {...params} model="Select Object" />
+              <TextField
+                onKeyDown={(e) => e.stopPropagation()}
+                {...params}
+                model="Select Object"
+              />
             )}
           />
         </FormControl>
@@ -196,24 +426,6 @@ export const ObjectsDrawer = () => {
             }}
           >
             Add Object [{selectedModel || 'None'}]
-          </Typography>
-        </Button>
-
-        <Button
-          fullWidth
-          variant={'outlined'}
-          sx={{ margin: '5px auto' }}
-          onClick={() => setImportOpen(true)}
-        >
-          <Typography
-            variant="h6"
-            sx={{
-              textAlign : 'center',
-              userSelect: 'none',
-              fontSize  : '17px',
-            }}
-          >
-            Import / Upload Model
           </Typography>
         </Button>
 
@@ -276,6 +488,6 @@ export const ObjectsDrawer = () => {
 
         <Divider sx={{ margin: '5px' }} />
       </Box>
-    </>
+    </Stack>
   );
 };

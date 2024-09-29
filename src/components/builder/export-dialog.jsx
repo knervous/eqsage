@@ -224,43 +224,58 @@ export const ExportDialog = ({ open, setOpen }) => {
           : mesh.getVerticesData(VertexBuffer.UVKind);
 
         for (var i = 0; i < positions.length; i += 3) {
-          var position = new Vector3(positions[i], positions[i+1], positions[i+2]);
-          var normal = new Vector3(normals[i], normals[i+1], normals[i+2]).normalize();
-  
+          var position = new Vector3(
+            positions[i],
+            positions[i + 1],
+            positions[i + 2]
+          );
+          var normal = new Vector3(
+            normals[i],
+            normals[i + 1],
+            normals[i + 2]
+          ).normalize();
+
           // Initialize the final color as black
           var finalColor = new Color3(0, 0, 0);
-  
-          // Iterate over all lights in the scene and accumulate their contribution
-          gameController.currentScene.lights.forEach(function(light) {
-              var lightColor = light.diffuse;  // Use light's diffuse color for calculations
-  
-              // For directional light
-              if (light.zoneLight) {
-                  var lightDirection = light.position.subtract(position).normalize();
-                  var distance = Vector3.Distance(light.position, position);
-                       // Apply standard attenuation (simplified)
-                  var constantAttenuation = 1.0;
-                  var linearAttenuation = 0.05;   // You can adjust this value for your scene
-                  var quadraticAttenuation = 0.002;  // Adjust this as well
 
-                  var attenuation = 1.0 / (constantAttenuation + linearAttenuation * distance + quadraticAttenuation * distance * distance);
-                  
-                 // var attenuation = 1.0 / (light.range * distance);  // Simplified attenuation
-                  var diffuseIntensity = Math.max(0, Vector3.Dot(normal, lightDirection)) * attenuation;
-                  var diffuseComponent = lightColor.scale(diffuseIntensity);
-                  // Add the diffuse component to the final color
-                  finalColor = finalColor.add(diffuseComponent);
-              }
+          // Iterate over all lights in the scene and accumulate their contribution
+          gameController.currentScene.lights.forEach(function (light) {
+            var lightColor = light.diffuse; // Use light's diffuse color for calculations
+
+            // For directional light
+            if (light.zoneLight) {
+              var lightDirection = light.position
+                .subtract(position)
+                .normalize();
+              var distance = Vector3.Distance(light.position, position);
+              // Apply standard attenuation (simplified)
+              var constantAttenuation = 1.0;
+              var linearAttenuation = 0.05; // You can adjust this value for your scene
+              var quadraticAttenuation = 0.002; // Adjust this as well
+
+              var attenuation =
+                1.0 /
+                (constantAttenuation +
+                  linearAttenuation * distance +
+                  quadraticAttenuation * distance * distance);
+
+              // var attenuation = 1.0 / (light.range * distance);  // Simplified attenuation
+              var diffuseIntensity =
+                Math.max(0, Vector3.Dot(normal, lightDirection)) * attenuation;
+              var diffuseComponent = lightColor.scale(diffuseIntensity);
+              // Add the diffuse component to the final color
+              finalColor = finalColor.add(diffuseComponent);
+            }
           });
-  
+
           // Scale the finalColor values to the 0–255 range
           var r = Math.min(255, Math.max(0, Math.round(finalColor.r * 255)));
           var g = Math.min(255, Math.max(0, Math.round(finalColor.g * 255)));
           var b = Math.min(255, Math.max(0, Math.round(finalColor.b * 255)));
-  
+
           // Push the integer RGB values to the vertex color array (ignore alpha if not needed)
           vertexColors.push([r, g, b, 255]); // RGBA with full opacity
-      }
+        }
         const meshIndices = isSubmesh
           ? mesh
               .getMesh()
@@ -269,21 +284,48 @@ export const ExportDialog = ({ open, setOpen }) => {
           : mesh.getIndices();
         const vertexCount = positions.length / 3;
         const triCount = meshIndices.length / 3;
-
-        materials.push(
-          +idx, // Index
-          getStringIdx(materialNames[realMatIdx]), // Material Name
-          getStringIdx(
-            needsAlphaTesting ? "Alpha_MaxCBSG1.fx" : "Opaque_MaxC1.fx"
-          ), // Shader Name
-          1, // Property Count
-          // One Property for now until we support more shaders
-          ...[
-            getStringIdx("e_TextureDiffuse0"), // Property
-            2, // Type - hardcoded for now
-            getStringIdx(textureNames[textureIdx]), // Value for png
-          ]
-        );
+        const shaders = mesh.metadata?.gltf?.extras?.shaders ?? [
+          {
+            name: needsAlphaTesting ? "Alpha_MaxCBSG1.fx" : "Opaque_MaxC1.fx",
+            properties: [
+              {
+                name: "e_TextureDiffuse0",
+                type: 2,
+                value: textureNames[textureIdx],
+              },
+            ],
+          },
+        ];
+        for (const [shaderIdx, shader] of Object.entries(shaders)) {
+          materials.push(
+            +idx + +shaderIdx, // Index
+            getStringIdx(materialNames[realMatIdx]), // Material Name
+            getStringIdx(
+              shader.name
+            ), // Shader Name
+            shader.properties.length,
+            // One Property for now until we support more shaders
+            ...shader.properties.flatMap(p => [
+              getStringIdx(p.name),
+              p.type,
+              p.type === 2 ? getStringIdx(p.value) : p.value,
+            ])
+          );
+        }
+        // materials.push(
+        //   +idx, // Index
+        //   getStringIdx(materialNames[realMatIdx]), // Material Name
+        //   getStringIdx(
+        //     needsAlphaTesting ? "Alpha_MaxCBSG1.fx" : "Opaque_MaxC1.fx"
+        //   ), // Shader Name
+        //   1, // Property Count
+        //   // One Property for now until we support more shaders
+        //   ...[
+        //     getStringIdx("e_TextureDiffuse0"), // Property
+        //     2, // Type - hardcoded for now
+        //     getStringIdx(textureNames[textureIdx]), // Value for png
+        //   ]
+        // );
 
         for (let i = 0; i < vertexCount; i++) {
           const posIndex = i * 3;
@@ -326,7 +368,7 @@ export const ExportDialog = ({ open, setOpen }) => {
         litWriter.setCursor(litWriter.cursor - 1);
         litWriter.writeUint32(count);
         for (let i = 0; i < count; i++) {
-          const [r,g,b,a] = vertexColors[i];
+          const [r, g, b, a] = vertexColors[i];
           litWriter.writeUint8(r);
           litWriter.writeUint8(g);
           litWriter.writeUint8(b);
@@ -434,13 +476,18 @@ export const ExportDialog = ({ open, setOpen }) => {
           .getChildMeshes()
           .find((o) => o.name.startsWith(`${key}_`));
         if (mesh) {
+          console.log("Writing mesh", mesh.name);
           await writeEqgMod(
             false,
-            mesh.subMeshes,
+            mesh.subMeshes || mesh.getChildMeshes(),
             `${mesh.name.replace("_0", "")}`,
             Object.keys(list).map((i) => `${key}${i}.lit`),
             []
-          );
+          ).catch((e) => {
+            console.warn(`error writing mesh ${mesh.name}`, e);
+          });
+          console.log("Writing mesh done");
+
           for (const idx in list) {
             objectNames.push(`${key}${idx}`);
             objectCount++;

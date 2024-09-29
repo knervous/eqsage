@@ -54,6 +54,7 @@ export async function writeMetadata(
 export async function writeModels(modelFile, mod) {
   modelFile = modelFile.replace('.mod', '');
   const diskFileName = `${modelFile}.glb`;
+  await appendObjectMetadata(modelFile, `${this.name}.eqg`);
   if (
     (await getEQFileExists('objects', diskFileName)) &&
     !modelFile.includes('et_drbanner') &&
@@ -64,7 +65,6 @@ export async function writeModels(modelFile, mod) {
   ) {
     return;
   }
-  await appendObjectMetadata(modelFile, `${this.name}.eqg`);
   const document = new Document();
   const objectName = mod.name.replace('.mod', '');
   const buffer = document.createBuffer();

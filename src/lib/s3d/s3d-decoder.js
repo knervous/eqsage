@@ -68,7 +68,7 @@ export class S3DDecoder {
     this.files = {};
     const images = [];
     // Preprocess images
-    const shaderMap = {};
+    this.shaderMap = {};
     for (const [fileName, data] of this.pfsArchive.files.entries()) {
       this.files[fileName] = this.pfsArchive.getFile(fileName);
 
@@ -78,10 +78,10 @@ export class S3DDecoder {
         for (const mat of wld.materialList.flatMap((ml) => ml.materialList)) {
           for (const bitmapName of mat.bitmapInfo?.reference?.bitmapNames ??
             []) {
-            if (shaderMap[bitmapName.fileName.toLowerCase()]) {
+            if (this.shaderMap[bitmapName.fileName.toLowerCase()]) {
               continue;
             }
-            shaderMap[bitmapName.fileName.toLowerCase()] = mat.shaderType;
+            this.shaderMap[bitmapName.fileName.toLowerCase()] = mat.shaderType;
           }
         }
         this.wldFiles.push(wld);
@@ -96,7 +96,7 @@ export class S3DDecoder {
     console.log(`Files ${file.name}`, Object.keys(this.files));
 
     for (const image of images) {
-      image.shaderType = shaderMap[image.name];
+      image.shaderType = this.shaderMap[image.name];
     }
     console.log(`Processed - ${file.name}`);
     await imageProcessor.parseImages(images);
@@ -458,21 +458,17 @@ export class S3DDecoder {
         this.#fileHandle.name.includes("gequip") || true
           ? `${scrubbedName}.glb`
           : `[${this.#fileHandle.name}] ${scrubbedName}.glb`;
+      await appendObjectMetadata(scrubbedName, wld.name.replace(".wld", ""));
       if (await getEQFileExists(path, diskFileName)) {
         continue;
       }
-      await appendObjectMetadata(scrubbedName, wld.name.replace(".wld", ""));
       const document = new Document(scrubbedName);
       const buffer = document.createBuffer();
       const scene = document.createScene(scrubbedName);
       document.createPrimitive().setAttribute();
-      const flipMatrix = mat4.create();
-      mat4.scale(flipMatrix, flipMatrix, [1, 1, 1]);
       const node = document
         .createNode(scrubbedName)
         .setTranslation([0, 0, 0])
-        .setMatrix(flipMatrix);
-
       scene.addChild(node);
 
       const materials = await this.getMaterials(
@@ -521,9 +517,9 @@ export class S3DDecoder {
             polygonCount: 0,
           };
           mesh.addPrimitive(sharedPrimitive.gltfPrim);
-        }
-        if (hasNotSolid) {
-          sharedPrimitive.gltfNode.setExtras({ passThrough: true });
+          if (hasNotSolid) {
+            mesh.setExtras({ passThrough: true });
+          }
         }
 
         for (let i = 0; i < mat.polygonCount; i++) {
@@ -549,7 +545,7 @@ export class S3DDecoder {
             ])
           );
           normals.push(...[n1, n2, n3].flatMap((v) => [v[0] * -1, v[2], v[1]]));
-          uv.push(...[u1, u2, u3].flatMap((v) => [v[0], v[1]]));
+          uv.push(...[u1, u2, u3].flatMap((v) => [-v[0], v[1]]));
           polygonIndex++;
         }
       }
@@ -967,6 +963,8 @@ export class S3DDecoder {
     if (this.#fileHandle.name.startsWith("gequip")) {
       this.gequip = true;
     }
+    // guarantee the main zone s3d will be parsed last
+    this.#fileHandle.fileHandles.sort((a,_b) => a.name === `${this.#fileHandle.name}.s3d` ? 1 : -1)
     for (const file of this.#fileHandle.fileHandles) {
       const extension = file.name.split(".").pop();
       switch (extension) {

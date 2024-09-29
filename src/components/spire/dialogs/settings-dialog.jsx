@@ -29,7 +29,7 @@ export const SettingsDialog = ({ onClose }) => {
     spawnLOD = 500,
     remoteUrl = '',
     showCompass = true,
-    preferEqg = false,
+    preferEqg = true,
   } = useSettingsContext();
   const [testState, setTestState] = useState('Ready');
   const [user, setUser] = useState('');
