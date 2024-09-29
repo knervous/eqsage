@@ -312,20 +312,6 @@ export const ExportDialog = ({ open, setOpen }) => {
             ])
           );
         }
-        // materials.push(
-        //   +idx, // Index
-        //   getStringIdx(materialNames[realMatIdx]), // Material Name
-        //   getStringIdx(
-        //     needsAlphaTesting ? "Alpha_MaxCBSG1.fx" : "Opaque_MaxC1.fx"
-        //   ), // Shader Name
-        //   1, // Property Count
-        //   // One Property for now until we support more shaders
-        //   ...[
-        //     getStringIdx("e_TextureDiffuse0"), // Property
-        //     2, // Type - hardcoded for now
-        //     getStringIdx(textureNames[textureIdx]), // Value for png
-        //   ]
-        // );
 
         for (let i = 0; i < vertexCount; i++) {
           const posIndex = i * 3;
