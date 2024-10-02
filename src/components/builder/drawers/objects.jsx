@@ -23,10 +23,10 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { Tools } from '@babylonjs/core/Misc/tools';
-import { useZoneBuilderContext } from '../context';
 import { gameController } from '../../../viewer/controllers/GameController';
 import { ObjectDialog } from './object-dialog';
 import { getEQDir, getEQFile } from '../../../lib/util/fileHandler';
+import { useProject } from '../hooks/metadata';
 
 function getRandomNumber(min, max) {
   return Math.random() * (max - min) + min;
@@ -36,10 +36,10 @@ const zb = gameController.ZoneBuilderController;
 
 export const ObjectsDrawer = ({ selectedObject }) => {
   const {
-    zone,
-    zone: { modelFiles },
+    metadata,
+    project: { modelFiles },
     updateProject,
-  } = useZoneBuilderContext();
+  } = useProject();
   const models = Object.keys(modelFiles);
   const [selectedModel, setSelectedModel] = useState('');
   const [doRandom, setDoRandom] = useState(false);
@@ -73,9 +73,9 @@ export const ObjectsDrawer = ({ selectedObject }) => {
       );
 
       selectedMesh.dataReference.scale = selectedMesh.scaling.y;
-      updateProject(zone);
+      updateProject(z => z);
     });
-  }, [selectedMesh, updateProject, zone]);
+  }, [selectedMesh, updateProject]);
 
   const deleteMesh = useCallback(() => {
     if (!selectedMesh) {
@@ -86,10 +86,10 @@ export const ObjectsDrawer = ({ selectedObject }) => {
       selectedMesh.dataContainerReference.filter(
         (v) => v !== selectedMesh.dataReference
       );
-    updateProject(zone);
+    updateProject(z => z);
     selectedMesh.dispose();
     setSelectedMesh(null);
-  }, [selectedMesh, updateProject, zone]);
+  }, [selectedMesh, updateProject]);
 
   useEffect(() => {
     const clickCallback = (mesh) => {
@@ -164,21 +164,23 @@ export const ObjectsDrawer = ({ selectedObject }) => {
             ? getRandomNumber(scaleClamp[0], scaleClamp[1])
             : mesh.scaling.y,
         };
-        const newName = `${selectedModel}_${zone.metadata.objects[selectedModel].length}`;
+        const newName = `${selectedModel}_${metadata.objects[selectedModel].length}`;
         const clone = mesh.clone(newName, zb.objectContainer);
         clone.rotation.y = newEntry.rotateY;
         clone.scaling.setAll(newEntry.scale);
         clone.isPickable = true;
-        const newZone = zone;
-        newZone.metadata.objects[selectedModel].push(newEntry);
-        clone.dataContainerReference = newZone.metadata.objects[selectedModel];
-        clone.dataReference = newEntry;
-        updateProject(newZone);
+
+        updateProject(newZone => {
+          newZone.metadata.objects[selectedModel].push(newEntry);
+          clone.dataContainerReference = newZone.metadata.objects[selectedModel];
+          clone.dataReference = newEntry;
+          return newZone;
+        });
       },
       modelName: selectedModel,
       extraHtml: '<p>Left Mouse: Rotate and [Shift] Scale</p>',
     });
-  }, [selectedModel, zone, updateProject, doRandom, rotateClamp, scaleClamp]);
+  }, [selectedModel, metadata?.objects, updateProject, doRandom, rotateClamp, scaleClamp]);
   const modelOptions = useMemo(() => {
     return models
       .map((model, idx) => {
@@ -292,13 +294,12 @@ export const ObjectsDrawer = ({ selectedObject }) => {
                 value={selectedMesh?.dataReference?.z}
                 onChange={(e) => {
                   selectedMesh.dataReference.z = selectedMesh.position.z = +Math.round(e.target.value);
-                  updateProject(zone);
+                  updateProject(z => z);
                   forceRender({});
-
                 }}
               ></TextField>
               <TextField
-                disabled = {!selectedMesh?.dataReference}
+                disabled = {!selectedMesh?.dataReference}q
                 size="small"
                 type="number"
                 inputProps={{
@@ -308,7 +309,7 @@ export const ObjectsDrawer = ({ selectedObject }) => {
                 value={selectedMesh?.dataReference?.x}
                 onChange={(e) => {
                   selectedMesh.dataReference.x = selectedMesh.position.x = +Math.round(e.target.value);
-                  updateProject(zone);
+                  updateProject(z => z);
                   forceRender({});
                 }}
               ></TextField>
@@ -324,9 +325,8 @@ export const ObjectsDrawer = ({ selectedObject }) => {
                 value={selectedMesh?.dataReference?.y}
                 onChange={(e) => {
                   selectedMesh.dataReference.y = selectedMesh.position.y = +Math.round(e.target.value);
-                  updateProject(zone);
+                  updateProject(z => z);
                   forceRender({});
-
                 }}
               ></TextField>
 

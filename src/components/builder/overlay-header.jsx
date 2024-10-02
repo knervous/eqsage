@@ -17,17 +17,16 @@ import './overlay.scss';
 import { useOverlayContext } from './provider';
 import { ExportDialog } from './export-dialog';
 import { useAlertContext } from '../../context/alerts';
+import { useProject } from './hooks/metadata';
 
 export const BuilderHeader = () => {
   const ref = useRef(null);
-  const { openDrawer, zone } = useOverlayContext();
+  const { saveProject, project } = useProject();
+  const { openDrawer, goHome } = useOverlayContext();
   const [exportOpen, setExportOpen] = useState(false);
-  const [name, setName] = useState(zone.projectName);
+  const [name, setName] = useState(project.projectName);
   const { openAlert } = useAlertContext();
 
-  const doSave = useCallback(() => {
-    console.log('do save');
-  }, []);
 
   const doExport = useCallback(() => {
     console.log('do export');
@@ -98,7 +97,7 @@ export const BuilderHeader = () => {
               size={'small'}
               sx={{ height: '40px', width: '150px', margin: '0 10px' }}
               variant="outlined"
-              onClick={doSave}
+              onClick={saveProject}
             >
               Save Project
             </Button>
@@ -109,6 +108,14 @@ export const BuilderHeader = () => {
               onClick={doExport}
             >
               Export to EQG
+            </Button>
+            <Button
+              size={'small'}
+              sx={{ height: '40px', width: '50px', margin: '0 10px' }}
+              variant="outlined"
+              onClick={goHome}
+            >
+              Home
             </Button>
           </Stack>
         </Box>

@@ -1,30 +1,35 @@
 import { GlobalStore } from '../../../state';
 
 function areBoxesEqual(box1, box2) {
-  // Check if minVertex, maxVertex, and center are the same for two boxes
   return (
+    box1.minVertex.length === box2.minVertex.length &&
+    box1.maxVertex.length === box2.maxVertex.length &&
+    box1.center.length === box2.center.length &&
     box1.minVertex.every((value, index) => value === box2.minVertex[index]) &&
-      box1.maxVertex.every((value, index) => value === box2.maxVertex[index]) &&
-      box1.center.every((value, index) => value === box2.center[index])
+    box1.maxVertex.every((value, index) => value === box2.maxVertex[index]) &&
+    box1.center.every((value, index) => value === box2.center[index])
   );
 }
+
   
 function deduplicateBoxes(boxes) {
-  return boxes.reduce((acc, currentBox) => {
-    // Check if currentBox is already in the accumulator based on areBoxesEqual comparison
-    const isDuplicate = acc.some((box) => areBoxesEqual(box, currentBox));
-    if (!isDuplicate) {
-      acc.push(currentBox);
+  const uniqueBoxes = new Map();
+  boxes.forEach((box) => {
+    const key = JSON.stringify(box.minVertex) + JSON.stringify(box.maxVertex) + JSON.stringify(box.center);
+    if (!uniqueBoxes.has(key)) {
+      uniqueBoxes.set(key, box);
     }
-    return acc;
-  }, []);
+  });
+  return Array.from(uniqueBoxes.values());
 }
+
+const insideBuffer = 20;
   
 function isBoxInsideAnother(box1, box2) {
   // Check if box1 is inside box2
   return (
-    box1.minVertex.every((value, index) => value >= box2.minVertex[index]) &&
-      box1.maxVertex.every((value, index) => value <= box2.maxVertex[index])
+    box1.minVertex.every((value, index) => value + insideBuffer >= box2.minVertex[index]) &&
+      box1.maxVertex.every((value, index) => value <= box2.maxVertex[index] + insideBuffer)
   );
 }
   
@@ -85,11 +90,17 @@ function mergeBoxes(box1, box2) {
   
 export async function optimizeBoundingBoxes(boxes) {
   let optimized = false;
-  const maxCount = 10000;
+  const maxCount = 100000;
   let count = 0;
+  GlobalStore.actions.setLoadingTitle('Optimizing Regions');
+  const perf = performance.now();
+
+  GlobalStore.actions.setLoadingText(`Running BSP region optimization algorithm with ${maxCount} iterations`);
+  await new Promise(res => setTimeout(res, 0));
+
   do {
     optimized = false;
- 
+
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
         if (areBoxesAdjacentAndEqualData(boxes[i], boxes[j])) {
@@ -101,10 +112,7 @@ export async function optimizeBoundingBoxes(boxes) {
           break; // Restart the process since boxes array has been modified
         }
       }
-      if (count % 10 === 0) {
-        await new Promise(res => setTimeout(res, 0));
-        GlobalStore.actions.setLoadingText(`Running BSP region optimization algorithm ${count} / 10000 iterations`);
-      }
+
       if (optimized || count++ > maxCount) {
         break;
       }
@@ -112,8 +120,10 @@ export async function optimizeBoundingBoxes(boxes) {
    
   } while (optimized);
   if (count < maxCount) {
-    GlobalStore.actions.setLoadingText(`Found optimal BSP region translation with ${10000 - count} iterations remaining`);
+    GlobalStore.actions.setLoadingText(`Found optimal BSP region translation with ${maxCount - count} iterations remaining`);
+    console.log(`Found optimal BSP region translation with ${maxCount - count} iterations remaining`);
   }
+  console.log(`Took ${performance.now() - perf} ms`);
   return deduplicateBoxes(boxes);
 }
   

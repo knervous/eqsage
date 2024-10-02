@@ -30,6 +30,8 @@ import {
 import { useAlertContext } from '../../context/alerts';
 import { ZoneBuilder } from '../builder/zone-builder';
 import { optimizeBoundingBoxes } from '../../lib/s3d/bsp/region-utils';
+import { gameController } from '../../viewer/controllers/GameController';
+import { GlobalStore } from '../../state';
 
 const defaultZoneMetadata = {
   version           : VERSION,
@@ -142,10 +144,7 @@ export const ZoneBuilderDialog = ({ open }) => {
       );
       const modelFiles = {};
       for (const key of Object.keys(zoneMetadata.objects)) {
-        const modelFile = await getEQFile(
-          'objects',
-          `${key}.glb`
-        );
+        const modelFile = await getEQFile('objects', `${key}.glb`);
         if (modelFile.byteLength) {
           modelFiles[key] = new Uint8Array(modelFile);
         } else {
@@ -153,7 +152,7 @@ export const ZoneBuilderDialog = ({ open }) => {
           return;
         }
       }
-   
+
       const project = {
         projectName,
         glb     : new Uint8Array(zoneFile),
@@ -193,9 +192,11 @@ export const ZoneBuilderDialog = ({ open }) => {
         !project.metadata.regions?.length &&
         project.metadata.unoptimizedRegions?.length
       ) {
+        GlobalStore.actions.setLoading(true);
         project.metadata.regions = await optimizeBoundingBoxes(
           project.metadata.unoptimizedRegions
         );
+        GlobalStore.actions.setLoading(false);
         delete project.metadata.unoptimizedRegions;
         await writeEQFile(
           'zones',
@@ -211,34 +212,10 @@ export const ZoneBuilderDialog = ({ open }) => {
     }
   }, [radioValue, selectedTemplate, openAlert, projectName]);
 
-  const saveZone = useCallback(async (project = zone, name, alert = true) => {
-    const encoded = msgpack.encode(project);
-    const zipped = pako.deflate(encoded);
-    await writeEQFile('projects', name, zipped);
-    if (alert) {
-      openAlert(`Project ${name} successfully saved.`);
-    }
-  }, [zone, openAlert]);
-
-  const updateMetadata = useCallback((metadata, name = zone.projectName, doSave = false) => {
-    const newZone = { ...zone, metadata: { ...zone.metadata, ...metadata } };
-    setZone(newZone);
-    if (doSave) {
-      saveZone(newZone, name, true);
-    }
-  }, [zone, saveZone]);
-
   console.log('ZONE', zone);
 
   return zone ? (
-    <ZoneBuilder
-      zone={zone}
-      saveProject={saveZone}
-      updateMetadata={updateMetadata}
-      updateProject={setZone}
-      projectName={projectName}
-      setProjectName={setProjectName}
-    />
+    <ZoneBuilder zone={zone} goHome={() => setZone(null)} />
   ) : (
     <Dialog
       className="ui-dialog"
@@ -264,11 +241,18 @@ export const ZoneBuilderDialog = ({ open }) => {
       >
         <Stack direction={'column'}>
           <Typography
-            sx={{ fontSize: 18, marginBottom: 2, margin: '15px auto' }}
+            sx={{ fontSize: 18, marginBottom: 2, margin: '5px auto' }}
             color="text.primary"
             gutterBottom
           >
             Welcome to ZoneBuilder!
+          </Typography>
+          <Typography
+            sx={{ fontSize: 18, marginBottom: 2, margin: '15px auto' }}
+            color="text.primary"
+            gutterBottom
+          >
+            This feature is in BETA! Please back up your files before replacing them.
           </Typography>
           <Typography
             sx={{ fontSize: 16, marginBottom: 2, maxWidth: '100%' }}

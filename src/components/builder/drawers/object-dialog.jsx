@@ -13,15 +13,15 @@ import {
 } from '@mui/material';
 
 import { useZoneModels } from '../hooks/model';
-import { useZoneBuilderContext } from '../context';
 import { useAlertContext } from '../../../context/alerts';
 
 import './object-dialog.scss';
+import { useProject } from '../hooks/metadata';
 
 export const ObjectDialog = ({ open, setOpen, models: modelNames }) => {
   const { zoneModels, doRefresh } = useZoneModels(modelNames);
   const [selectedZone, setSelectedZone] = useState(zoneModels);
-  const { zone, updateProject } = useZoneBuilderContext();
+  const { updateProject } = useProject();
   const { openAlert } = useAlertContext();
   const handleItemClick = (name) => {
     setSelectedZone(name);
@@ -101,11 +101,12 @@ export const ObjectDialog = ({ open, setOpen, models: modelNames }) => {
                       .getFile()
                       .then((f) => f.arrayBuffer());
                     const name = m.name.replace('.glb', '');
-                    const newZone = zone;
-                    newZone.modelFiles[name] = new Uint8Array(arrayBuffer);
-                    newZone.metadata.objects[name] = [];
                     openAlert(`Successfully imported ${name}!`);
-                    updateProject(newZone);
+                    updateProject(newZone => {
+                      newZone.modelFiles[name] = new Uint8Array(arrayBuffer);
+                      newZone.metadata.objects[name] = [];
+                      return newZone;
+                    });
                   }}
                 >
                   <ListItemText>{m.name}</ListItemText>
@@ -140,20 +141,22 @@ export const ObjectDialog = ({ open, setOpen, models: modelNames }) => {
                 return;
               }
               let name = file.name.replace('.glb', '');
-              const newZone = zone;
-
-              if (newZone.modelFiles[name]) {
-                name = `${name}1`;
-                openAlert(
-                  `Already have a model defined ${name}. Renaming to ${name}`,
-                  'warning'
-                );
-              }
+   
               const arrayBuffer = await file.arrayBuffer();
-              newZone.modelFiles[name] = new Uint8Array(arrayBuffer);
-              newZone.metadata.objects[name] = [];
+ 
               openAlert(`Successfully imported ${name}!`);
-              updateProject(newZone);
+              updateProject(newZone => {
+                if (newZone.modelFiles[name]) {
+                  name = `${name}1`;
+                  openAlert(
+                    `Already have a model defined ${name}. Renaming to ${name}`,
+                    'warning'
+                  );
+                }
+                newZone.modelFiles[name] = new Uint8Array(arrayBuffer);
+                newZone.metadata.objects[name] = [];
+                return newZone;
+              });
             } catch (error) {}
           }}
         >

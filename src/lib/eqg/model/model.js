@@ -241,10 +241,14 @@ export class Lit {
       throw new Error("Model does not contain EQG header", magic);
     }
     const count = reader.readUint32();
-   
-    for (let i = 0; i < count; i++) {
-      this.lights.push(reader.readManyUint8(4))
+    try {
+      for (let i = 0; i < count; i++) {
+        this.lights.push(reader.readManyUint8(4))
+      }
+    } catch(e) {
+      console.warn(`May have exceeded bounds for lights`)
     }
+
     const stop = 123;
   }
 }

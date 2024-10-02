@@ -253,14 +253,14 @@ export const ZoneChooserDialog = ({ open }) => {
         />
         <FlyoutButton
           onClick={enterAudio}
-          isNew
           Icon={MusicNoteIcon}
           title="Audio Explorer"
         />
         <FlyoutButton
-          disabled={import.meta.env.VITE_LOCAL_DEV !== 'true'}
           onClick={enterZoneBuilder}
           Icon={TerrainIcon}
+          isNew
+          newText = "New! (BETA)"
           title="Zone Builder (Under Construction)"
         />
         <FlyoutButton
