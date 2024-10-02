@@ -215,6 +215,6 @@ export const appendObjectMetadata = async (key, path) => {
       JSON.stringify(existingMetadata, null, 4)
     );
   } else if (existing !== path) {
-    console.log(`Tried writing same object ${upperKey} different path ${path}`);
+    // console.log(`Tried writing same object ${upperKey} different path ${path}`);
   }
 };

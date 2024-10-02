@@ -2,10 +2,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ZonePointApi } from 'spire-api/api/zone-point-api';
 
 import { useMainContext } from '../../main/context';
-import { useZoneBuilderContext } from '../context';
 import { useAlertContext } from '../../../context/alerts';
 import { UpgradeState } from '../constants';
 import { RegionType } from '../../../lib/s3d/bsp/bsp-tree';
+import { useProject } from '../hooks/metadata';
 
 const initialState = {};
 const RegionContext = createContext(initialState);
@@ -19,18 +19,12 @@ const ABSOLUTE_BASE = 3000;
 const ATP_BASE = REFERENCE_BASE / 10;
 const ATP_ABSOLUTE_BASE = ABSOLUTE_BASE / 10;
 
-function nearestHigherMultipleOf10(num) {
-  return Math.ceil(num / 10) * 10;
-}
-
 export const RegionProvider = ({ children }) => {
   const {
-    zone: {
-      metadata: { regions },
-      projectName,
-    },
+    project: { projectName },
+    metadata: { regions },
     updateMetadata,
-  } = useZoneBuilderContext();
+  } = useProject();
 
   const { Spire } = useMainContext();
   const { openAlert } = useAlertContext();
@@ -38,26 +32,25 @@ export const RegionProvider = ({ children }) => {
   const [zonePoints, setZonePonts] = useState([]);
   const [upgradeState, setUpgradeState] = useState(UpgradeState.OK);
   const [upgrader, setUpgrader] = useState({ fn: () => {} });
-  const [key, setKey] = useState(0);
 
   useEffect(() => {
     if (!Spire && regions.length) {
       setUpgradeState(UpgradeState.NO_SPIRE);
       return;
     }
-    if (regions.filter(r => r.region.regionTypes.some(t => t === RegionType.Zoneline) && !r.upgraded)) {
+    if (
+      regions.filter(
+        (r) =>
+          r.region.regionTypes.some((t) => t === RegionType.Zoneline) &&
+          !r.region.upgraded
+      ).length
+    ) {
       setUpgradeState(UpgradeState.NEED_UPGRADE);
     } else {
       setUpgradeState(UpgradeState.OK);
-    }
-  }, [regions, Spire]);
-
-
-  useEffect(() => {
-    if (!Spire && regions.length) {
-      setUpgradeState(UpgradeState.NO_SPIRE);
       return;
     }
+    let current = true;
     (async () => {
       const queryBuilder = new Spire.SpireQueryBuilder();
       queryBuilder.where('zone', '=', name);
@@ -66,37 +59,30 @@ export const RegionProvider = ({ children }) => {
       const { data: zonePoints } = await zonePointApi.listZonePoints(
         queryBuilder.get()
       );
+      if (!current) {
+        return;
+      }
       console.log('ZP', zonePoints);
+      console.log('Regions', regions);
       setZonePonts(zonePoints);
       const upgrades = [];
-      let needsUpgrade = false;
-      let absoluteStartingIndex = zonePoints.reduce(
-        (acc, val) => Math.max(acc, nearestHigherMultipleOf10(val.number)),
-        ABSOLUTE_BASE
-      );
-      let referenceStartingIndex = zonePoints.reduce(
-        (acc, val) => Math.max(acc, nearestHigherMultipleOf10(val.number)),
-        REFERENCE_BASE
-      );
+      let absoluteStartingIndex = ABSOLUTE_BASE;
+      let referenceStartingIndex = REFERENCE_BASE;
 
-      for (const region of regions) {
+      for (const [idx, region] of Object.entries(regions)) {
         // Absolute zone positions - we need to add these explicit zone definitions to the DB
-        if (region?.region.zoneLineInfo?.zoneIndex !== undefined) {
-          const absIndex = region?.region.zoneLineInfo?.zoneIndex;
+        const zoneLineInfo = region.region.zoneLineInfo;
+        if (zoneLineInfo?.zoneIndex !== undefined) {
+          const absIndex = zoneLineInfo?.zoneIndex;
           if (absIndex < ATP_ABSOLUTE_BASE || !region.upgraded) {
-            const newRegion = {
-              ...region,
-              region: {
-                ...region.region,
-                zoneLineInfo: {
-                  type : 0,
-                  index: absoluteStartingIndex / 10,
-                },
-              },
-              upgraded: true,
+            const newNumber = absoluteStartingIndex / 10;
+            regions[idx].region.zoneLineInfo = {
+              type : 0,
+              index: newNumber,
             };
-            needsUpgrade = true;
-            const { x, y, z, zoneIndex, rot } = region.region.zoneLineInfo;
+            regions[idx].region.upgraded = true;
+
+            const { x, y, z, zoneIndex, rot } = zoneLineInfo;
             const newZonePoint = {
               zone               : name,
               x                  : 0,
@@ -116,36 +102,32 @@ export const RegionProvider = ({ children }) => {
             upgrades.push(
               () =>
                 new Promise(async (res, rej) => {
-                  await zonePointApi
-                    .createZonePoint({ zonePoint: newZonePoint })
-                    .catch(rej);
-                  res(newRegion);
+                  if (
+                    !zonePoints.some((z) => z.number === newZonePoint.number)
+                  ) {
+                    await zonePointApi
+                      .createZonePoint({ zonePoint: newZonePoint })
+                      .catch(rej);
+                  }
+
+                  res(region);
                 })
             );
-            console.log(
-              'Absolute region',
-              region,
-              'new zone point',
-              newZonePoint
-            );
+
             absoluteStartingIndex += 10;
           }
           // Starting point
-        } else if (region?.region?.zoneLineInfo?.index !== undefined) {
+        } else if (zoneLineInfo?.index !== undefined) {
           // Zone point reference. We need to create a new entry for these
-          const numberIndex = region?.region.zoneLineInfo.index;
+          const numberIndex = zoneLineInfo.index;
           if (numberIndex < ATP_BASE || !region.upgraded) {
-            needsUpgrade = true;
-            const newRegion = {
-              ...region,
-              region: {
-                ...region.region,
-                zoneLineInfo: {
-                  type : 0,
-                  index: referenceStartingIndex / 10,
-                },
-              },
+            const newNumber = referenceStartingIndex / 10;
+            regions[idx].region.zoneLineInfo = {
+              type : 0,
+              index: newNumber,
             };
+            regions[idx].region.upgraded = true;
+
             const existingZonePoint = zonePoints.find(
               (z) => z.number === numberIndex
             );
@@ -154,21 +136,22 @@ export const RegionProvider = ({ children }) => {
               ...existingZonePoint,
               id    : undefined,
               number: referenceStartingIndex,
+              x     : 0,
+              y     : 0,
+              z     : 0,
             };
-            console.log(
-              'Existing zone point for region',
-              existingZonePoint,
-              region,
-              'new zone point',
-              newZonePoint
-            );
+
             upgrades.push(
               () =>
                 new Promise(async (res, rej) => {
-                  await zonePointApi
-                    .createZonePoint({ zonePoint: newZonePoint })
-                    .catch(rej);
-                  res(newRegion);
+                  if (
+                    !zonePoints.some((z) => z.number === newZonePoint.number)
+                  ) {
+                    await zonePointApi
+                      .createZonePoint({ zonePoint: newZonePoint })
+                      .catch(rej);
+                  }
+                  res(region);
                 })
             );
             referenceStartingIndex += 10;
@@ -177,26 +160,28 @@ export const RegionProvider = ({ children }) => {
           upgrades.push(() => region);
         }
       }
-      if (needsUpgrade) {
-        setUpgradeState(UpgradeState.NEED_UPGRADE);
-        setUpgrader({
-          fn: async () => {
-            try {
-              const regions = await Promise.all(upgrades.map((f) => f()));
-              console.log('Regions', regions);
-              await updateMetadata({ regions }, projectName, true);
-              openAlert(`Successfully upgraded ${upgrades.length} regions.`);
-            } catch (e) {
-              openAlert('Error upgrading regions', 'warning');
-            } finally {
-            }
-          },
-        });
-      } else {
-        setUpgradeState(UpgradeState.OK);
-      }
+
+      setUpgradeState(UpgradeState.NEED_UPGRADE);
+      setUpgrader({
+        fn: async () => {
+          try {
+            const regions = await Promise.all(upgrades.map((f) => f()));
+            console.log('Regions', regions);
+            updateMetadata((m) => {
+              m.regions = regions;
+              return m;
+            });
+            openAlert(`Successfully upgraded ${upgrades.length} regions.`);
+          } catch (e) {
+            openAlert('Error upgrading regions', 'warning');
+          } finally {
+          }
+        },
+      });
     })();
-  }, [regions, Spire, name, key, openAlert, updateMetadata, projectName]);
+
+    return () => current = false;
+  }, [regions, Spire, name, openAlert, updateMetadata, projectName]);
   return (
     <RegionContext.Provider
       value={{

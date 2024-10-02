@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useZoneBuilderContext } from './context';
+import { useProject } from './hooks/metadata';
 
 /**
  * @typedef OverlayContext
@@ -17,8 +17,7 @@ const OverlayContext = React.createContext({});
  */
 export const useOverlayContext = () => React.useContext(OverlayContext);
 
-export const OverlayProvider = ({ children }) => {
-  const { zone } = useZoneBuilderContext();
+export const OverlayProvider = ({ children, goHome }) => {
   const [drawerState, setDrawerState] = useState({});
   const toggleDrawer = useCallback(
     (name, value, clearAll = true) =>
@@ -37,7 +36,7 @@ export const OverlayProvider = ({ children }) => {
         drawerState,
         toggleDrawer,
         closeDrawers,
-        zone
+        goHome
       }}
     >
       {children}

@@ -28,6 +28,9 @@ const version = 2;
 const shadersUsed = [
   'Opaque_MaxC1.fx',
   'Opaque_MaxCB1.fx',
+  'Opaque_MaxCG1.fx',
+  'Opaque_MaxCSG1.fx',
+  'Opaque_MaxCBSG1.fx',
   'Opaque_MaxWaterFall.fx',
   'Opaque_MaxWater.fx',
   'Alpha_MaxCBSG1.fx',
@@ -37,6 +40,11 @@ const shadersUsed = [
 const propertiesUsed = [
   // Normal
   'e_TextureDiffuse0', // ex sp_tunn05.dds or png will swap out later
+  'e_TextureGlow0', // ex sp_tunn05.dds or png will swap out later
+  'e_TextureNormal0', // ex sp_tunn05.dds or png will swap out later
+  'e_TextureEnvironment0', // ex sp_tunn05.dds or png will swap out later
+  // Glow
+  'e_fShininess0',
   // Waterfall
   'e_fSlide1X', // ex -0.12
   'e_fSlide1Y', // ex -0.32
@@ -77,7 +85,7 @@ export const ExportDialog = ({ open, setOpen }) => {
     await writeEQFile(
       "output",
       `${name}_assets.txt`,
-      [...metadata.assets].join("\r\n"),
+      [...metadata.assets].concat(metadata.characterFiles).join("\r\n"),
       name
     );
     newFiles.push(`${name}_assets.txt`);
@@ -109,6 +117,32 @@ export const ExportDialog = ({ open, setOpen }) => {
     const eqgArchive = new PFSArchive();
     console.log("metadata", metadata);
 
+    const names = [];
+    // Animated textures
+    for(const m of gameController.currentScene.materials) {
+      if (m.metadata?.gltf?.extras?.animationDelay) {
+        const {frames, animationDelay} = m.metadata?.gltf?.extras;
+        const text = [frames.length, animationDelay, ...frames.map(p => `${p}.png`)]
+        eqgArchive.setFile(`${frames[0]}.txt`, text.join('\r\n'));
+      }
+    }
+    for (const t of gameController.ZoneBuilderController.animationTextures) {
+      const textureName = `${t.name}.png`.toLowerCase();
+      const rawBuffer = t._readPixelsSync();
+      const { width, height } = t.getSize();
+      const buffer = await Tools.DumpDataAsync(
+        width,
+        height,
+        rawBuffer,
+        "image/png",
+        undefined,
+        true,
+        true
+      );
+      names.push(textureName);
+      eqgArchive.setFile(textureName, new Uint8Array(buffer));
+    }
+
     const writeEqgMod = async (
       terrain,
       meshes,
@@ -116,11 +150,37 @@ export const ExportDialog = ({ open, setOpen }) => {
       litNames = [],
       bones = []
     ) => {
-      const textureNames = [];
+      const textureNames = [...names];
+      if (terrain) {
+        const water_e = await fetch("/static/water_e.dds").then((r) =>
+          r.arrayBuffer()
+        );
+        textureNames.push("water_e.dds");
+        eqgArchive.setFile("water_e.dds", new Uint8Array(water_e));
+        const water_n = await fetch("/static/water_n.dds").then((r) =>
+          r.arrayBuffer()
+        );
+
+        textureNames.push("water_n.dds");
+        eqgArchive.setFile("water_n.dds", new Uint8Array(water_n));
+
+        const test = await fetch("/static/ra_watertest_c_01.dds").then((r) =>
+          r.arrayBuffer()
+        );
+        textureNames.push("watertest.dds");
+        eqgArchive.setFile("watertest.dds", new Uint8Array(test));
+      }
+
+
+
       for (const mesh of meshes) {
         const material = mesh.material ?? mesh.getMaterial?.();
         if (material instanceof PBRMaterial && material.albedoTexture) {
           const textureName = `${material.name}.png`.toLowerCase();
+          if (eqgArchive.fileExists(textureName)) {
+            textureNames.push(textureName);
+            continue;
+          }
           const albedoTexture = material.albedoTexture;
           const rawBuffer = albedoTexture._readPixelsSync();
           const { width, height } = albedoTexture.getSize();
@@ -174,6 +234,8 @@ export const ExportDialog = ({ open, setOpen }) => {
       const materials = [];
       const vertexColors = [];
       let vertexOffset = 0;
+      let matCount = 0;
+
       for (const [idx, mesh] of Object.entries(meshes)) {
         const boundary = mesh.isBoundary;
         const realMatIdx = matNames.findIndex(
@@ -191,8 +253,8 @@ export const ExportDialog = ({ open, setOpen }) => {
         const isSubmesh = mesh instanceof SubMesh;
         const parentMesh = isSubmesh ? mesh.getMesh() : mesh;
         const needsAlphaTesting = parentMesh.material?._subMaterials?.length
-          ? parentMesh.material._subMaterials.some((m) => m.needAlphaTesting())
-          : parentMesh.material.needAlphaTesting();
+          ? parentMesh.material._subMaterials.some((m) => m.needAlphaTesting() || m.albedoTexture?.hasAlpha)
+          : parentMesh.material.needAlphaTesting() || parentMesh.material?.albedoTexture?.hasAlpha;
         const positions = isSubmesh
           ? mesh
               .getMesh()
@@ -286,29 +348,39 @@ export const ExportDialog = ({ open, setOpen }) => {
         const triCount = meshIndices.length / 3;
         const shaders = mesh.metadata?.gltf?.extras?.shaders ?? [
           {
-            name: needsAlphaTesting ? "Alpha_MaxCBSG1.fx" : "Opaque_MaxC1.fx",
-            properties: [
-              {
-                name: "e_TextureDiffuse0",
+            name: !needsAlphaTesting ? "Opaque_MaxC1.fx" : "Alpha_MaxC1.fx",
+            properties: {
+              e_TextureDiffuse0: {
                 type: 2,
                 value: textureNames[textureIdx],
               },
-            ],
+            },
           },
         ];
         for (const [shaderIdx, shader] of Object.entries(shaders)) {
+          matCount++;
           materials.push(
             +idx + +shaderIdx, // Index
             getStringIdx(materialNames[realMatIdx]), // Material Name
-            getStringIdx(
-              shader.name
-            ), // Shader Name
-            shader.properties.length,
+            getStringIdx(shader.name), // Shader Name
+            Object.keys(shader.properties).length,
             // One Property for now until we support more shaders
-            ...shader.properties.flatMap(p => [
-              getStringIdx(p.name),
+            ...Object.entries(shader.properties).flatMap(([name, p]) => [
+              getStringIdx(name),
               p.type,
-              p.type === 2 ? getStringIdx(p.value) : p.value,
+              {
+                TYPE: p.type,
+                VALUE:
+                  p.type === 2
+                    ? name === "e_TextureDiffuse0" || name === 'e_TextureGlow0'
+                      ? shader.name.includes("Water.fx")
+                        ? getStringIdx("watertest.dds")
+                        : getStringIdx(textureNames[textureIdx])
+                      : name === "e_TextureNormal0"
+                      ? getStringIdx("water_n.dds")
+                      : getStringIdx("water_e.dds")
+                    : p.value,
+              },
             ])
           );
         }
@@ -384,7 +456,7 @@ export const ExportDialog = ({ open, setOpen }) => {
       // Header
       writer.writeUint32(version);
       writer.writeUint32(listLength);
-      writer.writeUint32(materials.length / 7); // 7 props in here that will be different when mats have dynamic props
+      writer.writeUint32(matCount); // 7 props in here that will be different when mats have dynamic props
       writer.writeUint32(vertices.length / 8); // 8 props in here
       writer.writeUint32(indices.length / 5); // 5 props in here
 
@@ -399,7 +471,15 @@ export const ExportDialog = ({ open, setOpen }) => {
 
       // Materials
       materials.forEach((m) => {
-        writer.writeUint32(m);
+        if (m.TYPE !== undefined) {
+          if (m.TYPE === 0) {
+            writer.writeFloat32(m.VALUE);
+          } else {
+            writer.writeUint32(m.VALUE);
+          }
+        } else {
+          writer.writeUint32(m);
+        }
       });
 
       // Vertices

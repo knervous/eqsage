@@ -1,6 +1,7 @@
 import '@babylonjs/core/Materials/Textures/Loaders/envTextureLoader';
 import '@babylonjs/core/Helpers/sceneHelpers';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
+import { Engine } from '@babylonjs/core/Engines/engine';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Material } from '@babylonjs/core/Materials/material';
@@ -21,6 +22,8 @@ import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
 import { GameControllerChild } from './GameControllerChild';
 import { GlobalStore } from '../../state';
 import '@babylonjs/core/Rendering/edgesRenderer';
+import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
+import { GLTF2Export } from '@babylonjs/serializers';
 
 class ZoneBuilderController extends GameControllerChild {
   /**
@@ -44,6 +47,7 @@ class ZoneBuilderController extends GameControllerChild {
   /** @type {RecastJSPlugin} */
   navigationPlugin = null;
   pickingRaycast = false;
+  animationTextures = [];
 
   loadCallbacks = [];
   clickCallbacks = [];
@@ -128,35 +132,8 @@ class ZoneBuilderController extends GameControllerChild {
           mesh?.metadata?.emissiveColor.r,
           mesh?.metadata?.emissiveColor.g,
           mesh?.metadata?.emissiveColor.b,
-          mesh?.metadata?.emissiveColor.a ?? 0.5,
+          mesh?.metadata?.emissiveColor.a ?? 0.5
         );
-        if (mesh?.metadata?.occludedColor) {
-          if (mesh.isOccluded) {
-            result.set(
-              mesh?.metadata?.occludedColor.r,
-              mesh?.metadata?.occludedColor.g,
-              mesh?.metadata?.occludedColor.b,
-              0.5
-            );
-          }
-        }
-        if (mesh?.metadata?.onlyOccluded) {
-          if (mesh.isOccluded) {
-            result.set(
-              mesh?.metadata?.emissiveColor.r,
-              mesh?.metadata?.emissiveColor.g,
-              mesh?.metadata?.emissiveColor.b,
-              0.5
-            );
-          } else {
-            result.set(
-              mesh?.metadata?.emissiveColor.r,
-              mesh?.metadata?.emissiveColor.g,
-              mesh?.metadata?.emissiveColor.b,
-              0.0
-            );
-          }
-        }
       }
     };
     this.regionMaterial = new StandardMaterial('region-material', this.scene);
@@ -164,6 +141,7 @@ class ZoneBuilderController extends GameControllerChild {
     this.regionMaterial.alpha = 0.3;
     this.regionMaterial.diffuseColor = new Color3(0, 127, 65); // Red color
     this.regionMaterial.emissiveColor = new Color4(0, 127, 65, 0.3); // Red color
+    this.regionMaterial.depthFunction = Engine.ALWAYS;
 
     const hdrTexture = CubeTexture.CreateFromPrefilteredData(
       '/static/environment.env',
@@ -211,6 +189,50 @@ class ZoneBuilderController extends GameControllerChild {
       spawnMesh.position.z = spawn.x;
       spawnMesh.metadata = { spawn };
     }
+  }
+
+  exportZone(terrain = true, boundary = false) {
+    GlobalStore.actions.setLoading(true);
+    GlobalStore.actions.setLoadingTitle(
+      `Exporting zone ${this.project.projectName}`
+    );
+    GlobalStore.actions.setLoadingText('LOADING, PLEASE WAIT...');
+    const zoneContainer = this.zoneContainer;
+    const boundaryContainer = this.boundaryContainer;
+    GLTF2Export.GLBAsync(this.scene, this.project.projectName, {
+      shouldExportNode(node) {
+        if (terrain) {
+          if (boundary) {
+            return (
+              node.parent === zoneContainer ||
+              node.parent === boundaryContainer
+            );
+          }
+          return node.parent === zoneContainer;
+        } else if (boundary) {
+          return node.parent === boundaryContainer;
+        }
+      },
+      shouldExportAnimation() {
+        return false;
+      },
+    })
+      .then(async (glb) => {
+        GlobalStore.actions.setLoadingTitle(
+          `Optimizing ${this.project.projectName}`
+        );
+        GlobalStore.actions.setLoadingText('Applying GLB optimizations');
+        const blob = Object.values(glb.glTFFiles)[0];
+
+        const assetUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = assetUrl;
+        link.download = `${this.project.projectName}.glb`;
+        link.click();
+      })
+      .finally(() => {
+        GlobalStore.actions.setLoading(false);
+      });
   }
 
   /**
@@ -559,6 +581,40 @@ class ZoneBuilderController extends GameControllerChild {
   }
   setSpawnLOD() {}
 
+  async importZone(buffer) {
+    this.zoneContainer.getChildMeshes().forEach(m => m.dispose());
+    const blob = new Blob([buffer], { type: 'model/gltf-binary' });
+    const url = URL.createObjectURL(blob);
+
+    const zone = await SceneLoader.ImportMeshAsync(
+      null,
+      '',
+      url,
+      this.scene,
+      undefined,
+      '.glb'
+    );
+
+    zone.meshes.forEach((m) => {
+      if (m.material?.metadata?.gltf?.extras?.boundary) {
+        m.parent = this.boundaryContainer;
+        m.isPickable = false;
+      } else {
+        m.isPickable = true;
+        m.parent = this.zoneContainer;
+      }
+      if (m.name.endsWith('-passthrough')) {
+        m.metadata = {
+          gltf: {
+            extras: {
+              passThrough: true,
+            },
+          },
+        };
+      }
+    });
+  }
+
   async loadModel(project) {
     this.project = project;
     this.zoneMetadata = project.metadata;
@@ -632,8 +688,8 @@ class ZoneBuilderController extends GameControllerChild {
           gltf: {
             extras: {
               passThrough: true,
-            }
-          }
+            },
+          },
         };
       }
     });
@@ -660,7 +716,7 @@ class ZoneBuilderController extends GameControllerChild {
       this.instantiateSounds(metadata.sounds);
       this.instantiateLights(metadata.lights);
     }
-
+    await this.addTextureAnimations();
     this.loadCallbacks.forEach((l) => l());
     this.zoneLoaded = true;
 
@@ -712,18 +768,64 @@ class ZoneBuilderController extends GameControllerChild {
       box.occlusionType = AbstractMesh.OCCLUSION_TYPE_OPTIMISTIC;
       box.isPickable = true;
       box.metadata = {
+        region,
         emissiveColor: new Color3(0, 0.5, 1),
       };
     }
   }
 
+  filterRegions(regions) {
+    console.log('Filter regions', regions);
+    console.log('Enable', this.regionContainer.isEnabled());
+
+    if (!this.regionContainer.isEnabled()) {
+      this.regionContainer.setEnabled(true);
+    }
+    this.regionContainer.getChildMeshes().forEach((m) => {
+      switch (m.metadata.region.region.regionTypes?.[0]) {
+        default:
+        case RegionType.Normal:
+          break;
+        case RegionType.Lava:
+          m.metadata.emissiveColor = new Color4(1, 0.8, 0.0, 0.3);
+          break;
+        case RegionType.Pvp:
+          m.metadata.emissiveColor = new Color4(1, 0.2, 0.2, 0.2);
+          break;
+        case RegionType.Slippery:
+        case RegionType.WaterBlockLOS:
+        case RegionType.FreezingWater:
+        case RegionType.Water:
+          if (
+            m.metadata.region.region.regionTypes.includes(RegionType.Zoneline)
+          ) {
+            m.metadata.emissiveColor = new Color4(0.2, 0.8, 0.2, 0.2);
+          } else {
+            m.metadata.emissiveColor = new Color4(0.2, 0.7, 0.7, 0.2);
+          }
+          break;
+        case RegionType.Zoneline:
+          m.metadata.emissiveColor = new Color4(0.2, 0.8, 0.2, 0.2);
+          break;
+      }
+      if (regions.includes(m.metadata.region)) {
+        m.setEnabled(true);
+      } else {
+        m.setEnabled(false);
+      }
+    });
+  }
+
   /**
-   * 
-   * @param {Mesh} mesh 
+   *
+   * @param {Mesh} mesh
    */
-  overlayWireframe(mesh) {
+  overlayWireframe(mesh, withGlow = true, withEdges = false) {
     if (this.wireframeMesh) {
       this.wireframeMesh.dispose();
+    }
+    if (!mesh) {
+      return;
     }
 
     this.wireframeMesh = mesh.clone('wireframeMesh');
@@ -732,18 +834,29 @@ class ZoneBuilderController extends GameControllerChild {
       this.scene
     );
     const threshold = 0.5;
-    this.glowLayer.addIncludedOnlyMesh(mesh);
-    mesh.metadata = {
-      ...mesh.metadata,
-      emissiveColor: new Color4(0, 0.5, 1, 0.05), 
+    if (withGlow) {
+      this.glowLayer.addIncludedOnlyMesh(mesh);
+      mesh.metadata = {
+        ...mesh.metadata,
+        emissiveColor: new Color4(0, 0.5, 1, 0.05),
+      };
     }
+
     this.editingMesh = mesh;
-    wireframeMaterial.emissiveColor = new Color3(threshold, threshold, threshold);
-    wireframeMaterial.diffuseColor = new Color3(threshold, threshold, threshold);
+    wireframeMaterial.emissiveColor = new Color3(
+      threshold,
+      threshold,
+      threshold
+    );
+    wireframeMaterial.diffuseColor = new Color3(
+      threshold,
+      threshold,
+      threshold
+    );
     wireframeMaterial.wireframe = true;
+    wireframeMaterial.depthFunction = Engine.ALWAYS;
     this.wireframeMesh.material = wireframeMaterial;
     this.wireframeMesh.position = mesh.position.clone();
-    this.wireframeMesh.position.y += 0.5;
     this.wireframeMesh.parent = null;
     this.wireframeMesh.isPickable = false;
     let direction = 1;
@@ -764,16 +877,27 @@ class ZoneBuilderController extends GameControllerChild {
         intensity
       );
     }, 75);
+    if (withEdges) {
+      this.wireframeMesh.enableEdgesRendering();
+      const boundingInfo = this.wireframeMesh.getBoundingInfo();
+      const min = boundingInfo.boundingBox.minimumWorld;
+      const max = boundingInfo.boundingBox.maximumWorld;
+      const width = Math.abs(max.x - min.x);
+      const height = Math.abs(max.y - min.y);
+      const depth = Math.abs(max.z - min.z);
+      const avg = (width + height + depth) / 3;
+      this.wireframeMesh.edgesWidth = Math.min(100, avg * 2);
+      this.wireframeMesh.edgesColor = new Color4(1, 0, 0, 0.85);
+    }
   }
 
-  disposeOverlayWireframe() {
-    if (this.editingMesh) {
+  disposeOverlayWireframe(withGlow = true) {
+    if (this.editingMesh && withGlow) {
       this.editingMesh.metadata = {
         ...this.editingMesh.metadata,
-        emissiveColor: undefined
-      }
+        emissiveColor: undefined,
+      };
       this.glowLayer.removeIncludedOnlyMesh(this.editingMesh);
-
     }
     this.wireframeMesh?.dispose();
     clearInterval(this.wireframeMeshInterval);
@@ -805,17 +929,28 @@ class ZoneBuilderController extends GameControllerChild {
     if (!this.scene) {
       return;
     }
-    for (const node of [
-      this.lightContainer,
-      this.soundContainer,
-      this.regionContainer,
-    ]) {
-      if (node.name !== name) {
-        node.setEnabled(false);
-      } else {
-        node.setEnabled(true);
-      }
+    this.wireframeMesh?.dispose();
+    if (name && name !== 'zone' && name !== 'objects') {
+      this.zoneContainer
+        .getChildMeshes()
+        .forEach((m) => (m.isPickable = false));
+    } else {
+      this.zoneContainer.getChildMeshes().forEach((m) => (m.isPickable = true));
     }
+    setTimeout(() => {
+      for (const node of [
+        this.lightContainer,
+        this.soundContainer,
+        this.regionContainer,
+      ]) {
+        if (node.name !== name) {
+          console.log('Disabling', node.name);
+          node.setEnabled(false);
+        } else {
+          node.setEnabled(true);
+        }
+      }
+    }, 0);
   }
 
   renderLoop() {
@@ -897,6 +1032,7 @@ class ZoneBuilderController extends GameControllerChild {
       this.glowLayer.addIncludedOnlyMesh(box);
       box.material = this.regionMaterial;
       box.parent = this.soundContainer;
+      box.renderingGroupId = 50;
       box.forceRenderingWhenOccluded = true;
       box.occlusionType = AbstractMesh.OCCLUSION_TYPE_OPTIMISTIC;
       box.isPickable = true;
@@ -985,6 +1121,81 @@ class ZoneBuilderController extends GameControllerChild {
       instanceContainer.rootNodes[0].dispose();
     }
     return meshes;
+  }
+
+  async addTextureAnimations() {
+    const addTextureAnimation = (material, textureAnimation) => {
+      const [baseTexture] = material.getActiveTextures();
+      return textureAnimation.frames.map((f) => {
+        return new Texture(
+          f,
+          this.scene,
+          baseTexture.noMipMap,
+          baseTexture.invertY,
+          baseTexture.samplingMode
+        );
+      });
+    };
+
+    let animationTimerMap = {};
+    const animationTexturesCache = {};
+    this.animationTextures = [];
+    for (const material of this.scene.materials) {
+      if (!material.metadata?.gltf?.extras?.animationDelay) {
+        continue;
+      }
+
+      const textureAnimation = material.metadata?.gltf?.extras;
+      if (textureAnimation) {
+        let allTextures;
+        if (animationTexturesCache[material.id]) {
+          allTextures = animationTexturesCache[material.id];
+        } else {
+          allTextures = await addTextureAnimation(material, textureAnimation);
+          animationTexturesCache[material.id] = allTextures;
+        }
+        this.animationTextures.push(...allTextures);
+        animationTimerMap = {
+          ...animationTimerMap,
+          [textureAnimation.animationDelay]: {
+            ...(animationTimerMap[textureAnimation.animationDelay] ?? {}),
+            materials: [
+              ...(animationTimerMap[textureAnimation.animationDelay]
+                ?.materials ?? []),
+              {
+                frames      : textureAnimation.frames,
+                currentFrame: 1,
+                allTextures,
+                material,
+              },
+            ],
+          },
+        };
+      }
+    }
+
+    for (const [time, value] of Object.entries(animationTimerMap)) {
+      const interval = setInterval(() => {
+        for (const material of value.materials) {
+          material.currentFrame =
+            material.currentFrame + 1 > material.frames.length
+              ? 1
+              : material.currentFrame + 1;
+          for (const texture of material.material.getActiveTextures()) {
+            if (material.allTextures[material.currentFrame - 1]) {
+              texture._texture =
+                material.allTextures[material.currentFrame - 1]._texture;
+            }
+          }
+        }
+      }, +time * 2);
+
+      for (const material of value.materials) {
+        material.material.onDisposeObservable.add(() => {
+          clearInterval(interval);
+        });
+      }
+    }
   }
 }
 

@@ -15,11 +15,11 @@ import { OverlayDrawers } from './drawers';
 import { useSettingsHook } from './hooks';
 import { Compass } from '../common/compass/component';
 import { BuilderHeader } from './overlay-header';
-
-import './overlay.scss';
 import { useRegionContext } from './providers/region-provider';
 import { UpgradeState } from './constants';
 import { gameController } from '../../viewer/controllers/GameController';
+
+import './overlay.scss';
 
 const DrawerButton = ({
   text,

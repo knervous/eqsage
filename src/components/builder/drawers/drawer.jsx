@@ -35,12 +35,7 @@ export const Drawer = () => {
       case 'zone':
         return <ZoneDrawer />;
       case 'objects':
-        return (
-          <ObjectsDrawer
-
-            selectedObject={selectedObject}
-          />
-        );
+        return <ObjectsDrawer selectedObject={selectedObject} />;
       default:
         return null;
     }
