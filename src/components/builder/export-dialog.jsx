@@ -67,9 +67,11 @@ const cStringLengthReduce = (arr) =>
 export const ExportDialog = ({ open, setOpen }) => {
   const [files, setFiles] = useState([]);
   const { openAlert } = useAlertContext();
+  const [exporting, setExporting] = useState(false);
 
   /* eslint-disable */
   const doExport = useCallback(async () => {
+    setExporting(true);
     const objectPaths = await getEQFile("data", "objectPaths.json", "json");
     console.log("object paths", objectPaths);
     const name = gameController.ZoneBuilderController.name.replace(".eqs", "");
@@ -78,6 +80,7 @@ export const ExportDialog = ({ open, setOpen }) => {
 
     const metadata = gameController.ZoneBuilderController.metadata;
     if (!metadata) {
+      setExporting(false);
       return;
     }
 
@@ -745,13 +748,19 @@ export const ExportDialog = ({ open, setOpen }) => {
     await writeEQFile("output", `${name}.eqg`, eqgArchive.saveToFile(), name);
     // await writeEQFile("root", `${name}.eqg`, eqgArchive.saveToFile());
     openAlert("Saved files");
+    setExporting(false);
+
   }, []);
   useEffect(() => {
     if (!open) {
       setFiles([]);
       return;
     }
-    doExport();
+
+    if (import.meta.env.VITE_LOCAL_DEV === 'true' ) {
+     doExport();
+
+    }
   }, [open, openAlert, doExport]);
   return (
     <CommonDialog
@@ -780,7 +789,7 @@ export const ExportDialog = ({ open, setOpen }) => {
             /output/
             {gameController.ZoneBuilderController.name.replace(".eqs", "")}
           </Typography>
-          <Button onClick={doExport}>Export</Button>
+          <Button disabled={exporting} onClick={doExport}>{exporting? 'Export in progress...' : 'Export Zone'}</Button>
         </>
       )}
     </CommonDialog>
