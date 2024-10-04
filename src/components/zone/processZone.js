@@ -3,7 +3,7 @@ import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { gameController } from '../../viewer/controllers/GameController';
 
-export const GLOBAL_VERSION = 1.4;
+export const GLOBAL_VERSION = 1.8;
 
 async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
   if (entry.kind === 'file') {
@@ -47,7 +47,7 @@ export async function processGlobal(settings, rootFileSystemHandle, standalone =
     console.log(`Loading handles: ${handles.map(h => h.name)}`);
 
     const obj = new EQFileHandle(
-      'global',
+      'global_chr',
       handles,
       rootFileSystemHandle,
       settings
@@ -113,7 +113,7 @@ export async function processZone(zoneName, settings, rootFileSystemHandle, _onl
   GlobalStore.actions.setLoading(true);
   const v = await getEQFile('data', 'global.json', 'json');
   if (v?.version !== GLOBAL_VERSION) {
-    await processGlobal(gameController.settings, gameController.rootFileSystemHandle);
+    await processGlobal(gameController.settings, gameController.rootFileSystemHandle, true);
   }
   console.log('Zone name', zoneName);
   GlobalStore.actions.setLoadingTitle(`Processing Zone ${zoneName}`);
