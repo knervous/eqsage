@@ -985,7 +985,7 @@ class SpawnController extends GameControllerChild {
         spawn.id !== 10847 // connie link
       ) {
         if (import.meta.env.VITE_LOCAL_DEV === 'true') {
-          continue;
+        //  continue;
         }
       }
       const firstSpawn = spawn.spawnentries?.[0]?.npc_type;
