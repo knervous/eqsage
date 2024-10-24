@@ -133,10 +133,13 @@ export default defineConfig({
             for (const moduleId of idsToHandle) {
               const { isEntry, dynamicImporters, importers } =
                 getModuleInfo(moduleId);
-              if (isEntry || dynamicImporters.length > 0)
+              if (isEntry || dynamicImporters.length > 0) {
                 dependentEntryPoints.push(moduleId);
+              }
         
-              for (const importerId of importers) idsToHandle.add(importerId);
+              for (const importerId of importers) {
+                idsToHandle.add(importerId);
+              }
             }
         
             if (dependentEntryPoints.length === 1) {
