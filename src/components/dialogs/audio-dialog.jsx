@@ -16,6 +16,8 @@ import {
   MenuItem,
   Select,
   InputLabel,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
@@ -29,6 +31,7 @@ import { audioController } from '../sound/AudioController';
 import { SOUNDFONTS } from '../sound/midi/config';
 
 import './audio.dialog.scss';
+import { useSettingsContext } from '../../context/settings';
 
 function formatMsToMinutesSeconds(ms) {
   const minutes = Math.floor(ms / 60000); // Convert ms to full minutes
@@ -38,7 +41,12 @@ function formatMsToMinutesSeconds(ms) {
 
 export const AudioDialog = ({ open }) => {
   const { setZoneDialogOpen, zones, setAudioDialogOpen } = useMainContext();
-
+  const {
+    setOption,
+    soundAutoPlay = false,
+    soundRepeat = false,
+    soundShuffle = false,
+  } = useSettingsContext();
   const [loading, setLoading] = useState(false);
   const [metadata, setMetadata] = useState(null);
   const [sound, setSound] = useState('');
@@ -106,7 +114,7 @@ export const AudioDialog = ({ open }) => {
   }, [zones]);
 
   useEffect(() => {
-    const stateHandler = (_state) => {};
+    const stateHandler = (_state) => { };
     const playerHandler = (state) => {
       if (state.durationMs) {
         setAudioState((a) => ({ ...a, durationMs: state.durationMs }));
@@ -136,6 +144,39 @@ export const AudioDialog = ({ open }) => {
     return () => clearInterval(interval);
   }, [audioState.duration, audioState.state]);
 
+  useEffect(() => {
+    // Song just ended
+    const sound = prevSound.current;
+    if (sound && playMs > audioState.durationMs && audioState.state === 'play') {
+      if (soundRepeat) {
+        audioController.play(sound);
+        setPlayMs(0);
+        return;
+      }
+      if (soundAutoPlay) {
+        const getNext = (arr) => {
+          if (soundShuffle) {
+            return Math.floor(Math.random() * arr.length);
+          }
+          const currentIndex = arr.indexOf(sound);
+          if (currentIndex === -1 || currentIndex + 1 >= arr.length) {
+            return 0;
+          }
+          return currentIndex + 1;
+        };
+        if (sound.endsWith('.mid')) {
+          
+          setSound(metadata.mid[getNext(metadata.mid)] ?? '');
+        }
+        if (sound.endsWith('.mp3')) {
+          setSound(metadata.mp3[getNext(metadata.mp3)] ?? '');
+        }
+        if (sound.endsWith('.wav')) {
+          setSound(metadata.wav[getNext(metadata.wav)] ?? '');
+        }
+      }
+    }
+  }, [audioState.durationMs, audioState.state, playMs, soundAutoPlay, soundRepeat, soundShuffle, metadata]);
   return (
     <Dialog
       className="ui-dialog audio-dialog"
@@ -214,6 +255,43 @@ export const AudioDialog = ({ open }) => {
                       audioState.durationMs
                     )})` || 'No Song Selected'}
                   </Typography>
+                  <Stack direction={'row'} justifyContent={'space-between'}>
+
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={soundAutoPlay}
+                          onChange={({ target: { checked } }) =>
+                            setOption('soundAutoPlay', checked)
+                          }
+                        />
+                      }
+                      label="Autoplay"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={soundRepeat}
+                          onChange={({ target: { checked } }) =>
+                            setOption('soundRepeat', checked)
+                          }
+                        />
+                      }
+                      label="Repeat"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={soundShuffle}
+                          onChange={({ target: { checked } }) =>
+                            setOption('soundShuffle', checked)
+                          }
+                        />
+                      }
+                      label="Shuffle"
+                    />
+                  </Stack>
+
                   <Slider
                     value={playMs}
                     min={0}

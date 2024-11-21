@@ -15,7 +15,10 @@ const defaultOptions = {
   spawnLOD      : 500,
   remoteUrl     : '',
   showCompass   : true,
-  preferEqg     : false
+  preferEqg     : false,
+  soundAutoPlay : false,
+  soundRepeat   : false,
+  soundShuffle  : false,
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(
