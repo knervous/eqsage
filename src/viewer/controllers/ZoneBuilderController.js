@@ -8,6 +8,8 @@ import { Material } from '@babylonjs/core/Materials/material';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { Light } from '@babylonjs/core/Lights/light';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
+import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -24,6 +26,7 @@ import { GlobalStore } from '../../state';
 import '@babylonjs/core/Rendering/edgesRenderer';
 import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
 import { GLTF2Export } from '@babylonjs/serializers';
+import { instantiate3dMover, teardown3dMover } from '../util/babylonUtil';
 
 class ZoneBuilderController extends GameControllerChild {
   /**
@@ -354,6 +357,17 @@ class ZoneBuilderController extends GameControllerChild {
       }
     }
     window.addEventListener('keydown', keyHandler);
+  }
+
+  make3DMover(mesh, moveCallback) {
+    if (!mesh) {
+      return;
+    }
+    instantiate3dMover(this.currentScene, mesh, moveCallback);
+  }
+
+  destroy3DMover() {
+    teardown3dMover(this.currentScene);
   }
 
   async pickRaycastForLoc({
@@ -746,14 +760,14 @@ class ZoneBuilderController extends GameControllerChild {
       const box = MeshBuilder.CreateBox(
         'box',
         {
-          width : width,
-          height: height,
-          depth : depth,
+          width    : width,
+          height   : height,
+          depth    : depth,
+          updatable: true,
         },
         this.scene
       );
 
-      box.metadata = region.region;
       box.name = `Region-${idx++}`;
       // Set the position of the box to the center
       box.position = new Vector3(
@@ -775,14 +789,11 @@ class ZoneBuilderController extends GameControllerChild {
   }
 
   filterRegions(regions) {
-    console.log('Filter regions', regions);
-    console.log('Enable', this.regionContainer.isEnabled());
-
     if (!this.regionContainer.isEnabled()) {
       this.regionContainer.setEnabled(true);
     }
     this.regionContainer.getChildMeshes().forEach((m) => {
-      switch (m.metadata.region.region.regionTypes?.[0]) {
+      switch (m.metadata.region?.regionType) {
         default:
         case RegionType.Normal:
           break;
@@ -796,16 +807,11 @@ class ZoneBuilderController extends GameControllerChild {
         case RegionType.WaterBlockLOS:
         case RegionType.FreezingWater:
         case RegionType.Water:
-          if (
-            m.metadata.region.region.regionTypes.includes(RegionType.Zoneline)
-          ) {
-            m.metadata.emissiveColor = new Color4(0.2, 0.8, 0.2, 0.2);
-          } else {
-            m.metadata.emissiveColor = new Color4(0.2, 0.7, 0.7, 0.2);
-          }
+
+          m.metadata.emissiveColor = new Color4(0.2, 0.2, 1.0, 0.2);
           break;
         case RegionType.Zoneline:
-          m.metadata.emissiveColor = new Color4(0.2, 0.8, 0.2, 0.2);
+          m.metadata.emissiveColor = new Color4(0.2, 1.0, 0.2, 0.2);
           break;
       }
       if (regions.includes(m.metadata.region)) {
@@ -814,6 +820,27 @@ class ZoneBuilderController extends GameControllerChild {
         m.setEnabled(false);
       }
     });
+  }
+
+  updateRegionBounds(mesh, width, height, depth) {
+    // Create a temporary new box with updated dimensions
+    const tempBox = MeshBuilder.CreateBox(
+      'tempBox',
+      { width, height, depth, updatable: true },
+      this.currentScene
+    );
+
+    // Extract vertex data from the temporary box
+    const newVertexData = VertexData.ExtractFromMesh(tempBox);
+
+    // Apply the new vertex data to the original box
+    newVertexData.applyToMesh(mesh);
+
+    // Refresh bounding info on the original box
+    mesh.refreshBoundingInfo();
+
+    // Dispose of the temporary box
+    tempBox.dispose();
   }
 
   /**
@@ -856,8 +883,8 @@ class ZoneBuilderController extends GameControllerChild {
     wireframeMaterial.wireframe = true;
     wireframeMaterial.depthFunction = Engine.ALWAYS;
     this.wireframeMesh.material = wireframeMaterial;
-    this.wireframeMesh.position = mesh.position.clone();
-    this.wireframeMesh.parent = null;
+    this.wireframeMesh.position = new Vector3(0, 0, 0);
+    this.wireframeMesh.parent = mesh;
     this.wireframeMesh.isPickable = false;
     let direction = 1;
     let intensity = 0;

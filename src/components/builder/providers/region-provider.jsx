@@ -41,8 +41,8 @@ export const RegionProvider = ({ children }) => {
     if (
       regions.filter(
         (r) =>
-          r.region.regionTypes.some((t) => t === RegionType.Zoneline) &&
-          !r.region.upgraded
+          r.regionType === RegionType.Zoneline &&
+          !r.upgraded
       ).length
     ) {
       setUpgradeState(UpgradeState.NEED_UPGRADE);
@@ -71,16 +71,16 @@ export const RegionProvider = ({ children }) => {
 
       for (const [idx, region] of Object.entries(regions)) {
         // Absolute zone positions - we need to add these explicit zone definitions to the DB
-        const zoneLineInfo = region.region.zoneLineInfo;
+        const zoneLineInfo = region.zoneLineInfo;
         if (zoneLineInfo?.zoneIndex !== undefined) {
           const absIndex = zoneLineInfo?.zoneIndex;
           if (absIndex < ATP_ABSOLUTE_BASE || !region.upgraded) {
             const newNumber = absoluteStartingIndex / 10;
-            regions[idx].region.zoneLineInfo = {
+            regions[idx].zoneLineInfo = {
               type : 0,
               index: newNumber,
             };
-            regions[idx].region.upgraded = true;
+            regions[idx].upgraded = true;
 
             const { x, y, z, zoneIndex, rot } = zoneLineInfo;
             const newZonePoint = {
@@ -122,11 +122,11 @@ export const RegionProvider = ({ children }) => {
           const numberIndex = zoneLineInfo.index;
           if (numberIndex < ATP_BASE || !region.upgraded) {
             const newNumber = referenceStartingIndex / 10;
-            regions[idx].region.zoneLineInfo = {
+            regions[idx].zoneLineInfo = {
               type : 0,
               index: newNumber,
             };
-            regions[idx].region.upgraded = true;
+            regions[idx].upgraded = true;
 
             const existingZonePoint = zonePoints.find(
               (z) => z.number === numberIndex
