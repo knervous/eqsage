@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { get, set, del } from 'idb-keyval';
 
 import { Button, Stack, Typography } from '@mui/material';
 import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
@@ -15,6 +16,7 @@ import {
   getEQFile,
   getEQFileExists,
   writeEQFile,
+  writeFile,
 } from '../../lib/util/fileHandler';
 import { PFSArchive } from '../../lib/pfs/pfs';
 import { useAlertContext } from '../../context/alerts';
@@ -23,6 +25,7 @@ import { TypedArrayWriter } from '../../lib/util/typed-array-reader';
 import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
 
 import { mat4, vec3 } from 'gl-matrix';
+import { usePermissions } from '../../hooks/permissions';
 
 const version = 2;
 const shadersUsed = [
@@ -68,7 +71,20 @@ export const ExportDialog = ({ open, setOpen }) => {
   const [files, setFiles] = useState([]);
   const { openAlert } = useAlertContext();
   const [exporting, setExporting] = useState(false);
-
+  const [
+    _apiSupported,
+    _onDrop,
+    _checkHandlePermissions,
+    fsHandle,
+    onFolderSelected,
+  ] = usePermissions('zb-out');
+  const fsWrite = useCallback(async (folder, name, data, subdir) => {
+    if (fsHandle) {
+      await writeFile(fsHandle, name, data);
+      return;
+    }
+    await writeEQFile(folder, name, data, subdir);
+  }, [fsHandle]);
   /* eslint-disable */
   const doExport = useCallback(async () => {
     setExporting(true);
@@ -85,7 +101,7 @@ export const ExportDialog = ({ open, setOpen }) => {
     }
 
     // Asset text file
-    await writeEQFile(
+    await fsWrite(
       "output",
       `${name}_assets.txt`,
       [...metadata.assets].concat(metadata.characterFiles).join("\r\n"),
@@ -94,7 +110,7 @@ export const ExportDialog = ({ open, setOpen }) => {
     newFiles.push(`${name}_assets.txt`);
 
     // Chr text file
-    await writeEQFile(
+    await fsWrite(
       "output",
       `${name}_chr.txt`,
       [...metadata.chr].join("\r\n"),
@@ -108,7 +124,7 @@ export const ExportDialog = ({ open, setOpen }) => {
       const si = SoundInstance.fromObject(sound);
       soundInstances.push(si.getEmtString());
     }
-    await writeEQFile(
+    await fsWrite(
       "output",
       `${name}.emt`,
       soundInstances.join("\r\n"),
@@ -122,11 +138,15 @@ export const ExportDialog = ({ open, setOpen }) => {
 
     const names = [];
     // Animated textures
-    for(const m of gameController.currentScene.materials) {
+    for (const m of gameController.currentScene.materials) {
       if (m.metadata?.gltf?.extras?.animationDelay) {
-        const {frames, animationDelay} = m.metadata?.gltf?.extras;
-        const text = [frames.length, animationDelay, ...frames.map(p => `${p}.png`)]
-        eqgArchive.setFile(`${frames[0]}.txt`, text.join('\r\n'));
+        const { frames, animationDelay } = m.metadata?.gltf?.extras;
+        const text = [
+          frames.length,
+          animationDelay,
+          ...frames.map((p) => `${p}.png`),
+        ];
+        eqgArchive.setFile(`${frames[0]}.txt`, text.join("\r\n"));
       }
     }
     for (const t of gameController.ZoneBuilderController.animationTextures) {
@@ -173,8 +193,6 @@ export const ExportDialog = ({ open, setOpen }) => {
         textureNames.push("watertest.dds");
         eqgArchive.setFile("watertest.dds", new Uint8Array(test));
       }
-
-
 
       for (const mesh of meshes) {
         const material = mesh.material ?? mesh.getMaterial?.();
@@ -256,8 +274,11 @@ export const ExportDialog = ({ open, setOpen }) => {
         const isSubmesh = mesh instanceof SubMesh;
         const parentMesh = isSubmesh ? mesh.getMesh() : mesh;
         const needsAlphaTesting = parentMesh.material?._subMaterials?.length
-          ? parentMesh.material._subMaterials.some((m) => m.needAlphaTesting() || m.albedoTexture?.hasAlpha)
-          : parentMesh.material.needAlphaTesting() || parentMesh.material?.albedoTexture?.hasAlpha;
+          ? parentMesh.material._subMaterials.some(
+              (m) => m.needAlphaTesting() || m.albedoTexture?.hasAlpha
+            )
+          : parentMesh.material.needAlphaTesting() ||
+            parentMesh.material?.albedoTexture?.hasAlpha;
         const positions = isSubmesh
           ? mesh
               .getMesh()
@@ -375,7 +396,7 @@ export const ExportDialog = ({ open, setOpen }) => {
                 TYPE: p.type,
                 VALUE:
                   p.type === 2
-                    ? name === "e_TextureDiffuse0" || name === 'e_TextureGlow0'
+                    ? name === "e_TextureDiffuse0" || name === "e_TextureGlow0"
                       ? shader.name.includes("Water.fx")
                         ? getStringIdx("watertest.dds")
                         : getStringIdx(textureNames[textureIdx])
@@ -579,12 +600,6 @@ export const ExportDialog = ({ open, setOpen }) => {
 
       let regionCount = 0;
       for (const [idx, r] of Object.entries(metadata.regions)) {
-        let hasZoneLine = r.region.regionTypes.some(
-          (t) => t === RegionType.Zoneline
-        );
-        const type = hasZoneLine
-          ? RegionType.Zoneline
-          : r.region.regionTypes[0];
         const {
           maxVertex,
           minVertex,
@@ -597,10 +612,10 @@ export const ExportDialog = ({ open, setOpen }) => {
           continue;
         }
 
-        let name = `${regionTypeMap[type]}`;
-        if (type === RegionType.Zoneline) {
+        let name = `${regionTypeMap[r.regionType]}`;
+        if (r.regionType === RegionType.Zoneline) {
           name += `_${(
-            r.region.zoneLineInfo.index ?? r.region.zoneLineInfo.zoneIndex
+            r.zoneLineInfo.index ?? r.zoneLineInfo.zoneIndex
           )
             .toString()
             .padStart(2, "0")}_zoneline${idx}`;
@@ -745,21 +760,19 @@ export const ExportDialog = ({ open, setOpen }) => {
     }
 
     console.log("EQG Archive", eqgArchive);
-    await writeEQFile("output", `${name}.eqg`, eqgArchive.saveToFile(), name);
+    await fsWrite("output", `${name}.eqg`, eqgArchive.saveToFile(), name);
     // await writeEQFile("root", `${name}.eqg`, eqgArchive.saveToFile());
     openAlert("Saved files");
     setExporting(false);
-
-  }, []);
+  }, [fsWrite]);
   useEffect(() => {
     if (!open) {
       setFiles([]);
       return;
     }
 
-    if (import.meta.env.VITE_LOCAL_DEV === 'true' ) {
-     doExport();
-
+    if (import.meta.env.VITE_LOCAL_DEV === "true") {
+      //);
     }
   }, [open, openAlert, doExport]);
   return (
@@ -789,7 +802,12 @@ export const ExportDialog = ({ open, setOpen }) => {
             /output/
             {gameController.ZoneBuilderController.name.replace(".eqs", "")}
           </Typography>
-          <Button disabled={exporting} onClick={doExport}>{exporting? 'Export in progress...' : 'Export Zone'}</Button>
+          <Button onClick={() => onFolderSelected()}>
+            Select Output Folder
+          </Button>
+          <Button disabled={exporting} onClick={doExport}>
+            {exporting ? "Export in progress..." : "Export Zone"}
+          </Button>
         </>
       )}
     </CommonDialog>

@@ -1,21 +1,10 @@
 import { GlobalStore } from '../../../state';
+import { RegionType } from './bsp-tree';
 
-function areBoxesEqual(box1, box2) {
-  return (
-    box1.minVertex.length === box2.minVertex.length &&
-    box1.maxVertex.length === box2.maxVertex.length &&
-    box1.center.length === box2.center.length &&
-    box1.minVertex.every((value, index) => value === box2.minVertex[index]) &&
-    box1.maxVertex.every((value, index) => value === box2.maxVertex[index]) &&
-    box1.center.every((value, index) => value === box2.center[index])
-  );
-}
-
-  
 function deduplicateBoxes(boxes) {
   const uniqueBoxes = new Map();
   boxes.forEach((box) => {
-    const key = JSON.stringify(box.minVertex) + JSON.stringify(box.maxVertex) + JSON.stringify(box.center);
+    const key = `${box.minVertex.join(',') }|${ box.maxVertex.join(',') }|${ box.center.join(',') }|${ box.regionType}`;
     if (!uniqueBoxes.has(key)) {
       uniqueBoxes.set(key, box);
     }
@@ -23,7 +12,7 @@ function deduplicateBoxes(boxes) {
   return Array.from(uniqueBoxes.values());
 }
 
-const insideBuffer = 20;
+let insideBuffer = 20;
   
 function isBoxInsideAnother(box1, box2) {
   // Check if box1 is inside box2
@@ -35,10 +24,10 @@ function isBoxInsideAnother(box1, box2) {
   
 function areBoxesAdjacentAndEqualData(box1, box2) {
   // Compare data properties first to avoid unnecessary geometric calculations
-  if (JSON.stringify(box1.region) !== JSON.stringify(box2.region)) {
+  if (JSON.stringify(box1.zoneLineInfo) !== JSON.stringify(box2.zoneLineInfo) || box1.regionType !== box2.regionType) {
     return false;
   }
-  
+    
   // Check if boxes are adjacent. This is a simplified check and assumes
   // that boxes are aligned and only touch along one axis.
   const dx =
@@ -81,10 +70,11 @@ function mergeBoxes(box1, box2) {
   ];
   
   return {
-    minVertex: mergedMinVertex,
-    maxVertex: mergedMaxVertex,
-    center   : mergedCenter,
-    region   : box1.region, // Assuming data is the same, use box1's data
+    minVertex   : mergedMinVertex,
+    maxVertex   : mergedMaxVertex,
+    center      : mergedCenter,
+    regionType  : box1.regionType,
+    zoneLineInfo: box1.zoneLineInfo,
   };
 }
   
@@ -98,9 +88,37 @@ export async function optimizeBoundingBoxes(boxes) {
   GlobalStore.actions.setLoadingText(`Running BSP region optimization algorithm with ${maxCount} iterations`);
   await new Promise(res => setTimeout(res, 0));
 
+  // Preprocess these, we don't deal in multiple region types in one region--overlap them.
+  boxes = boxes.flatMap(b => {
+    const region = b.region;
+    delete b.region;
+    b = {
+      ...b,
+      ...region,
+    };
+    if (b.regionTypes.length === 1) {
+      b.regionType = b.regionTypes[0];
+      delete b.regionTypes;
+      return [b];
+    }
+    const hasZoneLine = b.regionTypes.includes(RegionType.Zoneline);
+    const copies = [];
+    for (const t of b.regionTypes) {
+      const copy = JSON.parse(JSON.stringify(b));
+      copy.regionType = t;
+      if (hasZoneLine && t !== RegionType.Zoneline) {
+        delete copy.zoneLineInfo;
+      }
+      delete copy.regionTypes;
+      copies.push(copy);
+    }
+    return copies;
+  });
   do {
     optimized = false;
-
+    if (count % 1000 === 0) {
+      insideBuffer += 2;
+    }
     for (let i = 0; i < boxes.length; i++) {
       for (let j = i + 1; j < boxes.length; j++) {
         if (areBoxesAdjacentAndEqualData(boxes[i], boxes[j])) {

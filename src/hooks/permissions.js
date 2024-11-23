@@ -11,6 +11,17 @@ export const PermissionStatusTypes = {
 const apiSupported =
   typeof window.FileSystemHandle?.prototype?.queryPermission === 'function';
 
+/**
+ * Custom React hook to manage file system permissions and handle directory selection.
+ *
+ * @param {string} [name='eqdir'] - The key name used for storing the directory handle in IndexedDB.
+ * @returns {[number, Function, Function, Function, FileSystemDirectoryHandle|null]} An array containing:
+ *   - `permissionStatus` (number): Current permission status.
+ *   - `onDrop` (Function): Callback to handle drop events.
+ *   - `onFolderSelected` (Function): Callback to open the directory picker.
+ *   - `checkHandlePermissions` (Function): Function to check and update permissions.
+ *   - `fsHandle` (FileSystemDirectoryHandle|null): The current file system handle.
+ */
 export const usePermissions = (name = 'eqdir') => {
   const [fsHandle, setFsHandle] = useState(null);
   const [permissionStatus, setPermissionStatus] = useState(
@@ -18,12 +29,13 @@ export const usePermissions = (name = 'eqdir') => {
   );
 
 
-  const checkHandlePermissions = useCallback(async () => {
-    if (!fsHandle) {
+  const checkHandlePermissions = useCallback(async (h) => {
+    const handle = fsHandle || h;
+    if (!handle) {
       return;
     }
     if (
-      (await fsHandle.requestPermission({
+      (await handle.requestPermission({
         mode: 'readwrite',
       })) === 'granted'
     ) {
@@ -89,10 +101,36 @@ export const usePermissions = (name = 'eqdir') => {
     e.stopPropagation();
   }, [name]);
 
+  const onFolderSelected = useCallback(
+    async () => {
+      if (!apiSupported) {
+        console.warn('File System Access API is not supported in this browser.');
+        return;
+      }
+      try {
+        const handle = await window.showDirectoryPicker();
+        if (handle.kind === 'directory') {
+          await del(name);
+          await set(name, handle);
+          setFsHandle(handle);
+          checkHandlePermissions(handle);
+          setPermissionStatus(PermissionStatusTypes.NeedRefresh);
+        } else {
+          console.warn('Selected handle is not a directory.');
+        }
+      } catch (error) {
+        if (error.name !== 'AbortError') { // Ignore abort errors when user cancels the dialog
+          console.error('Error selecting directory:', error);
+        }
+      }
+    },
+    [name, checkHandlePermissions]
+  );
   return [
     apiSupported ? permissionStatus : PermissionStatusTypes.ApiUnavailable,
     onDrop,
     checkHandlePermissions,
-    fsHandle
+    fsHandle,
+    onFolderSelected,
   ];
 };

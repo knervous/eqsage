@@ -599,7 +599,7 @@ class ZoneController extends GameControllerChild {
         delete metadata.unoptimizedRegions;
         await writeEQFile('zones', `${name}.json`, JSON.stringify(metadata));
       }
-
+      console.log('Regions', metadata.regions);
       let idx = 0;
       this.aabbTree = buildAABBTree(
         metadata.regions.map(

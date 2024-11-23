@@ -149,6 +149,22 @@ export const writeEQFile = async (directory, name, buffer, subdir = undefined) =
   return false;
 };
 
+export const writeFile = async (dirHandle, name, data) => {
+  const fileHandle = await dirHandle.getFileHandle(name, { create: true }).catch(() => undefined);
+  if (fileHandle) {
+    const writable = await fileHandle.createWritable();
+    while (writable.locked) {
+      console.log('Locked');
+      await new Promise((res) => setTimeout(res, 50));
+    }
+    await writable.write(data);
+    await writable.getWriter().releaseLock();
+    await writable.close();
+    return true;
+  }
+  return false;
+};
+
 /**
  *
  * @param {string} directory

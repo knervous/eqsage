@@ -30,7 +30,6 @@ import {
 import { useAlertContext } from '../../context/alerts';
 import { ZoneBuilder } from '../builder/zone-builder';
 import { optimizeBoundingBoxes } from '../../lib/s3d/bsp/region-utils';
-import { gameController } from '../../viewer/controllers/GameController';
 import { GlobalStore } from '../../state';
 
 const defaultZoneMetadata = {
