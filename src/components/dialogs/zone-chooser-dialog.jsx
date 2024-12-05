@@ -177,34 +177,42 @@ export const ZoneChooserDialog = ({ open }) => {
       setTimeout(() => {
         autocompleteRef.current?.querySelector('input')?.focus();
       }, 0);
-      if (Spire) {
-        Spire.Zones.getZones()
-          .then((zones) => {
-            if (!Array.isArray(zones)) {
-              console.log('Error with spire zones', zones);
-              throw new Error('Error with zones response');
-            }
-            setZoneList(zones);
-          })
-          .catch(() => {
-            import('../../data/zoneData.json').then((zl) =>
-              setZoneList(Array.from(zl.default))
-            );
+      let z = [];
+      const zonePromise = new Promise(async (res) => {
+        if (Spire) {
+          await Spire.Zones.getZones()
+            .then((zones) => {
+              if (!Array.isArray(zones)) {
+                console.log('Error with spire zones', zones);
+                throw new Error('Error with zones response');
+              }
+              z = zones;
+              setZoneList(zones);
+            })
+            .catch(() => {
+              import('../../data/zoneData.json').then((zl) => {
+                z = Array.from(zl.default);
+                setZoneList(Array.from(zl.default));
+              });
+            });
+        } else {
+          await import('../../data/zoneData.json').then((zl) => {
+            z = Array.from(zl.default);
+            setZoneList(Array.from(zl.default));
           });
-      } else {
-        import('../../data/zoneData.json').then((zl) => {
-          setZoneList(Array.from(zl.default));
-        });
-      }
+        }
+        res();
+      });
       const urlParams = new URLSearchParams(window.location.search);
       const zb = urlParams.get('zb');
       if (zb === 'true') {
-        setTimeout(() => {
+        zonePromise.then(() => {
+          setZones(z);
           enterZoneBuilder();
-        }, 200);
+        });
       }
     }
-  }, [open, Spire, enterZoneBuilder]);
+  }, [open, Spire, enterZoneBuilder, setZones]);
 
   useEffect(() => setZones(zoneList), [zoneList, setZones]);
 
@@ -243,12 +251,16 @@ export const ZoneChooserDialog = ({ open }) => {
         Select a Zone
       </DialogTitle>
       <Flyout>
-        <FlyoutButton onClick={() => setAboutOpen(true)} Icon={InfoIcon} title="About / Contact" />
+        <FlyoutButton
+          onClick={() => setAboutOpen(true)}
+          Icon={InfoIcon}
+          title="About / Contact"
+        />
         <FlyoutButton
           onClick={enterModelExporter}
           Icon={AccessibilityIcon}
           isNew
-          newText = "New! (3D Printing)"
+          newText="New! (3D Printing)"
           title="Model Exporter"
         />
         <FlyoutButton
@@ -260,7 +272,7 @@ export const ZoneChooserDialog = ({ open }) => {
           onClick={enterZoneBuilder}
           Icon={TerrainIcon}
           isNew
-          newText = "New! (BETA)"
+          newText="New! (BETA)"
           title="Zone Builder (Under Construction)"
         />
         <FlyoutButton

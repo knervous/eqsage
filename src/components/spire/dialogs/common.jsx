@@ -74,7 +74,9 @@ export const CommonDialog = ({
               Cancel
             </Button>
           )}
+          {additionalButtons}
           <Button
+            variant='outlined'
             disabled={doneDisabled}
             className={classNames('ui-dialog-btn', {
               'ui-dialog-btn-disabled': doneDisabled,
@@ -84,7 +86,6 @@ export const CommonDialog = ({
           >
             {doneText}
           </Button>
-          {additionalButtons}
         </DialogActions>
       )}
     </Dialog>
