@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { ZonePointApi } from 'spire-api/api/zone-point-api';
 
 import { useMainContext } from '../../main/context';
@@ -33,6 +33,19 @@ export const RegionProvider = ({ children }) => {
   const [upgradeState, setUpgradeState] = useState(UpgradeState.OK);
   const [upgrader, setUpgrader] = useState({ fn: () => {} });
 
+  const zonePointApi = useMemo(() => {
+    return new ZonePointApi(...Spire.SpireApi.cfg());
+  }, [Spire]);
+
+  const listZonePoints = useCallback(async () => {
+    const queryBuilder = new Spire.SpireQueryBuilder();
+    queryBuilder.where('zone', '=', name);
+    const { data: zonePoints } = await zonePointApi.listZonePoints(
+      queryBuilder.get()
+    );
+    return zonePoints.filter(zp => zp.number % 10 === 0).sort((a, b) => a.number < b.number ? -1 : 1);
+  }, [zonePointApi, Spire, name]);
+
   useEffect(() => {
     if (!Spire && regions.length) {
       setUpgradeState(UpgradeState.NO_SPIRE);
@@ -52,13 +65,7 @@ export const RegionProvider = ({ children }) => {
     }
     let current = true;
     (async () => {
-      const queryBuilder = new Spire.SpireQueryBuilder();
-      queryBuilder.where('zone', '=', name);
-      const zonePointApi = new ZonePointApi(...Spire.SpireApi.cfg());
-
-      const { data: zonePoints } = await zonePointApi.listZonePoints(
-        queryBuilder.get()
-      );
+      const zonePoints = await listZonePoints();
       if (!current) {
         return;
       }
@@ -181,12 +188,14 @@ export const RegionProvider = ({ children }) => {
     })();
 
     return () => current = false;
-  }, [regions, Spire, name, openAlert, updateMetadata, projectName]);
+  }, [regions, Spire, name, openAlert, updateMetadata, projectName, listZonePoints, zonePointApi]);
   return (
     <RegionContext.Provider
       value={{
         regionUpgradeState: upgradeState,
         upgrader          : upgrader.fn,
+        zonePointApi,
+        listZonePoints,
       }}
     >
       {children}

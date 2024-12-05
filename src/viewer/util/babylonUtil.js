@@ -68,7 +68,7 @@ export const instantiate3dMover = (scene, mesh, callback = () => {}) => {
   const originalIsPickable = mesh.isPickable;
   mesh.isPickable = true;
   const controlPlanes = createControlPlanes(scene, mesh);
-  scene.onPointerObservable.add(onHover.bind(scene));
+  // scene.onPointerObservable.add(onHover.bind(scene));
   const dragBehaviors = addDragBehavior(scene, controlPlanes, mesh, callback);
   currentMover = {
     controlPlanes,

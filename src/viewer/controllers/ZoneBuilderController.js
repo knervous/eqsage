@@ -4,12 +4,10 @@ import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Material } from '@babylonjs/core/Materials/material';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import { Light } from '@babylonjs/core/Lights/light';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
-import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
@@ -208,12 +206,16 @@ class ZoneBuilderController extends GameControllerChild {
           if (boundary) {
             return (
               node.parent === zoneContainer ||
-              node.parent === boundaryContainer
+              node.parent === boundaryContainer ||
+              node === zoneContainer ||
+              node === boundaryContainer
             );
           }
-          return node.parent === zoneContainer;
+          return node.parent === zoneContainer || node === zoneContainer;
         } else if (boundary) {
-          return node.parent === boundaryContainer;
+          return (
+            node.parent === boundaryContainer || node === boundaryContainer
+          );
         }
       },
       shouldExportAnimation() {
@@ -376,7 +378,16 @@ class ZoneBuilderController extends GameControllerChild {
     extraHtml = '',
   }) {
     this.pickingRaycast = true;
-
+    const meshMap = {};
+    this.zoneContainer.getChildMeshes().forEach((m) => {
+      meshMap[m] = m.isPickable;
+      m.isPickable = true;
+    });
+    const resetPickable = () => {
+      for (const [mesh, originalVal] of Object.entries(meshMap)) {
+        mesh.isPickable = originalVal;
+      }
+    };
     /**
      * @type {Mesh}
      */
@@ -554,6 +565,7 @@ class ZoneBuilderController extends GameControllerChild {
       raycastMesh.dispose();
       pointLight.dispose();
       document.body.removeChild(tooltip);
+      resetPickable();
     };
     function keyHandler(e) {
       if (e.key === 'Escape') {
@@ -596,7 +608,7 @@ class ZoneBuilderController extends GameControllerChild {
   setSpawnLOD() {}
 
   async importZone(buffer) {
-    this.zoneContainer.getChildMeshes().forEach(m => m.dispose());
+    this.zoneContainer.getChildMeshes().forEach((m) => m.dispose());
     const blob = new Blob([buffer], { type: 'model/gltf-binary' });
     const url = URL.createObjectURL(blob);
 
@@ -739,6 +751,8 @@ class ZoneBuilderController extends GameControllerChild {
 
   instantiateRegions(regions) {
     let idx = 0;
+    this.regionContainer.getChildMeshes().forEach((m) => m.dispose());
+    this.regionContainer.getChildren().forEach((c) => c.dispose());
     for (const region of regions) {
       const minVertex = new Vector3(
         region.minVertex[0],
@@ -807,7 +821,6 @@ class ZoneBuilderController extends GameControllerChild {
         case RegionType.WaterBlockLOS:
         case RegionType.FreezingWater:
         case RegionType.Water:
-
           m.metadata.emissiveColor = new Color4(0.2, 0.2, 1.0, 0.2);
           break;
         case RegionType.Zoneline:
