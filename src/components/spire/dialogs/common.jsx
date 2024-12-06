@@ -66,7 +66,7 @@ export const CommonDialog = ({
       >
         {title}
       </DialogTitle>
-      <DialogContent className={className}>{children}</DialogContent>
+      <DialogContent sx={{ overflowX: 'hidden' }} className={className}>{children}</DialogContent>
       {!hideButtons && (
         <DialogActions>
           {cancelButton && (
