@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -9,6 +10,7 @@ import {
   ListItemButton,
   ListItemText,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material';
 
@@ -39,8 +41,60 @@ export const ObjectDialog = ({ open, setOpen, models: modelNames }) => {
       onClose={() => setOpen(false)}
       aria-labelledby="draggable-dialog-title"
     >
-      <DialogTitle style={{ margin: '0 auto' }} id="draggable-dialog-title">
+      <DialogTitle
+        style={{ margin: '0 auto', textAlign: 'center' }}
+        id="draggable-dialog-title"
+      >
         Import New Model
+        <Tooltip
+          componentsProps={{
+            tooltip: {
+              sx: {
+                minWidth  : '400px !important',
+                background: 'rgba(0,0,0,0.3)',
+              },
+            },
+          }}
+          title={
+            <Box
+              style={{
+                padding        : '10px',
+                backgroundColor: 'black',
+                margin         : '0px',
+                border         : '0px',
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize  : 15,
+                  textAlign : 'center',
+                  userSelect: 'none',
+                }}
+                color="text.secondary"
+                gutterBottom
+              >
+                Models are generated from loading zones directly from the Sage
+                entrypoint in associated eqg or s3d files. Global equipment
+                models are loaded through the model exporter, found through the
+                main landing page.
+              </Typography>
+            </Box>
+          }
+        >
+          <Typography
+            sx={{
+              fontSize  : 17,
+              width     : '100%',
+              fontStyle : 'italic',
+              textAlign : 'center',
+              userSelect: 'none',
+            }}
+            color="text.secondary"
+            gutterBottom
+          >
+            How do I generate more models?
+          </Typography>
+        </Tooltip>
       </DialogTitle>
       <DialogContent
         sx={{ maxHeight: '400px', overflowY: 'hidden' }}
@@ -102,7 +156,7 @@ export const ObjectDialog = ({ open, setOpen, models: modelNames }) => {
                       .then((f) => f.arrayBuffer());
                     const name = m.name.replace('.glb', '');
                     openAlert(`Successfully imported ${name}!`);
-                    updateProject(newZone => {
+                    updateProject((newZone) => {
                       newZone.modelFiles[name] = new Uint8Array(arrayBuffer);
                       newZone.metadata.objects[name] = [];
                       return newZone;
@@ -141,11 +195,11 @@ export const ObjectDialog = ({ open, setOpen, models: modelNames }) => {
                 return;
               }
               let name = file.name.replace('.glb', '');
-   
+
               const arrayBuffer = await file.arrayBuffer();
- 
+
               openAlert(`Successfully imported ${name}!`);
-              updateProject(newZone => {
+              updateProject((newZone) => {
                 if (newZone.modelFiles[name]) {
                   name = `${name}1`;
                   openAlert(

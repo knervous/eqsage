@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Autocomplete,
+  Box,
   Button,
-  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -10,6 +10,7 @@ import {
   FormControl,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -23,6 +24,7 @@ import {
   getEQDir,
   getEQFile,
   getEQFileExists,
+  getEQRootDir,
   getFiles,
   writeEQFile,
 } from '../../lib/util/fileHandler';
@@ -112,13 +114,14 @@ export const ZoneBuilderDialog = ({ open }) => {
     if (!selectedTemplate) {
       return;
     }
-    setProjectName(`${selectedTemplate.short_name}.eqs`);
+    setProjectName(`${selectedTemplate.short_name}`);
   }, [selectedTemplate]);
   const createNewProject = useCallback(async () => {
-    const exists = await getEQFileExists('projects', projectName);
+    const name = `${projectName}.eqs`;
+    const exists = await getEQFileExists('projects', name);
     if (exists) {
       openAlert(
-        `Project ${projectName} already exists. Choose another name.`,
+        `Project ${name} already exists. Choose another name.`,
         'warning'
       );
       return;
@@ -161,6 +164,13 @@ export const ZoneBuilderDialog = ({ open }) => {
         `${selectedTemplate.short_name}_chr`
       );
     }
+    if (
+      await getEQFileExists('root', `${selectedTemplate.short_name}_obj.s3d`)
+    ) {
+      project.metadata.characterFiles.push(
+        `${selectedTemplate.short_name}_obj`
+      );
+    }
     // Existing assets like qeynos2_assets.txt
     const assetFile = await getEQFile(
       'root',
@@ -197,8 +207,8 @@ export const ZoneBuilderDialog = ({ open }) => {
     }
     const encoded = msgpack.encode(project);
     const zipped = pako.deflate(encoded);
-    await writeEQFile('projects', projectName, zipped);
-    openAlert(`Project ${projectName} successfully created.`);
+    await writeEQFile('projects', name, zipped);
+    openAlert(`Project ${name} successfully created.`);
     setZone(project);
   }, [selectedTemplate, openAlert, projectName]);
 
@@ -208,7 +218,7 @@ export const ZoneBuilderDialog = ({ open }) => {
     <Dialog
       className="ui-dialog"
       onKeyDown={(e) => e.stopPropagation()}
-      maxWidth="md"
+      maxWidth="sm"
       open={open}
       onClose={() => (selectedZone ? setZoneDialogOpen(false) : null)}
       aria-labelledby="draggable-dialog-title"
@@ -220,13 +230,7 @@ export const ZoneBuilderDialog = ({ open }) => {
       >
         Zone Builder Projects
       </DialogTitle>
-      <DialogContent
-        sx={{
-          div: {
-            // 'textAlign': 'center !important'
-          },
-        }}
-      >
+      <DialogContent>
         <Stack direction={'column'}>
           <Typography
             sx={{ fontSize: 18, marginBottom: 2, margin: '5px auto' }}
@@ -235,116 +239,149 @@ export const ZoneBuilderDialog = ({ open }) => {
           >
             Welcome to ZoneBuilder!
           </Typography>
+
           <Typography
-            sx={{ fontSize: 18, marginBottom: 2, margin: '15px auto' }}
-            color="text.primary"
-            gutterBottom
-          >
-            This feature is in BETA! Please back up your files before replacing
-            them.
-          </Typography>
-          <Typography
-            sx={{ fontSize: 16, marginBottom: 2, maxWidth: '100%' }}
+            sx={{
+              fontSize    : 15,
+              marginBottom: '20px',
+              marginTop   : '15px',
+              maxWidth    : '100%',
+            }}
             color="text.primary"
             gutterBottom
           >
             ZoneBuilder is a tool designed to edit/convert existing S3D/EQG
-            zones into an EQG format with accompanying assets. To get started,
-            select a processed zone to use as a starting template or create a
-            new project from scratch. To populate the zone list, convert zones
-            from the landing page or through the Model Exporter.
+            zones into an EQG format with accompanying assets, or create a new
+            zone from a template based on an existing zone. Please refer to the
+            documentation for how-to guides and more detailed information on
+            use. Projects are stored in [{getEQRootDir().name}/projects].
           </Typography>
         </Stack>
-
-        <>
-          <FormControl sx={{ margin: '20px 0' }} fullWidth>
-            <Stack direction="row">
-              <Autocomplete
-                size="small"
-                sx={{
-                  width      : '250px',
-                  maxWidth   : '250px',
-                  marginLeft : '40px',
-                  marginRight: '10px',
-                }}
-                value={
-                  selectedProject 
-                    ? { label: selectedProject, key: selectedProject } 
-                    : null
-                }
-                ref={projectRef}
-                isOptionEqualToValue={(option, value) =>
-                  option.key === value.key
-                }
-                onChange={async (e, values) => {
-                  if (!values) {
-                    return;
-                  }
-                  setSelectedProject(projects[values.id]);
-                }}
-                renderOption={(props, option) => {
-                  return (
-                    <li {...props} key={option.key}>
-                      {option.label}
-                    </li>
-                  );
-                }}
-                options={projects.map((proj, idx) => {
-                  return {
-                    label: proj,
-                    id   : idx,
-                    key  : proj,
-                  };
-                })}
-                renderInput={(params) => (
-                  <TextField {...params} label="Load Existing Project" />
-                )}
-              />
-              <Button
-                ref={loadProjectRef}
-                onClick={() => loadProject(selectedProject)}
-                disabled={!selectedProject}
-                color="primary"
-                variant="outlined"
-              >
-                Load Project
-              </Button>
-              <Button
-                sx={{ marginLeft: '5px' }}
-                onClick={() => {
-                  confirm({
-                    description: 'Are you sure you want to delete this project?',
-                    title      : 'Delete EQS Project',
-                  })
-                    .then(() => {
-                      deleteEqFileOrFolder('projects', selectedProject).then(() => {
+        <Typography
+          sx={{
+            fontSize    : 16,
+            width       : '100%',
+            marginBottom: '15px',
+            textAlign   : 'center',
+            userSelect  : 'none',
+            fontWeight  : 0,
+          }}
+          color="text.primary"
+          gutterBottom
+        >
+          Load Existing Project
+        </Typography>
+        <Stack direction="row" sx={{ marginBottom: '15px' }}>
+          <Autocomplete
+            size="small"
+            sx={{ width: '50%', marginRight: '5px' }}
+            value={
+              selectedProject
+                ? { label: selectedProject, key: selectedProject }
+                : null
+            }
+            ref={projectRef}
+            isOptionEqualToValue={(option, value) => option.key === value.key}
+            onChange={async (e, values) => {
+              if (!values) {
+                return;
+              }
+              setSelectedProject(projects[values.id]);
+            }}
+            renderOption={(props, option) => {
+              return (
+                <li {...props} key={option.key}>
+                  {option.label}
+                </li>
+              );
+            }}
+            options={projects.map((proj, idx) => {
+              return {
+                label: proj,
+                id   : idx,
+                key  : proj,
+              };
+            })}
+            renderInput={(params) => (
+              <TextField {...params} label="Existing Project" />
+            )}
+          />
+          <Stack
+            direction="row"
+            sx={{ width: '50%' }}
+            justifyContent={'space-evenly'}
+          >
+            <Button
+              sx={{
+                width   : '70%',
+                ':focus': {
+                  outline   : '1px white solid',
+                  background: 'rgba(125,125,125,0.1)'
+                },
+              }}
+              disableTouchRipple={true}
+              TouchRippleProps={{ sx: { display: 'none' } }}
+              ref={loadProjectRef}
+              onClick={() => loadProject(selectedProject)}
+              disabled={!selectedProject}
+              color="primary"
+              variant="outlined"
+            >
+              Load Project
+            </Button>
+            <Button
+              sx={{ marginLeft: '5px' }}
+              onClick={() => {
+                confirm({
+                  description: 'Are you sure you want to delete this project?',
+                  title      : 'Delete EQS Project',
+                })
+                  .then(() => {
+                    deleteEqFileOrFolder('projects', selectedProject)
+                      .then(() => {
                         const newFiles = projects.filter(
                           (n) => n !== selectedProject
                         );
                         setProjects(newFiles);
                         setSelectedProject(newFiles[0]);
                         openAlert(`Deleted project ${selectedProject}`);
-                      }).catch(() => {
+                      })
+                      .catch(() => {
                         openAlert('Error deleting project');
                       });
-                    })
-                    .catch(() => {
-                      /* ... */
-                    });
-                 
-                }}
-                disabled={!selectedProject}
-                color="primary"
-                variant="outlined"
-              >
-                <DeleteIcon />
-              </Button>
-            </Stack>
-          </FormControl>
-          <FormControl fullWidth>
+                  })
+                  .catch(() => {
+                    /* ... */
+                  });
+              }}
+              disabled={!selectedProject}
+              color="primary"
+              variant="outlined"
+            >
+              <DeleteIcon />
+            </Button>
+          </Stack>
+        </Stack>
+        <Typography
+          sx={{
+            fontSize    : 16,
+            width       : '100%',
+            marginTop   : '25px',
+            marginBottom: '15px',
+            textAlign   : 'center',
+            userSelect  : 'none',
+            fontWeight  : 0,
+          }}
+          color="text.primary"
+          gutterBottom
+        >
+          Create New Project
+        </Typography>
+
+        <Stack direction="row">
+          <FormControl sx={{ width: '50%' }}>
             <Autocomplete
               size="small"
-              sx={{ width: '450px', maxWidth: '450px', marginLeft: '40px' }}
               isOptionEqualToValue={(option, value) => option.key === value.key}
               onChange={async (e, values) => {
                 if (!values) {
@@ -369,43 +406,135 @@ export const ZoneBuilderDialog = ({ open }) => {
                 };
               })}
               renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Create Project From Zone Template"
-                />
+                <TextField {...params} label="Create Project From Template" />
               )}
             />
           </FormControl>
-          <FormControl sx={{ margin: '15px 0px' }} fullWidth>
-            <Stack
-              direction={'row'}
-              alignContent={'space-evenly'}
-              sx={{ width: '100%' }}
-            ></Stack>
-          </FormControl>
-          <Stack direction="row" sx={{ marginLeft: '40px' }}>
+          <Tooltip
+            placement="right"
+            componentsProps={{
+              tooltip: {
+                sx: {
+                  minWidth  : '400px !important',
+                  marginLeft: '-20px !important',
+                  background: 'rgba(0,0,0,0.3)',
+                },
+              },
+            }}
+            title={
+              <Box
+                style={{
+                  padding        : '10px',
+                  backgroundColor: 'black',
+                  margin         : '0px',
+                  border         : '0px',
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize  : 15,
+                    textAlign : 'center',
+                    userSelect: 'none',
+                  }}
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  Templates are generated from loading zone files from the main
+                  landing page. In order to create a ZoneBuilder template, you
+                  need to have loaded the zone from Sage at least once.
+                </Typography>
+              </Box>
+            }
+          >
+            <Typography
+              sx={{
+                fontSize  : 15,
+                width     : '50%',
+                lineHeight: '40px',
+                fontStyle : 'italic',
+                textAlign : 'center',
+                userSelect: 'none',
+              }}
+              color="text.secondary"
+              gutterBottom
+            >
+              How do I generate templates?
+            </Typography>
+          </Tooltip>
+        </Stack>
+
+        <Box style={{ margin: '15px 0' }} />
+
+        <Stack direction="row">
+          <FormControl sx={{ width: '50%' }}>
             <TextField
               size="small"
-              sx={{ marginRight: '10px' }}
-              label="New Project Name"
+              label="Project Name"
               value={projectName}
               placeholder="New Project"
               onChange={(e) => {
                 setProjectName(e.target.value);
               }}
             ></TextField>
-            <Button
-              onClick={createNewProject}
-              disabled={!projectName.length}
-              color="primary"
-              variant="outlined"
+          </FormControl>
+          <Tooltip
+            placement="right"
+            componentsProps={{
+              tooltip: {
+                sx: {
+                  minWidth  : '400px !important',
+                  marginLeft: '-20px !important',
+                  background: 'rgba(0,0,0,0.3)',
+                },
+              },
+            }}
+            title={
+              <Box
+                style={{
+                  padding        : '10px',
+                  backgroundColor: 'black',
+                  margin         : '0px',
+                  border         : '0px',
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize  : 15,
+                    textAlign : 'center',
+                    userSelect: 'none',
+                  }}
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  Your project name will create the zone's "short name". If you
+                  are editing a zone e.g. North Qeynos (qeynos2), keep the same
+                  name, qeynos2, to create "qeynos2.eqg". If you are creating a
+                  brand new zone from a template, choose something unique that
+                  fits the rules of a zone short name.
+                </Typography>
+              </Box>
+            }
+          >
+            <Typography
+              sx={{
+                fontSize  : 15,
+                width     : '50%',
+                lineHeight: '40px',
+                fontStyle : 'italic',
+                textAlign : 'center',
+                userSelect: 'none',
+              }}
+              color="text.secondary"
+              gutterBottom
             >
-              Create New Project
-            </Button>
-          </Stack>
-        </>
+              What should I name my project?
+            </Typography>
+          </Tooltip>
+        </Stack>
+
+        <Box style={{ margin: '15px 0' }} />
       </DialogContent>
-      <DialogActions>
+      <DialogActions sx={{ marginTop: '20px' }}>
         <Button
           onClick={() => {
             setZoneBuilderDialogOpen(false);
@@ -415,6 +544,14 @@ export const ZoneBuilderDialog = ({ open }) => {
           variant="outlined"
         >
           Back to Home
+        </Button>
+        <Button
+          onClick={createNewProject}
+          disabled={!projectName.length}
+          color="primary"
+          variant="outlined"
+        >
+          Create New Project
         </Button>
       </DialogActions>
     </Dialog>

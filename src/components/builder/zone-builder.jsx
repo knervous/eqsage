@@ -36,14 +36,13 @@ export const ZoneBuilder = ({ zone, goHome }) => {
       window.removeEventListener('keydown', window.gameController.keyDown);
     };
   }, [zone, webgpu]);
-
   return (
     <>
       <Box
         as="canvas"
         sx={{ flexGrow: '1', position: 'fixed' }}
         ref={canvasRef}
-        id="renderCanvas"
+        id="renderCanvasZb"
         width="100vw"
         height="100vh"
       />

@@ -588,7 +588,7 @@ class ZoneBuilderController extends GameControllerChild {
   }
 
   setClipPlane(value) {
-    if (!this.CameraController?.camera) {
+    if (!this.CameraController?.camera || !this.skybox) {
       return;
     }
     this.CameraController.camera.maxZ = value;

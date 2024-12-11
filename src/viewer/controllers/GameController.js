@@ -249,6 +249,12 @@ export class GameController {
     if (this.engine) {
       this.engine.dispose();
     }
+    if (this.currentScene) {
+      this.currentScene.dispose();
+    }
+    this.ZoneController.dispose();
+    this.ZoneBuilderController.dispose();
+    this.#scene = null;
     this.canvas = canvas;
     if (navigator.gpu && webgpu) {
       this.engine = new WebGPUEngine(canvas);
