@@ -83,7 +83,7 @@ export class EQGDecoder {
 
       }
       if (import.meta.env.VITE_LOCAL_DEV === "true") {
-        await writeEQFile(name, fileName, this.files[fileName]);
+        //await writeEQFile(name, fileName, this.files[fileName]);
       }
       if (fileName.endsWith(".zon")) {
         this.zone = Zone.Factory(

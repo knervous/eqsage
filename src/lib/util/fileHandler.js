@@ -69,6 +69,17 @@ export async function deleteEqFolder(name) {
   }
 }
 
+export async function deleteEqFileOrFolder(directory, name) {
+  const dir = directory === 'root' ? getEQRootDir() : await getEQDir(directory);
+  const entry = await dir.getFileHandle(name).catch(() => undefined);
+  if (entry.kind === 'file') {
+    await dir.removeEntry(name);
+  } else if (entry.kind === 'directory') {
+    await deleteFolderRecursively(entry);
+    await dir.removeEntry(name, { recursive: true });
+  }
+}
+
 let cachedDirHandle = null;
 const handles = {};
 

@@ -8,19 +8,18 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { MuiFileInput } from 'mui-file-input';
+import DeleteIcon from '@mui/icons-material/Delete';
+
 import * as msgpack from '@msgpack/msgpack';
 import pako from 'pako';
 import { useMainContext } from '../main/context';
 import { VERSION } from '../../lib/model/constants';
 import {
+  deleteEqFileOrFolder,
   getEQDir,
   getEQFile,
   getEQFileExists,
@@ -31,6 +30,7 @@ import { useAlertContext } from '../../context/alerts';
 import { ZoneBuilder } from '../builder/zone-builder';
 import { optimizeBoundingBoxes } from '../../lib/s3d/bsp/region-utils';
 import { GlobalStore } from '../../state';
+import { useConfirm } from 'material-ui-confirm';
 
 const defaultZoneMetadata = {
   version           : VERSION,
@@ -54,15 +54,11 @@ export const ZoneBuilderDialog = ({ open }) => {
   const [projects, setProjects] = useState([]);
   const { openAlert } = useAlertContext();
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [radioValue, setRadioValue] = useState('template');
   const [loading, setLoading] = useState(false);
-  const [glb, setGlb] = useState(null);
   const [zone, setZone] = useState(null);
+  const projectRef = useRef(null);
   const loadProjectRef = useRef(null);
-  const handleChange = (newValue) => {
-    setGlb(newValue);
-  };
-
+  const confirm = useConfirm();
   const loadProject = useCallback(
     async (name) => {
       const file = await getEQFile('projects', name);
@@ -70,6 +66,7 @@ export const ZoneBuilderDialog = ({ open }) => {
         openAlert(`File projects/${name} does not exist!`);
         return;
       }
+      localStorage.setItem('eqs_project', name);
       const inflated = pako.inflate(file);
       const decoded = msgpack.decode(inflated);
       setZone(decoded);
@@ -81,16 +78,15 @@ export const ZoneBuilderDialog = ({ open }) => {
       setLoading(true);
       const projectDir = await getEQDir('projects');
       if (projectDir) {
-        const files = await getFiles(
-          projectDir,
-          (name) => name.endsWith('.eqs'),
-          true
-        );
+        const files = (
+          await getFiles(projectDir, (name) => name.endsWith('.eqs'), true)
+        ).sort((a, b) => (a < b ? -1 : 1));
 
         setProjects(files);
-        if (files.length) {
+        if (files.length && localStorage.getItem('eqs_project')) {
           await new Promise((res) => setTimeout(res, 5));
-          setSelectedProject(files[0]);
+          setSelectedProject(localStorage.getItem('eqs_project'));
+
           setTimeout(() => {
             loadProjectRef.current?.focus();
           }, 500);
@@ -113,12 +109,11 @@ export const ZoneBuilderDialog = ({ open }) => {
   }, [zones]);
 
   useEffect(() => {
-    if (radioValue === 'scratch' || !selectedTemplate) {
+    if (!selectedTemplate) {
       return;
     }
-
     setProjectName(`${selectedTemplate.short_name}.eqs`);
-  }, [selectedTemplate, radioValue]);
+  }, [selectedTemplate]);
   const createNewProject = useCallback(async () => {
     const exists = await getEQFileExists('projects', projectName);
     if (exists) {
@@ -128,90 +123,84 @@ export const ZoneBuilderDialog = ({ open }) => {
       );
       return;
     }
-    let glb;
-    if (radioValue === 'scratch') {
-      // todo new
-    } else {
-      const zoneFile = await getEQFile(
-        'zones',
-        `${selectedTemplate.short_name}.glb`
+
+    const zoneFile = await getEQFile(
+      'zones',
+      `${selectedTemplate.short_name}.glb`
+    );
+    const zoneMetadata = await getEQFile(
+      'zones',
+      `${selectedTemplate.short_name}.json`,
+      'json'
+    );
+    const modelFiles = {};
+    for (const key of Object.keys(zoneMetadata.objects)) {
+      const modelFile = await getEQFile('objects', `${key}.glb`);
+      if (modelFile.byteLength) {
+        modelFiles[key] = new Uint8Array(modelFile);
+      } else {
+        openAlert(`Model not found - try rerunning Model Import for ${key}`);
+        return;
+      }
+    }
+
+    const project = {
+      projectName,
+      glb     : new Uint8Array(zoneFile),
+      modelFiles,
+      metadata: {
+        ...defaultZoneMetadata,
+        ...zoneMetadata,
+      },
+    };
+
+    if (
+      await getEQFileExists('root', `${selectedTemplate.short_name}_chr.s3d`)
+    ) {
+      project.metadata.characterFiles.push(
+        `${selectedTemplate.short_name}_chr`
       );
-      const zoneMetadata = await getEQFile(
+    }
+    // Existing assets like qeynos2_assets.txt
+    const assetFile = await getEQFile(
+      'root',
+      `${selectedTemplate.short_name}_assets.txt`,
+      'text'
+    );
+    if (assetFile) {
+      project.metadata.assets = assetFile.split('\r\n').filter(Boolean);
+    }
+    // Existing char like qeynos2_chr.txt
+    const chrFile = await getEQFile(
+      'root',
+      `${selectedTemplate.short_name}_chr.txt`,
+      'text'
+    );
+    if (chrFile) {
+      project.metadata.chr = chrFile.split('\r\n').filter(Boolean);
+    }
+    if (
+      !project.metadata.regions?.length &&
+      project.metadata.unoptimizedRegions?.length
+    ) {
+      GlobalStore.actions.setLoading(true);
+      project.metadata.regions = await optimizeBoundingBoxes(
+        project.metadata.unoptimizedRegions
+      );
+      GlobalStore.actions.setLoading(false);
+      delete project.metadata.unoptimizedRegions;
+      await writeEQFile(
         'zones',
         `${selectedTemplate.short_name}.json`,
-        'json'
+        JSON.stringify(project.metadata)
       );
-      const modelFiles = {};
-      for (const key of Object.keys(zoneMetadata.objects)) {
-        const modelFile = await getEQFile('objects', `${key}.glb`);
-        if (modelFile.byteLength) {
-          modelFiles[key] = new Uint8Array(modelFile);
-        } else {
-          openAlert(`Model not found - try rerunning Model Import for ${key}`);
-          return;
-        }
-      }
-
-      const project = {
-        projectName,
-        glb     : new Uint8Array(zoneFile),
-        modelFiles,
-        metadata: {
-          ...defaultZoneMetadata,
-          ...zoneMetadata,
-        },
-      };
-
-      if (
-        await getEQFileExists('root', `${selectedTemplate.short_name}_chr.s3d`)
-      ) {
-        project.metadata.characterFiles.push(
-          `${selectedTemplate.short_name}_chr`
-        );
-      }
-      // Existing assets like qeynos2_assets.txt
-      const assetFile = await getEQFile(
-        'root',
-        `${selectedTemplate.short_name}_assets.txt`,
-        'text'
-      );
-      if (assetFile) {
-        project.metadata.assets = assetFile.split('\r\n').filter(Boolean);
-      }
-      // Existing char like qeynos2_chr.txt
-      const chrFile = await getEQFile(
-        'root',
-        `${selectedTemplate.short_name}_chr.txt`,
-        'text'
-      );
-      if (chrFile) {
-        project.metadata.chr = chrFile.split('\r\n').filter(Boolean);
-      }
-      if (
-        !project.metadata.regions?.length &&
-        project.metadata.unoptimizedRegions?.length
-      ) {
-        GlobalStore.actions.setLoading(true);
-        project.metadata.regions = await optimizeBoundingBoxes(
-          project.metadata.unoptimizedRegions
-        );
-        GlobalStore.actions.setLoading(false);
-        delete project.metadata.unoptimizedRegions;
-        await writeEQFile(
-          'zones',
-          `${selectedTemplate.short_name}.json`,
-          JSON.stringify(project.metadata)
-        );
-      }
-      const encoded = msgpack.encode(project);
-      const zipped = pako.deflate(encoded);
-      await writeEQFile('projects', projectName, zipped);
-      openAlert(`Project ${projectName} successfully created.`);
-      setZone(project);
     }
-  }, [radioValue, selectedTemplate, openAlert, projectName]);
-
-  console.log('ZONE', zone);
+    const encoded = msgpack.encode(project);
+    const zipped = pako.deflate(encoded);
+    await writeEQFile('projects', projectName, zipped);
+    openAlert(`Project ${projectName} successfully created.`);
+    setZone(project);
+  }, [selectedTemplate, openAlert, projectName]);
 
   return zone ? (
     <ZoneBuilder zone={zone} goHome={() => setZone(null)} />
@@ -251,7 +240,8 @@ export const ZoneBuilderDialog = ({ open }) => {
             color="text.primary"
             gutterBottom
           >
-            This feature is in BETA! Please back up your files before replacing them.
+            This feature is in BETA! Please back up your files before replacing
+            them.
           </Typography>
           <Typography
             sx={{ fontSize: 16, marginBottom: 2, maxWidth: '100%' }}
@@ -265,170 +255,155 @@ export const ZoneBuilderDialog = ({ open }) => {
             from the landing page or through the Model Exporter.
           </Typography>
         </Stack>
-        {loading ? (
-          <Stack
-            direction="row"
-            justifyContent={'center'}
-            alignContent={'center'}
-          >
-            <CircularProgress size={20} sx={{ margin: '7px' }} />
-            <Typography
-              sx={{
-                fontSize  : 18,
-                lineHeight: '25px',
-                margin    : '5px',
-                width     : '70%',
-              }}
-            >
-              Loading EQ Assets
-            </Typography>
-          </Stack>
-        ) : (
-          <>
-            <FormControl sx={{ margin: '20px 0' }} fullWidth>
-              <Stack direction="row">
-                <Autocomplete
-                  size="small"
-                  sx={{
-                    width      : '250px',
-                    maxWidth   : '250px',
-                    marginLeft : '40px',
-                    marginRight: '10px',
-                  }}
-                  isOptionEqualToValue={(option, value) =>
-                    option.key === value.key
-                  }
-                  onChange={async (e, values) => {
-                    if (!values) {
-                      return;
-                    }
-                    setSelectedProject(projects[values.id]);
-                  }}
-                  renderOption={(props, option) => {
-                    return (
-                      <li {...props} key={option.key}>
-                        {option.label}
-                      </li>
-                    );
-                  }}
-                  options={projects.map((proj, idx) => {
-                    return {
-                      label: proj,
-                      id   : idx,
-                      key  : proj,
-                    };
-                  })}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Load Existing Project" />
-                  )}
-                />
-                <Button
-                  ref={loadProjectRef}
-                  onClick={() => loadProject(selectedProject)}
-                  disabled={!selectedProject}
-                  color="primary"
-                  variant="outlined"
-                >
-                  Load Project
-                </Button>
-              </Stack>
-            </FormControl>
-            <FormControl fullWidth>
-              <RadioGroup
-                aria-labelledby="template-select-group-label"
-                value={radioValue}
-                onChange={(e) => setRadioValue(e.target.value)}
-                name="radio-buttons-group"
-              >
-                <FormControlLabel
-                  sx={{ margin: '10px 0px' }}
-                  value="template"
-                  control={<Radio />}
-                  label={'Project From Zone Template'}
-                />
-                <Autocomplete
-                  disabled={radioValue === 'scratch'}
-                  size="small"
-                  sx={{ width: '250px', maxWidth: '250px', marginLeft: '40px' }}
-                  id="combo-box-demo"
-                  isOptionEqualToValue={(option, value) =>
-                    option.key === value.key
-                  }
-                  onChange={async (e, values) => {
-                    if (!values) {
-                      return;
-                    }
-                    setSelectedTemplate(templates[values.id]);
-                  }}
-                  renderOption={(props, option) => {
-                    return (
-                      <li {...props} key={option.key}>
-                        {option.label}
-                      </li>
-                    );
-                  }}
-                  options={templates.map((zone, idx) => {
-                    return {
-                      label: `${zone.long_name} - ${zone.short_name} ${
-                        zone.version > 0 ? `[v${zone.version}]` : ''
-                      }`.trim(),
-                      id : idx,
-                      key: `${zone.id}-${zone.zoneidnumber}`,
-                    };
-                  })}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Project From Zone Template" />
-                  )}
-                />
-                <FormControlLabel
-                  sx={{ margin: '10px 0px' }}
-                  value="scratch"
-                  control={<Radio />}
-                  label="New Project (Bring your own .glb terrain)"
-                />
-                <MuiFileInput
-                  disabled={radioValue !== 'scratch'}
-                  size="small"
-                  fullWidth
-                  sx={{ width: '250px', maxWidth: '250px', marginLeft: '40px' }}
-                  label="Select .glb file"
-                  inputProps={{
-                    accept: ['.glb'],
-                  }}
-                  value={glb}
-                  onChange={handleChange}
-                />
-              </RadioGroup>
-            </FormControl>
-            <FormControl sx={{ margin: '15px 0px' }} fullWidth>
-              <Stack
-                direction={'row'}
-                alignContent={'space-evenly'}
-                sx={{ width: '100%' }}
-              ></Stack>
-            </FormControl>
-            <Stack direction="row" sx={{ marginLeft: '40px' }}>
-              <TextField
+
+        <>
+          <FormControl sx={{ margin: '20px 0' }} fullWidth>
+            <Stack direction="row">
+              <Autocomplete
                 size="small"
-                sx={{ marginRight: '10px' }}
-                label="New Project Name"
-                value={projectName}
-                placeholder="New Project"
-                onChange={(e) => {
-                  setProjectName(e.target.value);
+                sx={{
+                  width      : '250px',
+                  maxWidth   : '250px',
+                  marginLeft : '40px',
+                  marginRight: '10px',
                 }}
-              ></TextField>
+                value={
+                  selectedProject 
+                    ? { label: selectedProject, key: selectedProject } 
+                    : null
+                }
+                ref={projectRef}
+                isOptionEqualToValue={(option, value) =>
+                  option.key === value.key
+                }
+                onChange={async (e, values) => {
+                  if (!values) {
+                    return;
+                  }
+                  setSelectedProject(projects[values.id]);
+                }}
+                renderOption={(props, option) => {
+                  return (
+                    <li {...props} key={option.key}>
+                      {option.label}
+                    </li>
+                  );
+                }}
+                options={projects.map((proj, idx) => {
+                  return {
+                    label: proj,
+                    id   : idx,
+                    key  : proj,
+                  };
+                })}
+                renderInput={(params) => (
+                  <TextField {...params} label="Load Existing Project" />
+                )}
+              />
               <Button
-                onClick={createNewProject}
-                disabled={!projectName.length}
+                ref={loadProjectRef}
+                onClick={() => loadProject(selectedProject)}
+                disabled={!selectedProject}
                 color="primary"
                 variant="outlined"
               >
-                Create New Project
+                Load Project
+              </Button>
+              <Button
+                sx={{ marginLeft: '5px' }}
+                onClick={() => {
+                  confirm({
+                    description: 'Are you sure you want to delete this project?',
+                    title      : 'Delete EQS Project',
+                  })
+                    .then(() => {
+                      deleteEqFileOrFolder('projects', selectedProject).then(() => {
+                        const newFiles = projects.filter(
+                          (n) => n !== selectedProject
+                        );
+                        setProjects(newFiles);
+                        setSelectedProject(newFiles[0]);
+                        openAlert(`Deleted project ${selectedProject}`);
+                      }).catch(() => {
+                        openAlert('Error deleting project');
+                      });
+                    })
+                    .catch(() => {
+                      /* ... */
+                    });
+                 
+                }}
+                disabled={!selectedProject}
+                color="primary"
+                variant="outlined"
+              >
+                <DeleteIcon />
               </Button>
             </Stack>
-          </>
-        )}
+          </FormControl>
+          <FormControl fullWidth>
+            <Autocomplete
+              size="small"
+              sx={{ width: '450px', maxWidth: '450px', marginLeft: '40px' }}
+              isOptionEqualToValue={(option, value) => option.key === value.key}
+              onChange={async (e, values) => {
+                if (!values) {
+                  return;
+                }
+                setSelectedTemplate(templates[values.id]);
+              }}
+              renderOption={(props, option) => {
+                return (
+                  <li {...props} key={option.key}>
+                    {option.label}
+                  </li>
+                );
+              }}
+              options={templates.map((zone, idx) => {
+                return {
+                  label: `${zone.long_name} - ${zone.short_name} ${
+                    zone.version > 0 ? `[v${zone.version}]` : ''
+                  }`.trim(),
+                  id : idx,
+                  key: `${zone.id}-${zone.zoneidnumber}`,
+                };
+              })}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Create Project From Zone Template"
+                />
+              )}
+            />
+          </FormControl>
+          <FormControl sx={{ margin: '15px 0px' }} fullWidth>
+            <Stack
+              direction={'row'}
+              alignContent={'space-evenly'}
+              sx={{ width: '100%' }}
+            ></Stack>
+          </FormControl>
+          <Stack direction="row" sx={{ marginLeft: '40px' }}>
+            <TextField
+              size="small"
+              sx={{ marginRight: '10px' }}
+              label="New Project Name"
+              value={projectName}
+              placeholder="New Project"
+              onChange={(e) => {
+                setProjectName(e.target.value);
+              }}
+            ></TextField>
+            <Button
+              onClick={createNewProject}
+              disabled={!projectName.length}
+              color="primary"
+              variant="outlined"
+            >
+              Create New Project
+            </Button>
+          </Stack>
+        </>
       </DialogContent>
       <DialogActions>
         <Button

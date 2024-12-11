@@ -53,6 +53,7 @@
     border-right: 2px solid rgba(0,0,0,0.1);
     position: absolute;
 
+
     .builder-left-nav-button {
         border-radius: 15px;
         width: 70px;
@@ -64,6 +65,19 @@
         &:hover {
             opacity: 1.0;
         }
+    }
+    @media(max-height: 800px) {
+        .builder-left-nav-button {
+            border-radius: 10px;
+            // width: 50px;
+            height: 50px;
+            margin: 0;
+            padding: 0;
+            svg {
+                scale: 0.9;
+            }
+        }
+
     }
     .builder-left-nav-button-open {
         opacity: 1.0;

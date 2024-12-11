@@ -34,6 +34,9 @@ export const RegionProvider = ({ children }) => {
   const [upgrader, setUpgrader] = useState({ fn: () => {} });
 
   const zonePointApi = useMemo(() => {
+    if (!Spire) {
+      return null;
+    }
     return new ZonePointApi(...Spire.SpireApi.cfg());
   }, [Spire]);
 
