@@ -424,10 +424,8 @@ export class RecastNavigationJSPlugin {
                 const closestPointRecast = this.getClosestPoint(startingPoint);
             
                 
-                // Set the agent's destination
                 crowd.agentGoto(agentIndex, closestPointRecast);
         
-                // Compute the path in Babylon.js's coordinate system
                 pathPoints.push(
                   this.computePath(
                     inverseTransformVector3(crowd.getAgentPosition(agentIndex)),
@@ -436,12 +434,8 @@ export class RecastNavigationJSPlugin {
                 );
               }
     
-              // Dispose previous path lines
               this._scene.getMeshByName('path-line')?.dispose();
     
-              // Flatten pathPoints if necessary (assuming each path is an array of Vector3)
-              // const flattenedPoints = pathPoints.flat();
-              // Create a visual representation of the paths
               CreateGreasedLine(
                 'path-line',
                 {
