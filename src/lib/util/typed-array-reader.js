@@ -183,42 +183,54 @@ export class TypedArrayWriter {
     this.cursor = cursor;
   }
 
-  writeInt8(value) {
-    this.view.setInt8(this.cursor, value);
-    this.cursor += Int8Array.BYTES_PER_ELEMENT;
+  // Ensure the buffer has enough capacity to write new data
+  ensureCapacity(additionalBytes) {
+    const requiredCapacity = this.cursor + additionalBytes;
+    if (requiredCapacity > this.buffer.byteLength) {
+      const newBuffer = new ArrayBuffer(requiredCapacity); // Grow buffer exponentially
+      new Uint8Array(newBuffer).set(new Uint8Array(this.buffer)); // Copy old data
+      this.buffer = newBuffer;
+      this.view = new DataView(this.buffer);
+    }
   }
 
+  writeUint8Array(values) {
+    if (!(values instanceof Uint8Array)) {
+      throw new TypeError('writeUint8Array expects a Uint8Array');
+    }
+  
+    this.ensureCapacity(values.length);
+    new Uint8Array(this.buffer, this.cursor, values.length).set(values);
+    this.cursor += values.length;
+  }
+  
+
   writeUint8(value) {
+    this.ensureCapacity(Uint8Array.BYTES_PER_ELEMENT);
     this.view.setUint8(this.cursor, value);
     this.cursor += Uint8Array.BYTES_PER_ELEMENT;
   }
 
-  writeInt16(value) {
-    this.view.setInt16(this.cursor, value, true); // true for little-endian
-    this.cursor += Int16Array.BYTES_PER_ELEMENT;
-  }
-
-  writeUint16(value) {
-    this.view.setUint16(this.cursor, value, true); // true for little-endian
-    this.cursor += Uint16Array.BYTES_PER_ELEMENT;
-  }
-
-  writeInt32(value) {
-    this.view.setInt32(this.cursor, value, true); // true for little-endian
-    this.cursor += Int32Array.BYTES_PER_ELEMENT;
-  }
-
   writeUint32(value) {
+    this.ensureCapacity(Uint32Array.BYTES_PER_ELEMENT);
     this.view.setUint32(this.cursor, value, true); // true for little-endian
     this.cursor += Uint32Array.BYTES_PER_ELEMENT;
   }
 
+  writeInt32(value) {
+    this.ensureCapacity(Int32Array.BYTES_PER_ELEMENT);
+    this.view.setInt32(this.cursor, value, true); // true for little-endian
+    this.cursor += Int32Array.BYTES_PER_ELEMENT;
+  }
+
   writeFloat32(value) {
+    this.ensureCapacity(Float32Array.BYTES_PER_ELEMENT);
     this.view.setFloat32(this.cursor, value, true); // true for little-endian
     this.cursor += Float32Array.BYTES_PER_ELEMENT;
   }
 
   writeFloat64(value) {
+    this.ensureCapacity(Float64Array.BYTES_PER_ELEMENT);
     this.view.setFloat64(this.cursor, value, true); // true for little-endian
     this.cursor += Float64Array.BYTES_PER_ELEMENT;
   }

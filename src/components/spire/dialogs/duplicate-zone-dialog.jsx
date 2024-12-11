@@ -108,6 +108,7 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
         [api.constructor.name.replace(/Api$/, '')]: {
           enabled: true,
           state  : DuplicateState.NOT_RUN,
+          comment: ''
         },
       }),
       {}
@@ -118,6 +119,11 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
     (key, state) => setOptions((o) => ({ ...o, [key]: { ...o[key], state } })),
     []
   );
+  const updateComment = useCallback(
+    (key, comment) => setOptions((o) => ({ ...o, [key]: { ...o[key], comment } })),
+    []
+  );
+
 
   const updateRecords = useCallback(
     async ({ name, query, keyClears = [] }) => {
@@ -136,15 +142,15 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
         const [{ data: newEntities }, { data: oldEntities }] =
           await Promise.all([
             list(
-              new Spire.SpireQueryBuilder().where(query[0], '=', query[1]).get()
+              new Spire.SpireQueryBuilder().where(query[0], '=', query[1]).limit(100000).get()
             ),
             list(
-              new Spire.SpireQueryBuilder().where(query[0], '=', query[2]).get()
+              new Spire.SpireQueryBuilder().where(query[0], '=', query[2]).limit(100000).get()
             ),
           ]);
 
         if (oldEntities.length === newEntities.length) {
-          console.log(`${name} had ${oldEntities.length} and so did new`);
+          updateComment(name, `Old zone had equal values (${oldEntities.length})`);
           updateState(name, DuplicateState.FINISHED);
         } else {
           let highestId =
@@ -180,15 +186,18 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
               console.log(`${name} already had entry`, oldEntity);
             }
           }
-          await Promise.all(promises.map((fn) => fn()));
+          await Promise.all(promises.map((fn) => fn().catch(() => {
+            
+          })));
           updateState(name, DuplicateState.FINISHED);
+          updateComment(name, `Created (${promises.length}) entries`);
         }
       } catch (e) {
         console.warn(`Error updating ${name}`, e);
         updateState(name, DuplicateState.ERROR);
       }
     },
-    [Spire, api, updateState]
+    [Spire, api, updateState, updateComment]
   );
 
   const startDuplication = useCallback(async () => {
@@ -208,9 +217,12 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
       console.log('Ex zones', existingZones);
       if (existingZones.length) {
         updateState('Zone', DuplicateState.FINISHED);
+        updateComment('Zone', 'Zone exists');
       } else {
         await api.zoneApi.createZone({ zone: newZone });
         updateState('Zone', DuplicateState.FINISHED);
+        updateComment('Zone', 'Zone created');
+
       }
     } catch (e) {
       console.warn('Error updating zone', e);
@@ -244,8 +256,9 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
     });
 
     await updateRecords({
-      name : 'SpawnEvent',
-      query: ['zone', shortName, zone.short_name],
+      name     : 'SpawnEvent',
+      query    : ['zone', shortName, zone.short_name],
+      keyClears: ['id']
     });
 
     await updateRecords({
@@ -286,8 +299,9 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
     });
 
     await updateRecords({
-      name : 'Forage',
-      query: ['zoneid', zoneId, zone.zoneidnumber],
+      name     : 'Forage',
+      query    : ['zoneid', zoneId, zone.zoneidnumber],
+      keyClears: ['id']
     });
 
     await updateRecords({
@@ -339,6 +353,7 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
     zoneId,
     Spire,
     api,
+    updateComment,
     updateState,
     updateRecords,
   ]);
@@ -411,10 +426,13 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold' }}>
-                    Duplicate Table
+                    Table
                   </TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Enabled</TableCell>
                   <TableCell sx={{ fontWeight: 'bold' }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold' }}>
+                    Comment
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -435,6 +453,7 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
                       />
                     </TableCell>
                     <TableCell>{option.state}</TableCell>
+                    <TableCell>{option.comment}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

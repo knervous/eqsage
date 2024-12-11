@@ -8,6 +8,7 @@ import { RegionDrawer } from './regions';
 import { ObjectsDrawer } from './objects';
 import { gameController } from '../../../viewer/controllers/GameController';
 import { ZoneDrawer } from './zone';
+import { NavigationDrawer } from './navigation';
 const zb = gameController.ZoneBuilderController;
 
 export const Drawer = () => {
@@ -36,6 +37,8 @@ export const Drawer = () => {
         return <ZoneDrawer />;
       case 'objects':
         return <ObjectsDrawer selectedObject={selectedObject} />;
+      case 'navigation':
+        return <NavigationDrawer />;
       default:
         return null;
     }

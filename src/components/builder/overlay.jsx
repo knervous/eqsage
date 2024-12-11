@@ -4,6 +4,7 @@ import { Box, Stack, Typography } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
 import IconButton from '@mui/material/IconButton';
 import NotificationImportantIcon from '@mui/icons-material/NotificationImportant';
+import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import AudiotrackIcon from '@mui/icons-material/Audiotrack';
 import ForestIcon from '@mui/icons-material/Forest';
@@ -159,6 +160,13 @@ export const BuilderOverlay = () => {
               drawer="sounds"
               text={'Sounds'}
               Icon={AudiotrackIcon}
+              toggleDrawer={toggleDrawer}
+            />
+            <DrawerButton
+              drawerState={drawerState}
+              drawer="navigation"
+              text={'Navigation'}
+              Icon={DirectionsRunIcon}
               toggleDrawer={toggleDrawer}
             />
           </>
