@@ -273,7 +273,7 @@ export const ZoneChooserDialog = ({ open }) => {
           Icon={TerrainIcon}
           isNew
           newText="New! (BETA)"
-          title="Zone Builder (Under Construction)"
+          title="Zone Builder (NEW)"
         />
         <FlyoutButton
           disabled={selectedZone}

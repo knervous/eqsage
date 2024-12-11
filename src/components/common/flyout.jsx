@@ -26,17 +26,26 @@ export const Flyout = ({ children }) => {
   );
 };
 
-export const FlyoutButton = ({ Icon, title, isNew = false, newText = 'New!', ...rest }) => (
-  <CustomTooltip placement="right" enterDelay={50} title={title}>
-    <IconButton {...rest} className="flyout-button">
-      <Icon />
-      {isNew && (
-        <Box className="flyout-new">
-          <Typography sx={{ fontSize: '15px', padding: '10px', width: '250px', marginLeft: '50px' }}>
-            {newText}
-          </Typography>
-        </Box>
-      )}
-    </IconButton>
-  </CustomTooltip>
+export const FlyoutButton = ({
+  Icon,
+  title,
+  ...rest
+}) => (
+  <IconButton {...rest} className="flyout-button">
+    <Icon />
+    {title && (
+      <Box className="flyout-new">
+        <Typography
+          sx={{
+            fontSize  : '15px !important',
+            padding   : '10px',
+            width     : '250px',
+            marginLeft: '50px',
+          }}
+        >
+          {title}
+        </Typography>
+      </Box>
+    )}
+  </IconButton>
 );
