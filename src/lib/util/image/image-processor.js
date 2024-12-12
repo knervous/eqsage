@@ -46,6 +46,7 @@ class ImageProcessor {
    */
 
   initializeWorkers(workers = Math.min(4, navigator.hardwareConcurrency ?? 4)) {
+    console.log(`Initializing ${workers} image workers`);
     if (this.#workers.length) {
       console.log('Reusing initialized workers');
       return;
@@ -66,6 +67,18 @@ class ImageProcessor {
     });
     this.#workers = [];
     this.babylonWorkers = [];
+  }
+
+  currentWorkerIdx = 0;
+  /**
+   * 
+   * @param {ArrayBuffer} buffer 
+   */
+  async compressImage(buffer) {
+    const idx = this.currentWorkerIdx % 4;
+    const worker = this.babylonWorkers[idx];
+    this.currentWorker++;
+    return await worker.compressImage(Comlink.transfer(buffer, [buffer]));
   }
 
   /**

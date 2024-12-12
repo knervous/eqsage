@@ -26,6 +26,7 @@
     "@testing-library/react": "^13.4.0",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitejs/plugin-react-swc": "^3.7.0",
+    "@yireen/squoosh-browser": "^1.0.7",
     "auto-bind": "^5.0.1",
     "classnames": "^2.5.1",
     "comlink": "^4.4.1",
