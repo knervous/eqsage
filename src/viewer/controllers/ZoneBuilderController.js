@@ -54,6 +54,17 @@ class ZoneBuilderController extends GameControllerChild {
   clickCallbacks = [];
 
   /**
+   * @typedef {object} ProjectMetadata
+   * 
+   * @typedef {object} Project
+   * @property {string} projectName
+   * @property {Uint8Array} glb
+   * @property {Record<string, Uint8Array>} modelFiles
+   * @property {ProjectMetadata} metadata
+   */
+  /** @type {Project} */
+  project = {};
+  /**
    * @type {Object.<string, Promise<AssetContainer>}
    */
   assetContainers = {};
@@ -1240,4 +1251,4 @@ class ZoneBuilderController extends GameControllerChild {
 }
 
 export const zoneBuilderController = new ZoneBuilderController();
-window.zone = zoneBuilderController;
+window.zb = zoneBuilderController;

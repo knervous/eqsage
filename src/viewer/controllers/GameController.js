@@ -357,4 +357,4 @@ export class GameController {
 }
 
 export const gameController = new GameController();
-window.gameController = gameController;
+window.gc = window.gameController = gameController;

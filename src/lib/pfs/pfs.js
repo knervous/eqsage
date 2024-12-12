@@ -187,91 +187,125 @@ export class PFSArchive {
   }
 
   saveToFile() {
-    let buffer = new Uint8Array(0);
+    // We'll store all parts of the final file in this array.
+    const parts = [];
+    let currentLength = 0;
   
-    // Write Header
-    buffer = this.concatTypedArrays(buffer, new Uint8Array(12)); // Placeholder for header and dirOffset
-    const preamble = new Uint8Array([0x50, 0x46, 0x53, 0x20, 0, 0, 2, 0]); // 'PFS ' and some additional data
-    buffer.set(preamble, 4);
+    // 1. Write header placeholder (12 bytes: 4 bytes for dirOffset placeholder, then 'PFS ', and some data)
+    const header = new Uint8Array(12);
+    parts.push(header);
+    currentLength += 12;
   
-    const dirEntries = [];
-    let filesList = new Uint8Array(0);
-    let filePos = 0;
+    const preamble = new Uint8Array([0x50, 0x46, 0x53, 0x20, 0, 0, 2, 0]); // 'PFS ' and additional data
+    header.set(preamble, 4);
   
+    // 2. Prepare filesList. Instead of multiple concat calls, we will do it in one shot.
     let fileCount = 0;
     for (const [_fileName] of this.files) {
-
       fileCount++;
     }
-    filesList = this.concatTypedArrays(filesList, new Uint8Array(4));
+  
+    // Calculate total size needed for filesList
+    // filesList structure:
+    // [fileCount:4 bytes] [for each file: filenameLen(4 bytes) + filename(ASCII including NULL)]
+    let filesListSize = 4; // for fileCount
+    for (const [filename] of this.files) {
+      const filenameLen = filename.length + 1; // +1 for null terminator
+      filesListSize += 4 + filenameLen;
+    }
+  
+    const filesList = new Uint8Array(filesListSize);
+    let filePos = 0;
     writeUInt32LE(filesList, fileCount, filePos);
     filePos += 4;
   
+    const dirEntries = [];
+  
+    // 3. Append each file's compressed data, track directory entries, and build filesList in one go
     for (const [filename, data] of this.files) {
       const crc = crcInstance.get(filename);
-      const offset = buffer.length;
+      const offset = currentLength;
       const sz = this.filesUncompressedSize.get(filename);
   
-      buffer = this.concatTypedArrays(buffer, data);
+      // Append file data
+      parts.push(data);
+      currentLength += data.length;
   
       dirEntries.push({ crc, offset, sz });
   
+      // Add filename to filesList
       const filenameLen = filename.length + 1;
-      const filenameBuffer = new Uint8Array(filenameLen);
-      for (let i = 0; i < filename.length; ++i) {
-        filenameBuffer[i] = filename.charCodeAt(i);
-      }
-      filesList = this.concatTypedArrays(filesList, new Uint8Array(4 + filenameLen));
       writeUInt32LE(filesList, filenameLen, filePos);
       filePos += 4;
-      filesList.set(filenameBuffer, filePos);
-      filePos += filenameLen;
-      filesList[filePos - 1] = 0; // Null terminator
+      for (let i = 0; i < filename.length; ++i) {
+        filesList[filePos++] = filename.charCodeAt(i);
+      }
+      filesList[filePos++] = 0; // Null terminator
     }
   
-    const fileOffset = buffer.length;
+    // 4. Deflate the filesList and append
     const deflatedFileList = this.writeDeflatedFileBlock(filesList);
     if (!deflatedFileList) {
       return false;
     }
-    buffer = this.concatTypedArrays(buffer, deflatedFileList);
+  
+    const fileOffset = currentLength; // Where the filesList block is stored
+    parts.push(deflatedFileList);
+    currentLength += deflatedFileList.length;
   
     const fileSize = filesList.length;
   
-    const dirOffset = buffer.length;
-    writeUInt32LE(buffer, dirOffset, 0); // Write dirOffset at the start of the buffer
+    // 5. Write directory offset at the start
+    const dirOffset = currentLength;
+    writeUInt32LE(parts[0], dirOffset, 0); // parts[0] = header
   
-    const dirCount = dirEntries.length + 1;
-    buffer = this.concatTypedArrays(buffer, new Uint8Array(4));
-    writeUInt32LE(buffer, dirCount, dirOffset);
+    // 6. Directory count
+    const dirCount = dirEntries.length + 1; // +1 for the filenames entry
+    const dirCountBuffer = new Uint8Array(4);
+    writeUInt32LE(dirCountBuffer, dirCount, 0);
+    parts.push(dirCountBuffer);
+    currentLength += 4;
   
-    let _curDirEntryOffset = dirOffset + 4;
+    // 7. Append directory entries
     for (const { crc, offset, sz } of dirEntries) {
       const entryBuffer = new Uint8Array(12);
       writeInt32LE(entryBuffer, crc, 0);
       writeUInt32LE(entryBuffer, offset, 4);
       writeUInt32LE(entryBuffer, sz, 8);
-      buffer = this.concatTypedArrays(buffer, entryBuffer);
-      _curDirEntryOffset += 12;
+      parts.push(entryBuffer);
+      currentLength += 12;
     }
   
+    // 8. Append the special directory entry for the filenames block
     const dirEntryBuffer = new Uint8Array(12);
     writeInt32LE(dirEntryBuffer, 0x61580AC9, 0);
     writeUInt32LE(dirEntryBuffer, fileOffset, 4);
     writeUInt32LE(dirEntryBuffer, fileSize, 8);
-    buffer = this.concatTypedArrays(buffer, dirEntryBuffer);
-    _curDirEntryOffset += 12;
+    parts.push(dirEntryBuffer);
+    currentLength += 12;
   
+    // 9. Append footer if any
     if (this.footer) {
       const footerBuffer = new Uint8Array(9);
       footerBuffer.set(new TextEncoder().encode('STEVE'), 0);
       writeUInt32LE(footerBuffer, this.footerDate, 5);
-      buffer = this.concatTypedArrays(buffer, footerBuffer);
+      parts.push(footerBuffer);
+      currentLength += 9;
     }
   
-    return buffer;
+    // 10. Concatenate everything into a single Uint8Array
+    const finalBuffer = new Uint8Array(currentLength);
+    {
+      let offset = 0;
+      for (const part of parts) {
+        finalBuffer.set(part, offset);
+        offset += part.length;
+      }
+    }
+  
+    return finalBuffer;
   }
-
+  
   concatTypedArrays(a, b) {
     const c = new Uint8Array(a.length + b.length);
     c.set(a, 0);

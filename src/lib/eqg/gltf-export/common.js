@@ -1,7 +1,7 @@
 import { Accessor, Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 
-import { mat4, quat, vec3 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import {
   appendObjectMetadata,
   getEQFile,

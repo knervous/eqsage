@@ -1,20 +1,18 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { get, set, del } from 'idb-keyval';
 
-import { Button, Stack, Typography } from '@mui/material';
+import { Button, Typography } from '@mui/material';
 import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Engine } from '@babylonjs/core/Engines/engine';
-import { Tools } from '@babylonjs/core/Misc/tools';
+import { WebIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 
 import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { CommonDialog } from '../spire/dialogs/common';
-import { gameController } from '../../viewer/controllers/GameController';
 import {
   getEQFile,
-  getEQFileExists,
+  getEQSageDir,
   writeEQFile,
   writeFile,
 } from '../../lib/util/fileHandler';
@@ -26,6 +24,8 @@ import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
 
 import { mat4, vec3 } from 'gl-matrix';
 import { usePermissions } from '../../hooks/permissions';
+import { useProject } from './hooks/metadata';
+import { imageProcessor } from '../../lib/util/image/image-processor';
 
 const version = 2;
 const shadersUsed = [
@@ -64,13 +64,29 @@ const propertiesUsed = [
   // e_fSlide properties
 ];
 
+const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+
+async function compressPNG(inputBuffer) {
+  const result = await imageProcessor.compressImage(inputBuffer.buffer);
+  const byteArray = new Uint8Array(result);
+  return byteArray;
+}
+
+export function getCleanByteArray(arr) {
+  const newBuffer = new ArrayBuffer(arr.byteLength);
+  const newArray = new Uint8Array(newBuffer);
+  newArray.set(arr);
+  return newArray;
+}
+
 const cStringLengthReduce = (arr) =>
   arr.reduce((acc, name) => acc + name.length + 1, 0);
 
 export const ExportDialog = ({ open, setOpen }) => {
-  const [files, setFiles] = useState([]);
+  const [message, setMessage] = useState('');
   const { openAlert } = useAlertContext();
   const [exporting, setExporting] = useState(false);
+  const { zb, name } = useProject();
   const [
     _apiSupported,
     _onDrop,
@@ -78,27 +94,32 @@ export const ExportDialog = ({ open, setOpen }) => {
     fsHandle,
     onFolderSelected,
   ] = usePermissions('zb-out');
-  const fsWrite = useCallback(async (folder, name, data, subdir) => {
-    if (fsHandle) {
-      await writeFile(fsHandle, name, data);
-      return;
-    }
-    await writeEQFile(folder, name, data, subdir);
-  }, [fsHandle]);
+
+  const fsWrite = useCallback(
+    async (folder, name, data, subdir) => {
+      if (fsHandle) {
+        await writeFile(fsHandle, name, data);
+        return;
+      }
+      await writeEQFile(folder, name, data, subdir);
+    },
+    [fsHandle]
+  );
+
   /* eslint-disable */
   const doExport = useCallback(async () => {
     setExporting(true);
-    const objectPaths = await getEQFile("data", "objectPaths.json", "json");
-    console.log("object paths", objectPaths);
-    const name = gameController.ZoneBuilderController.name.replace(".eqs", "");
-    const newFiles = [];
-    newFiles.push(`${name}.eqg`);
 
-    const metadata = gameController.ZoneBuilderController.metadata;
+    const metadata = zb.metadata;
     if (!metadata) {
       setExporting(false);
       return;
     }
+
+    const objectPaths = await getEQFile("data", "objectPaths.json", "json");
+    console.log("object paths", objectPaths);
+    const newFiles = [];
+    newFiles.push(`${name}.eqg`);
 
     // Asset text file
     await fsWrite(
@@ -124,46 +145,75 @@ export const ExportDialog = ({ open, setOpen }) => {
       const si = SoundInstance.fromObject(sound);
       soundInstances.push(si.getEmtString());
     }
-    await fsWrite(
-      "output",
-      `${name}.emt`,
-      soundInstances.join("\r\n"),
-      name
-    );
+    await fsWrite("output", `${name}.emt`, soundInstances.join("\r\n"), name);
     newFiles.push(`${name}.emt`);
 
     // Create EQG
     const eqgArchive = new PFSArchive();
-    console.log("metadata", metadata);
+    const imageWritePromises = [];
+
+    const writePfsFile = (name, data, override = false) => {
+      if (eqgArchive.fileExists(name) && !override) {
+        return;
+      }
+      // Compress all png and let this happen with some concurrency.
+      // First write a blank file so this doesn't get hit twice, then store the promise for later
+      // Where we can await until they're all finished before finalizing
+      if (name.endsWith(".png") && !override) {
+        // Skip compression for materials that need alpha testing since jpeg doesn't support opacity.
+        // Figure out multimaterial and submeshes with indexed positions later
+        for (const m of zb.scene.materials) {
+          if (
+            m.name.toLowerCase() === name.replace(".png", "").toLowerCase() &&
+            (m.needAlphaTesting() || m?.albedoTexture?.hasAlpha)
+          ) {
+            eqgArchive.setFile(name, data);
+            return;
+          }
+        }
+        eqgArchive.setFile(name.replace(".png", ".jpg"), "");
+        imageWritePromises.push(
+          new Promise((res) =>
+            compressPNG(data).then((buffer) => {
+              eqgArchive.setFile(
+                name.replace(".png", ".jpg"),
+                new Uint8Array(buffer)
+              );
+              res();
+            })
+          )
+        );
+        return true;
+      } else {
+        eqgArchive.setFile(name, data);
+      }
+    };
 
     const names = [];
+
     // Animated textures
-    for (const m of gameController.currentScene.materials) {
+    for (const m of zb.scene.materials) {
       if (m.metadata?.gltf?.extras?.animationDelay) {
+        const needsAlphaTesting =
+          m.needAlphaTesting() || m?.albedoTexture?.hasAlpha;
         const { frames, animationDelay } = m.metadata?.gltf?.extras;
         const text = [
           frames.length,
           animationDelay,
-          ...frames.map((p) => `${p}.png`),
+          ...frames.map((p) => `${p}.${needsAlphaTesting ? "png" : "jpg"}`),
         ];
-        eqgArchive.setFile(`${frames[0]}.txt`, text.join("\r\n"));
+        // Pull from disk
+        for (const frame of frames) {
+          const name = `${frame}.png`;
+          if (!eqgArchive.fileExists(name)) {
+            const png = await getEQFile("textures", name);
+            if (png) {
+              writePfsFile(name, new Uint8Array(png), needsAlphaTesting);
+            }
+          }
+        }
+        writePfsFile(`${frames[0]}.txt`, text.join("\r\n"), needsAlphaTesting);
       }
-    }
-    for (const t of gameController.ZoneBuilderController.animationTextures) {
-      const textureName = `${t.name}.png`.toLowerCase();
-      const rawBuffer = t._readPixelsSync();
-      const { width, height } = t.getSize();
-      const buffer = await Tools.DumpDataAsync(
-        width,
-        height,
-        rawBuffer,
-        "image/png",
-        undefined,
-        true,
-        true
-      );
-      names.push(textureName);
-      eqgArchive.setFile(textureName, new Uint8Array(buffer));
     }
 
     const writeEqgMod = async (
@@ -173,51 +223,60 @@ export const ExportDialog = ({ open, setOpen }) => {
       litNames = [],
       bones = []
     ) => {
-      const textureNames = [...names];
+      let textureNames = [...names];
       if (terrain) {
         const water_e = await fetch("/static/water_e.dds").then((r) =>
           r.arrayBuffer()
         );
         textureNames.push("water_e.dds");
-        eqgArchive.setFile("water_e.dds", new Uint8Array(water_e));
+        writePfsFile("water_e.dds", new Uint8Array(water_e));
         const water_n = await fetch("/static/water_n.dds").then((r) =>
           r.arrayBuffer()
         );
 
         textureNames.push("water_n.dds");
-        eqgArchive.setFile("water_n.dds", new Uint8Array(water_n));
+        writePfsFile("water_n.dds", new Uint8Array(water_n));
 
         const test = await fetch("/static/ra_watertest_c_01.dds").then((r) =>
           r.arrayBuffer()
         );
         textureNames.push("watertest.dds");
-        eqgArchive.setFile("watertest.dds", new Uint8Array(test));
+        writePfsFile("watertest.dds", new Uint8Array(test));
+      }
+
+      if (terrain) {
+        const cleanGlb = getCleanByteArray(zb.project.glb);
+        const document = await io.readBinary(cleanGlb);
+        const root = document.getRoot();
+    
+        root.listTextures().forEach((texture) => {
+          const textureName = `${texture.getName().toLowerCase()}.png`;
+          const didChange = writePfsFile(textureName, texture.getImage());
+          textureNames.push(didChange ? textureName.replace(".png", ".jpg") : textureName);
+        });
+    
+      } else {
+        const cleanGlb = getCleanByteArray(zb.project.modelFiles[modelName]);
+        const document = await io.readBinary(cleanGlb);
+        const root = document.getRoot();
+
+        root.listTextures().forEach((texture) => {
+          const textureName = `${texture.getName().toLowerCase()}.png`;
+          const didChange = writePfsFile(textureName, texture.getImage());
+          textureNames.push(didChange ? textureName.replace(".png", ".jpg") : textureName);
+        });
       }
 
       for (const mesh of meshes) {
         const material = mesh.material ?? mesh.getMaterial?.();
         if (material instanceof PBRMaterial && material.albedoTexture) {
-          const textureName = `${material.name}.png`.toLowerCase();
-          if (eqgArchive.fileExists(textureName)) {
-            textureNames.push(textureName);
-            continue;
-          }
-          const albedoTexture = material.albedoTexture;
-          const rawBuffer = albedoTexture._readPixelsSync();
-          const { width, height } = albedoTexture.getSize();
-          const buffer = await Tools.DumpDataAsync(
-            width,
-            height,
-            rawBuffer,
-            "image/png",
-            undefined,
-            true,
-            true
-          );
+          const needsAlphaTesting = material.needAlphaTesting() || material.albedoTexture?.hasAlpha;
+          const textureName = `${material.name}.${needsAlphaTesting ? 'png' : 'jpg'}`.toLowerCase();
           textureNames.push(textureName);
-          eqgArchive.setFile(textureName, new Uint8Array(buffer));
         }
       }
+
+      textureNames = Array.from(new Set(textureNames));
 
       const matNames = Array.from(
         new Set(
@@ -264,7 +323,7 @@ export const ExportDialog = ({ open, setOpen }) => {
         );
         const textureIdx = textureNames.findIndex(
           (t) =>
-            t.replace(".png", "") ===
+            t.replace(".jpg", "").replace('.png', '') ===
             (mesh.material ?? mesh.getMaterial?.())?.name?.toLowerCase()
         );
 
@@ -325,7 +384,7 @@ export const ExportDialog = ({ open, setOpen }) => {
           var finalColor = new Color3(0, 0, 0);
 
           // Iterate over all lights in the scene and accumulate their contribution
-          gameController.currentScene.lights.forEach(function (light) {
+          zb.scene.lights.forEach(function (light) {
             var lightColor = light.diffuse; // Use light's diffuse color for calculations
 
             // For directional light
@@ -456,7 +515,7 @@ export const ExportDialog = ({ open, setOpen }) => {
           litWriter.writeUint8(b);
           litWriter.writeUint8(a);
         }
-        eqgArchive.setFile(litName, new Uint8Array(litBuffer));
+        writePfsFile(litName, new Uint8Array(litBuffer));
       }
 
       const vertLength = vertices.length * 4; // Each value 4 bytes
@@ -525,19 +584,19 @@ export const ExportDialog = ({ open, setOpen }) => {
         writer.writeInt32(material);
         writer.writeUint32(flags);
       }
-      eqgArchive.setFile(
+      writePfsFile(
         modelName + (terrain ? ".ter" : ".mod"),
         new Uint8Array(buffer)
       );
     };
 
-    const zoneMeshes = gameController.currentScene
+    const zoneMeshes = zb.scene
       .getNodeById("zone")
       .getChildMeshes()
       .filter((m) => m.getTotalVertices() > 0)
       .concat(
         ...(
-          gameController.currentScene
+          zb.scene
             .getNodeById("boundary")
             ?.getChildMeshes()
             ?.filter((m) => m.getTotalIndices() > 0) ?? []
@@ -561,12 +620,11 @@ export const ExportDialog = ({ open, setOpen }) => {
       // Start at 1 because of terrain
       let objectCount = 1;
       for (const [key, list] of Object.entries(metadata.objects)) {
-        const mesh = gameController.currentScene
+        const mesh = zb.scene
           .getNodeById("objects")
           .getChildMeshes()
           .find((o) => o.name.startsWith(`${key}_`));
         if (mesh) {
-          console.log("Writing mesh", mesh.name);
           await writeEqgMod(
             false,
             mesh.subMeshes || mesh.getChildMeshes(),
@@ -576,8 +634,6 @@ export const ExportDialog = ({ open, setOpen }) => {
           ).catch((e) => {
             console.warn(`error writing mesh ${mesh.name}`, e);
           });
-          console.log("Writing mesh done");
-
           for (const idx in list) {
             objectNames.push(`${key}${idx}`);
             objectCount++;
@@ -614,9 +670,7 @@ export const ExportDialog = ({ open, setOpen }) => {
 
         let name = `${regionTypeMap[r.regionType]}`;
         if (r.regionType === RegionType.Zoneline) {
-          name += `_${(
-            r.zoneLineInfo.index ?? r.zoneLineInfo.zoneIndex
-          )
+          name += `_${(r.zoneLineInfo.index ?? r.zoneLineInfo.zoneIndex)
             .toString()
             .padStart(2, "0")}_zoneline${idx}`;
         } else {
@@ -745,36 +799,39 @@ export const ExportDialog = ({ open, setOpen }) => {
 
       for (const [idx, light] of Object.entries(metadata.lights)) {
         writer.writeUint32(getStringIdx(`light${idx}`));
-        writer.writeFloat32(-light.x);
+        writer.writeFloat32(light.x);
         writer.writeFloat32(light.z);
         writer.writeFloat32(light.y);
         writer.writeFloat32(light.r);
         writer.writeFloat32(light.g);
         writer.writeFloat32(light.b);
-        writer.writeFloat32(50);
+        writer.writeFloat32(30);
       }
 
-      eqgArchive.setFile(`${name}.zon`, new Uint8Array(buffer));
-      // const data = await getEQFile('broodlands.eqg', 'broodlands.zon');
-      // eqgArchive.setFile(`${name}.zon`, new Uint8Array(data));
+      writePfsFile(`${name}.zon`, new Uint8Array(buffer));
     }
 
+    await Promise.all(imageWritePromises);
     console.log("EQG Archive", eqgArchive);
-    await fsWrite("output", `${name}.eqg`, eqgArchive.saveToFile(), name);
-    // await writeEQFile("root", `${name}.eqg`, eqgArchive.saveToFile());
-    openAlert("Saved files");
+    setMessage("Writing EQG to disk...");
+    await new Promise((res) => setTimeout(res, 0));
+    const savePerf = performance.now();
+    const file = eqgArchive.saveToFile();
+    console.log(`Took ${performance.now() - savePerf} to pack archive`);
+    await fsWrite("output", `${name}.eqg`, file, name);
+    const defaultDir = `${(await getEQSageDir()).name}/output/${name}`;
+    openAlert(`Saved files to ${fsHandle?.name ?? `${defaultDir}`}`);
     setExporting(false);
-  }, [fsWrite]);
-  useEffect(() => {
-    if (!open) {
-      setFiles([]);
-      return;
-    }
+  }, [fsWrite, zb, name]);
 
-    if (import.meta.env.VITE_LOCAL_DEV === "true") {
-      //);
+  useEffect(() => {
+    if (exporting) {
+      setMessage("Exporting...");
+    } else {
+      setMessage("");
     }
-  }, [open, openAlert, doExport]);
+  }, [exporting]);
+
   return (
     <CommonDialog
       fullWidth
@@ -786,26 +843,34 @@ export const ExportDialog = ({ open, setOpen }) => {
     >
       {open && (
         <>
-          <Stack
-            alignContent="center"
-            justifyContent="space-between"
-            direction="row"
-            spacing={1}
-          ></Stack>
-
+          <Typography
+            sx={{ fontSize: 16, marginBottom: "20px" }}
+            color="text.primary"
+            gutterBottom
+          >
+            {message || "Waiting to export..."}
+          </Typography>
           <Typography
             sx={{ fontSize: 16, marginBottom: 2 }}
             color="text.primary"
             gutterBottom
           >
-            Files can be found in {gameController.rootFileSystemHandle.name}
+            Files can be found in {fsHandle?.name}
             /output/
-            {gameController.ZoneBuilderController.name.replace(".eqs", "")}
+            {name}
           </Typography>
           <Button onClick={() => onFolderSelected()}>
             Select Output Folder
           </Button>
-          <Button disabled={exporting} onClick={doExport}>
+          <Button
+            disabled={exporting}
+            onClick={() =>
+              doExport().catch((e) => {
+                console.log(`ERROR export`, e);
+                setExporting(false);
+              })
+            }
+          >
             {exporting ? "Export in progress..." : "Export Zone"}
           </Button>
         </>

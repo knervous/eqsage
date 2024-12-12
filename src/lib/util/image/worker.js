@@ -1,6 +1,10 @@
 import * as Comlink from 'comlink';
 import { convertDDS2Jimp } from '../image-processing';
+import optimise, { init } from '@jsquash/oxipng/optimise';
 import 'jimp/browser/lib/jimp';
+
+console.log('Init worker');
+const initPromise = init('/static/squoosh_oxipng_bg.wasm');
 
 const ShaderType = {
   Diffuse                        : 0,
@@ -186,8 +190,29 @@ async function parseTexture(name, shaderType, data) {
   }
 }
 
+/**
+ * 
+ * @param {ArrayBuffer} buffer 
+ */
+async function compressImage(buffer) {
+  const uint8Array = new Uint8Array(buffer);
+  const blob = new Blob([uint8Array], { type: 'image/png' });
 
-const exports = { parseTextures };
+  try {
+    const imageBitmap = await createImageBitmap(blob);
+    const offscreen = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
+    const ctx = offscreen.getContext('2d');
+    ctx.drawImage(imageBitmap, 0, 0);
+    const quality = 0.7;
+    const compressedBlob = await offscreen.convertToBlob({ type: 'image/jpeg', quality });
+    const arrayBuffer = await compressedBlob.arrayBuffer();
+    return Comlink.transfer(arrayBuffer, [arrayBuffer]);
+  } catch (e) {
+    console.warn('Error in compress', e);
+  }
+  return null;
+}
+const exports = { parseTextures, compressImage };
 
 /** @type {typeof exports} */
 const exp = Object.fromEntries(Object.entries(exports).map(([key, fn]) => [key, async (...args) => {

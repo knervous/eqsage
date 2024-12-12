@@ -56,7 +56,6 @@ export const ZoneBuilderDialog = ({ open }) => {
   const [projects, setProjects] = useState([]);
   const { openAlert } = useAlertContext();
   const [selectedTemplate, setSelectedTemplate] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [zone, setZone] = useState(null);
   const projectRef = useRef(null);
   const loadProjectRef = useRef(null);
@@ -77,7 +76,6 @@ export const ZoneBuilderDialog = ({ open }) => {
   );
   useEffect(() => {
     (async () => {
-      setLoading(true);
       const projectDir = await getEQDir('projects');
       if (projectDir) {
         const files = (
@@ -106,7 +104,6 @@ export const ZoneBuilderDialog = ({ open }) => {
             .filter(Boolean)
         );
       }
-      setLoading(false);
     })();
   }, [zones]);
 
