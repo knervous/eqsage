@@ -1,16 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { Button, Typography } from '@mui/material';
+import {
+  Button,
+  List,
+  ListItem,
+  ListSubheader,
+  Typography,
+} from '@mui/material';
 import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-
 import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { CommonDialog } from '../spire/dialogs/common';
 import {
+  getEQDir,
   getEQFile,
   getEQSageDir,
   writeEQFile,
@@ -21,7 +27,6 @@ import { useAlertContext } from '../../context/alerts';
 import { SoundInstance } from '../../lib/s3d/sound/sound';
 import { TypedArrayWriter } from '../../lib/util/typed-array-reader';
 import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
-
 import { mat4, vec3 } from 'gl-matrix';
 import { usePermissions } from '../../hooks/permissions';
 import { useProject } from './hooks/metadata';
@@ -67,7 +72,7 @@ const propertiesUsed = [
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
 async function compressPNG(inputBuffer) {
-  const result = await imageProcessor.compressImage(inputBuffer.buffer);
+  const result = await imageProcessor.compressImage(inputBuffer);
   const byteArray = new Uint8Array(result);
   return byteArray;
 }
@@ -83,20 +88,22 @@ const cStringLengthReduce = (arr) =>
   arr.reduce((acc, name) => acc + name.length + 1, 0);
 
 export const ExportDialog = ({ open, setOpen }) => {
-  const [message, setMessage] = useState('');
   const { openAlert } = useAlertContext();
   const [exporting, setExporting] = useState(false);
+  const [exportedFiles, setExportedFiles] = useState([]);
   const { zb, name } = useProject();
   const [
     _apiSupported,
     _onDrop,
     _checkHandlePermissions,
-    fsHandle,
+    fsHandleSelected,
     onFolderSelected,
   ] = usePermissions('zb-out');
+  const [fsHandle, setFsHandle] = useState(null);
 
   const fsWrite = useCallback(
     async (folder, name, data, subdir) => {
+      setExportedFiles((f) => [...f, name]);
       if (fsHandle) {
         await writeFile(fsHandle, name, data);
         return;
@@ -109,7 +116,7 @@ export const ExportDialog = ({ open, setOpen }) => {
   /* eslint-disable */
   const doExport = useCallback(async () => {
     setExporting(true);
-
+    setExportedFiles([]);
     const metadata = zb.metadata;
     if (!metadata) {
       setExporting(false);
@@ -151,11 +158,11 @@ export const ExportDialog = ({ open, setOpen }) => {
     // Create EQG
     const eqgArchive = new PFSArchive();
     const imageWritePromises = [];
-
     const writePfsFile = (name, data, override = false) => {
       if (eqgArchive.fileExists(name) && !override) {
         return;
       }
+
       // Compress all png and let this happen with some concurrency.
       // First write a blank file so this doesn't get hit twice, then store the promise for later
       // Where we can await until they're all finished before finalizing
@@ -171,12 +178,14 @@ export const ExportDialog = ({ open, setOpen }) => {
             return;
           }
         }
-        eqgArchive.setFile(name.replace(".png", ".jpg"), "");
+        const convertedName = name.replace(".png", ".jpg");
+        eqgArchive.setFile(convertedName, "");
         imageWritePromises.push(
           new Promise((res) =>
             compressPNG(data).then((buffer) => {
+              writeEQFile('TEMP', convertedName, buffer);
               eqgArchive.setFile(
-                name.replace(".png", ".jpg"),
+                convertedName,
                 new Uint8Array(buffer)
               );
               res();
@@ -245,16 +254,13 @@ export const ExportDialog = ({ open, setOpen }) => {
       }
 
       if (terrain) {
-        const cleanGlb = getCleanByteArray(zb.project.glb);
-        const document = await io.readBinary(cleanGlb);
-        const root = document.getRoot();
-    
-        root.listTextures().forEach((texture) => {
-          const textureName = `${texture.getName().toLowerCase()}.png`;
-          const didChange = writePfsFile(textureName, texture.getImage());
-          textureNames.push(didChange ? textureName.replace(".png", ".jpg") : textureName);
-        });
-    
+        const zoneTextures = zb.zoneContainer.getChildMeshes().flatMap(m => m?.material?.getActiveTextures() ?? []);
+        zoneTextures.forEach(texture => {
+          const didChange = writePfsFile(texture.name, texture._buffer);
+          textureNames.push(
+            didChange ? texture.name.replace(".png", "") + '.jpg' : texture.name
+          );
+        })
       } else {
         const cleanGlb = getCleanByteArray(zb.project.modelFiles[modelName]);
         const document = await io.readBinary(cleanGlb);
@@ -263,15 +269,20 @@ export const ExportDialog = ({ open, setOpen }) => {
         root.listTextures().forEach((texture) => {
           const textureName = `${texture.getName().toLowerCase()}.png`;
           const didChange = writePfsFile(textureName, texture.getImage());
-          textureNames.push(didChange ? textureName.replace(".png", ".jpg") : textureName);
+          textureNames.push(
+            didChange ? textureName.replace(".png", "") + ".jpg" : textureName
+          );
         });
       }
 
       for (const mesh of meshes) {
         const material = mesh.material ?? mesh.getMaterial?.();
         if (material instanceof PBRMaterial && material.albedoTexture) {
-          const needsAlphaTesting = material.needAlphaTesting() || material.albedoTexture?.hasAlpha;
-          const textureName = `${material.name}.${needsAlphaTesting ? 'png' : 'jpg'}`.toLowerCase();
+          const needsAlphaTesting =
+            material.needAlphaTesting() || material.albedoTexture?.hasAlpha;
+          const textureName = `${material.name}.${
+            needsAlphaTesting ? "png" : "jpg"
+          }`.toLowerCase();
           textureNames.push(textureName);
         }
       }
@@ -323,7 +334,7 @@ export const ExportDialog = ({ open, setOpen }) => {
         );
         const textureIdx = textureNames.findIndex(
           (t) =>
-            t.replace(".jpg", "").replace('.png', '') ===
+            t.replace(".jpg", "").replace(".png", "") ===
             (mesh.material ?? mesh.getMaterial?.())?.name?.toLowerCase()
         );
 
@@ -812,8 +823,6 @@ export const ExportDialog = ({ open, setOpen }) => {
     }
 
     await Promise.all(imageWritePromises);
-    console.log("EQG Archive", eqgArchive);
-    setMessage("Writing EQG to disk...");
     await new Promise((res) => setTimeout(res, 0));
     const savePerf = performance.now();
     const file = eqgArchive.saveToFile();
@@ -825,18 +834,18 @@ export const ExportDialog = ({ open, setOpen }) => {
   }, [fsWrite, zb, name]);
 
   useEffect(() => {
-    if (exporting) {
-      setMessage("Exporting...");
+    if (fsHandleSelected) {
+      setFsHandle(fsHandleSelected);
     } else {
-      setMessage("");
+      getEQDir("output").then((d) => setFsHandle(d));
     }
-  }, [exporting]);
+  }, [fsHandleSelected]);
 
   return (
     <CommonDialog
       fullWidth
       maxWidth="sm"
-      title={"Export to EQG"}
+      title={"Export EQG"}
       open={open}
       onClose={() => setOpen(false)}
       aria-labelledby="draggable-dialog-title"
@@ -844,25 +853,32 @@ export const ExportDialog = ({ open, setOpen }) => {
       {open && (
         <>
           <Typography
-            sx={{ fontSize: 16, marginBottom: "20px" }}
+            sx={{
+              fontSize: 16,
+              marginBottom: "20px",
+              marginTop: "15px",
+              maxWidth: "100%",
+            }}
             color="text.primary"
             gutterBottom
           >
-            {message || "Waiting to export..."}
+            EQG Export will create a collection of files for the client and are
+            listed below. The default selected output folder will be inside your
+            EQ directory under eqsage/output. To distribute these client files
+            as a server operator, consider using EQ Nexus to host your files.
           </Typography>
-          <Typography
-            sx={{ fontSize: 16, marginBottom: 2 }}
-            color="text.primary"
-            gutterBottom
-          >
-            Files can be found in {fsHandle?.name}
-            /output/
-            {name}
-          </Typography>
-          <Button onClick={() => onFolderSelected()}>
-            Select Output Folder
-          </Button>
+
           <Button
+            sx={{ width: "80%", margin: "5px 10%" }}
+            variant="outlined"
+            onClick={() => onFolderSelected()}
+          >
+            Select Output Folder ({fsHandle?.name ?? "none"})
+          </Button>
+
+          <Button
+            sx={{ width: "80%", margin: "5px 10%" }}
+            variant="outlined"
             disabled={exporting}
             onClick={() =>
               doExport().catch((e) => {
@@ -873,6 +889,18 @@ export const ExportDialog = ({ open, setOpen }) => {
           >
             {exporting ? "Export in progress..." : "Export Zone"}
           </Button>
+          <List
+            sx={{ width: "100%", bgcolor: "transparent", margin: '5px' }}
+            subheader={
+              <ListSubheader sx={{ background: "transparent", fontSize: '18px' }} component="div">
+                Exported Files ({exportedFiles.length})
+              </ListSubheader>
+            }
+          >
+            {exportedFiles.map((f) => (
+              <ListItem>{f}</ListItem>
+            ))}
+          </List>
         </>
       )}
     </CommonDialog>

@@ -44,3 +44,32 @@ export const fragmentNameCleaner = (fragment, toLower = true) => {
 
   return cleanedName.trim();
 };
+
+
+export async function flipImageX(imageDataBuffer) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const blob = new Blob([imageDataBuffer], { type: 'image/png' });
+    img.src = URL.createObjectURL(blob);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      const ctx = canvas.getContext('2d');
+
+      // Flip image on the X-axis
+      ctx.translate(0, canvas.height);
+      ctx.scale(1, -1);
+
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((flippedBlob) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve(new Uint8Array(reader.result));
+        };
+        reader.readAsArrayBuffer(flippedBlob);
+      }, 'image/png');
+    };
+  });
+}

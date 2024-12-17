@@ -170,7 +170,7 @@ export const ZoneDrawer = ({ selectedObject }) => {
           fullWidth
           variant={'outlined'}
           sx={{ margin: '10px auto' }}
-          onClick={() => zb.exportZone(true)}
+          onClick={() => zb.exportZone(true, true)}
         >
           <Typography
             variant="h6"
