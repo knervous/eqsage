@@ -1,9 +1,8 @@
-const httpProxy = require('http-proxy');
-
+import httpProxy from 'http-proxy';
 // Create a proxy server with custom application logic
 const proxy = httpProxy.createProxyServer({});
 
-module.exports = (req, res) => {
+export const middleware = (req, res) => {
   // Extract the target URL from the header
   const target = req.headers['x-remote-api'];
 
@@ -30,3 +29,5 @@ module.exports = (req, res) => {
     }
   );
 };
+
+export default middleware;
