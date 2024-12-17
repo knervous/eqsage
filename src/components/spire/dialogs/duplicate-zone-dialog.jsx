@@ -69,43 +69,43 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
 
   const api = useMemo(
     () => ({
-      zoneApi               : new ZoneApi(...Spire.SpireApi.cfg()),
-      adventureTemplateApi  : new AdventureTemplateApi(...Spire.SpireApi.cfg()),
-      doorApi               : new DoorApi(...Spire.SpireApi.cfg()),
-      globalLootApi         : new GlobalLootApi(...Spire.SpireApi.cfg()),
-      spawnConditionApi     : new SpawnConditionApi(...Spire.SpireApi.cfg()),
-      spawnConditionValueApi: new SpawnConditionValueApi(
+      zoneApi               : [new ZoneApi(...Spire.SpireApi.cfg()), 'Zone'],
+      adventureTemplateApi  : [new AdventureTemplateApi(...Spire.SpireApi.cfg()), 'AdventureTemplate'],
+      doorApi               : [new DoorApi(...Spire.SpireApi.cfg()), 'Door'],
+      globalLootApi         : [new GlobalLootApi(...Spire.SpireApi.cfg()), 'GlobalLoot'],
+      spawnConditionApi     : [new SpawnConditionApi(...Spire.SpireApi.cfg()), 'SpawnCondition'],
+      spawnConditionValueApi: [new SpawnConditionValueApi(
         ...Spire.SpireApi.cfg()
-      ),
-      spawnEventApi           : new SpawnEventApi(...Spire.SpireApi.cfg()),
-      spawn2Api               : new Spawn2Api(...Spire.SpireApi.cfg()),
-      trapApi                 : new TrapApi(...Spire.SpireApi.cfg()),
-      zonePointApi            : new ZonePointApi(...Spire.SpireApi.cfg()),
-      blockedSpellApi         : new BlockedSpellApi(...Spire.SpireApi.cfg()),
-      charCreateCombinationApi: new CharCreateCombinationApi(
+      ), 'SpawnConditionValue'],
+      spawnEventApi           : [new SpawnEventApi(...Spire.SpireApi.cfg()), 'SpawnEvent'],
+      spawn2Api               : [new Spawn2Api(...Spire.SpireApi.cfg()), 'Spawn2'],
+      trapApi                 : [new TrapApi(...Spire.SpireApi.cfg()), 'Trap'],
+      zonePointApi            : [new ZonePointApi(...Spire.SpireApi.cfg()), 'ZonePoint'],
+      blockedSpellApi         : [new BlockedSpellApi(...Spire.SpireApi.cfg()), 'BlockedSpell'],
+      charCreateCombinationApi: [new CharCreateCombinationApi(
         ...Spire.SpireApi.cfg()
-      ),
-      characterExpModifierApi: new CharacterExpModifierApi(
+      ), 'CharCreateCombination'],
+      characterExpModifierApi: [new CharacterExpModifierApi(
         ...Spire.SpireApi.cfg()
-      ),
-      fishingApi    : new FishingApi(...Spire.SpireApi.cfg()),
-      forageApi     : new ForageApi(...Spire.SpireApi.cfg()),
-      graveyardApi  : new GraveyardApi(...Spire.SpireApi.cfg()),
-      gridApi       : new GridApi(...Spire.SpireApi.cfg()),
-      gridEntryApi  : new GridEntryApi(...Spire.SpireApi.cfg()),
-      groundSpawnApi: new GroundSpawnApi(...Spire.SpireApi.cfg()),
-      objectApi     : new ObjectApi(...Spire.SpireApi.cfg()),
-      questGlobalApi: new QuestGlobalApi(...Spire.SpireApi.cfg()),
-      zoneFlagApi   : new ZoneFlagApi(...Spire.SpireApi.cfg()),
+      ), 'CharacterExpModifier'],
+      fishingApi    : [new FishingApi(...Spire.SpireApi.cfg()), 'Fishing'],
+      forageApi     : [new ForageApi(...Spire.SpireApi.cfg()), 'Forage'],
+      graveyardApi  : [new GraveyardApi(...Spire.SpireApi.cfg()), 'Graveyard'],
+      gridApi       : [new GridApi(...Spire.SpireApi.cfg()), 'Grid'],
+      gridEntryApi  : [new GridEntryApi(...Spire.SpireApi.cfg()), 'GridEntry'],
+      groundSpawnApi: [new GroundSpawnApi(...Spire.SpireApi.cfg()), 'GroundSpawn'],
+      objectApi     : [new ObjectApi(...Spire.SpireApi.cfg()), 'Object'],
+      questGlobalApi: [new QuestGlobalApi(...Spire.SpireApi.cfg()), 'QuestGlobal'],
+      zoneFlagApi   : [new ZoneFlagApi(...Spire.SpireApi.cfg()), 'ZoneFlag'],
     }),
     [Spire]
   );
 
   const [options, setOptions] = useState(
     Object.values(api).reduce(
-      (acc, api) => ({
+      (acc, [_api, apiName]) => ({
         ...acc,
-        [api.constructor.name.replace(/Api$/, '')]: {
+        [apiName]: {
           enabled: true,
           state  : DuplicateState.NOT_RUN,
           comment: ''
@@ -130,7 +130,7 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
       try {
         updateState(name, DuplicateState.RUNNING);
         const createName = name[0].toLowerCase() + name.slice(1, name.length);
-        const baseApi = api[`${createName}Api`];
+        const baseApi = api[`${createName}Api`][0];
         const listMethod = Object.getOwnPropertyNames(baseApi.__proto__).find(
           (m) => m.startsWith('list')
         );
@@ -211,7 +211,7 @@ export const DuplicateZoneDialog = ({ open, setOpen, zone, Spire }) => {
     setLoading(true);
     // Zone
     try {
-      const { data: existingZones } = await api.zoneApi.listZones(
+      const { data: existingZones } = await api.zoneApi[0].listZones(
         new Spire.SpireQueryBuilder().where('zoneidnumber', '=', zoneId).get()
       );
       console.log('Ex zones', existingZones);
