@@ -1,10 +1,6 @@
 import * as Comlink from 'comlink';
 import { convertDDS2Jimp } from '../image-processing';
-import optimise, { init } from '@jsquash/oxipng/optimise';
 import 'jimp/browser/lib/jimp';
-
-console.log('Init worker');
-const initPromise = init('/static/squoosh_oxipng_bg.wasm');
 
 const ShaderType = {
   Diffuse                        : 0,
@@ -202,6 +198,11 @@ async function compressImage(buffer) {
     const imageBitmap = await createImageBitmap(blob);
     const offscreen = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
     const ctx = offscreen.getContext('2d');
+
+    // X axis flip
+    // ctx.scale(1, -1);
+    // ctx.translate(0, -imageBitmap.height);
+
     ctx.drawImage(imageBitmap, 0, 0);
     const quality = 0.7;
     const compressedBlob = await offscreen.convertToBlob({ type: 'image/jpeg', quality });

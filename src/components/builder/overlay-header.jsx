@@ -22,7 +22,7 @@ import { useProject } from './hooks/metadata';
 export const BuilderHeader = () => {
   const ref = useRef(null);
   const { saveProject, project } = useProject();
-  const { openDrawer, goHome } = useOverlayContext();
+  const { openDrawer, goHome, toggleDrawer } = useOverlayContext();
   const [exportOpen, setExportOpen] = useState(false);
   const [name, setName] = useState(project.projectName);
   const { openAlert } = useAlertContext();
@@ -30,16 +30,12 @@ export const BuilderHeader = () => {
 
   const doExport = useCallback(() => {
     console.log('do export');
+    toggleDrawer('');
     setExportOpen(true);
-  }, []);
+  }, [toggleDrawer]);
 
   useEffect(() => {
-    if (!name.endsWith('.eqs')) {
-      openAlert('Project needs to end in .eqs', 'warning');
-      setName(n => n.replace(/\..*/, '.eqs'));
-      return;
-    }
-    gameController.ZoneBuilderController.name = name;
+    gameController.ZoneBuilderController.name = `${name}.eqs`;
 
   }, [name, openAlert]);
   return (
@@ -107,7 +103,7 @@ export const BuilderHeader = () => {
               variant="outlined"
               onClick={doExport}
             >
-              Export to EQG
+              Export EQG
             </Button>
             <Button
               size={'small'}

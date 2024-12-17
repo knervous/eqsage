@@ -36,7 +36,7 @@ export const useProject = () => {
     const zipped = pako.deflate(encoded);
     await writeEQFile(
       'projects',
-      gameController.ZoneBuilderController.project.projectName,
+      `${gameController.ZoneBuilderController.project.projectName }.eqs`,
       zipped
     );
     if (alert) {

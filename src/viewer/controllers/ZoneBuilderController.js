@@ -15,6 +15,8 @@ import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import { Tools } from '@babylonjs/core/Misc/tools';
 import { Scene } from '@babylonjs/core/scene';
+import { WebIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
 import { Color3Gradient } from '@babylonjs/core/Misc/gradients';
@@ -25,6 +27,9 @@ import '@babylonjs/core/Rendering/edgesRenderer';
 import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
 import { GLTF2Export } from '@babylonjs/serializers';
 import { instantiate3dMover, teardown3dMover } from '../util/babylonUtil';
+import { flipImageX } from '../../lib/util/util';
+
+const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
 class ZoneBuilderController extends GameControllerChild {
   /**
@@ -55,7 +60,7 @@ class ZoneBuilderController extends GameControllerChild {
 
   /**
    * @typedef {object} ProjectMetadata
-   * 
+   *
    * @typedef {object} Project
    * @property {string} projectName
    * @property {Uint8Array} glb
@@ -618,11 +623,37 @@ class ZoneBuilderController extends GameControllerChild {
   }
   setSpawnLOD() {}
 
-  async importZone(buffer) {
-    this.zoneContainer.getChildMeshes().forEach((m) => m.dispose());
+  async importZone(originalBuffer) {
+    // Preprocess - flip images
+    // We expect terrain textutes to be flipped over X axis
+    const document = await io.readBinary(new Uint8Array(originalBuffer));
+    const root = document.getRoot();
+
+    await Promise.all(
+      root.listTextures().map(
+        (t) =>
+          new Promise((res) => {
+            flipImageX(t.getImage())
+              .then((f) => t.setImage(f))
+              .finally(res);
+          })
+      )
+    );
+    const buffer = await io.writeBinary(document);
     const blob = new Blob([buffer], { type: 'model/gltf-binary' });
     const url = URL.createObjectURL(blob);
+    this.zoneContainer.getChildMeshes().forEach((m) => {
+      m?.dispose();
+      m?.material?.dispose();
+      m?.material?.getActiveTextures?.()?.forEach((t) => {
+        t.dispose();
+      });
+    });
 
+    this.boundaryContainer.getChildMeshes().forEach((m) => {
+      m?.dispose();
+      m?.material?.dispose();
+    });
     const zone = await SceneLoader.ImportMeshAsync(
       null,
       '',
@@ -631,9 +662,11 @@ class ZoneBuilderController extends GameControllerChild {
       undefined,
       '.glb'
     );
+    console.log('ZONE', zone);
 
     zone.meshes.forEach((m) => {
-      if (m.material?.metadata?.gltf?.extras?.boundary) {
+      // console.log('Mesh', m.name, m);
+      if (m.name.endsWith('-boundary')) {
         m.parent = this.boundaryContainer;
         m.isPickable = false;
       } else {
@@ -649,6 +682,9 @@ class ZoneBuilderController extends GameControllerChild {
           },
         };
       }
+      m.material?.getActiveTextures()?.forEach((t) => {
+        t.name = `${m.material.name}.png`;
+      });
     });
   }
 
@@ -716,6 +752,14 @@ class ZoneBuilderController extends GameControllerChild {
       if (m.material?.metadata?.gltf?.extras?.boundary) {
         m.parent = this.boundaryContainer;
         m.isPickable = false;
+        m.name = m.name.endsWith('-boundary') ? m.name : `${m.name}-boundary`;
+        m.metadata = {
+          gltf: {
+            extras: {
+              boundary: true,
+            },
+          },
+        };
       } else {
         m.isPickable = true;
         m.parent = this.zoneContainer;

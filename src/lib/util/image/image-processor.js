@@ -74,11 +74,14 @@ class ImageProcessor {
    * 
    * @param {ArrayBuffer} buffer 
    */
-  async compressImage(buffer) {
+  async compressImage(arr) {
     const idx = this.currentWorkerIdx % 4;
     const worker = this.babylonWorkers[idx];
     this.currentWorker++;
-    return await worker.compressImage(Comlink.transfer(buffer, [buffer]));
+    const newBuffer = new ArrayBuffer(arr.byteLength);
+    const newArray = new Uint8Array(newBuffer);
+    newArray.set(arr);
+    return await worker.compressImage(newArray.buffer);
   }
 
   /**
