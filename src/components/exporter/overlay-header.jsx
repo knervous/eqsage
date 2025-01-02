@@ -29,17 +29,6 @@ export const ExporterHeader = ({ name }) => {
         left    : `calc(50vw - ${(ref.current?.clientWidth ?? 0) / 2}px)`,
       }}
     >
-      <Typography
-        className="text-outline"
-        sx={{
-          color    : 'white',
-          margin   : '10px auto',
-          textAlign: 'center',
-        }}
-        variant="h5"
-      >
-        {name}
-      </Typography>
       <Stack
         justifyContent={'center'}
         alignContent={'center'}
@@ -51,37 +40,75 @@ export const ExporterHeader = ({ name }) => {
         direction="row"
       >
         <Typography
-          onClick={() => gameController.SpawnController.exportModel(withAnimations)}
-          className="zone-overlay-text text-outline clickable"
-          color="text.secondary"
-          variant="h6"
+          className="text-outline"
+          sx={{
+            color    : 'white',
+            margin   : '10px auto',
+            textAlign: 'center',
+          }}
+          variant="h5"
         >
-          Export GLB
+          {name}
         </Typography>
+
         <FormControlLabel
-          sx ={{ marginTop: '-5px', marginLeft: '10px', color: 'white' }}
+          sx={{ marginTop: '-5px', marginLeft: '10px', color: 'white' }}
           control={
             <Checkbox
               checked={withAnimations}
               onChange={({ target: { checked } }) => setWithAnimations(checked)}
             />
           }
-          label="With Animations"
+          label="Export With Animations"
         />
       </Stack>
-      <Typography
-        onClick={() => gameController.SpawnController.exportSTL()}
-        className="zone-overlay-text text-outline clickable"
-        sx={{
-          userSelect: 'none',
-          margin    : '5px auto',
-          textAlign : 'center',
-        }}
-        color="text.secondary"
-        variant="h6"
+      <Stack
+        direction="row"
+        sx={{ width: '100%' }}
+        justifyContent={'center'}
+        alignItems={'space-evenly'}
       >
-        Export STL (3D Printing)
-      </Typography>
+        <Typography
+          onClick={() =>
+            gameController.SpawnController.exportModel(withAnimations)
+          }
+          className="zone-overlay-text text-outline clickable"
+          color="text.secondary"
+          variant="h6"
+        >
+          Export GLB
+        </Typography>
+        <Typography
+          color="text.secondary"
+          variant="h6"
+          sx={{ margin: '0 10px' }}
+        >
+          -
+        </Typography>
+        <Typography
+          onClick={() => gameController.SpawnController.exportSTL()}
+          className="zone-overlay-text text-outline clickable"
+          color="text.secondary"
+          variant="h6"
+        >
+          Export STL (3D Printing)
+        </Typography>
+        <Typography
+          color="text.secondary"
+          variant="h6"
+          sx={{ margin: '0 10px' }}
+        >
+          -
+        </Typography>
+        <Typography
+          onClick={() => gameController.SpawnController.exportFBX(withAnimations)}
+          className="zone-overlay-text text-outline clickable"
+          color="text.secondary"
+          variant="h6"
+        >
+          Export FBX (Autodesk)
+        </Typography>
+      </Stack>
     </Box>
   ) : null;
 };

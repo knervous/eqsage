@@ -108,7 +108,6 @@ const AnimationBar = ({ animation, name }) => {
   useEffect(() => {
     if (!animation || animation.to === 0) {
       setPlayMs(0);
-      console.log('Here');
       setPlaying(false);
       return;
     }
@@ -196,7 +195,7 @@ export const ExporterOverlayRightNav = ({
   );
   const [head, setHead] = useState(0);
   const [headCount, setHeadCount] = useState(0);
-  const [texture, setTexture] = useState(0);
+  const [texture, setTexture] = useState(-1);
   const [textures, setTextures] = useState([]);
   const [primary, setPrimary] = useState(null);
   const [secondary, setSecondary] = useState(null);
@@ -204,7 +203,7 @@ export const ExporterOverlayRightNav = ({
   const [currentAnimation, setCurrentAnimation] = useState(null);
   useEffect(() => {
     (async () => {
-      setTexture(0);
+      setTexture(-1);
       setHead(0);
       setAnimation('pos');
       setPrimary(null);
@@ -361,6 +360,9 @@ export const ExporterOverlayRightNav = ({
             value={texture}
             onChange={(e) => setTexture(e.target.value)}
           >
+            <MenuItem value={-1} label={-1}>
+                Default
+            </MenuItem>
             {textures.map((idx) => (
               <MenuItem value={idx} label={idx}>
                 Texture {idx + 1}
