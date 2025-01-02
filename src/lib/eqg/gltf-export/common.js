@@ -190,7 +190,7 @@ export async function writeModels(modelFile, mod) {
       gltfMesh.addPrimitive(sharedPrimitive.gltfPrim);
     }
     const ln = sharedPrimitive.indices.length;
-    if (false && b1.length && b2.length && b3.length) {
+    if (b1.length && b2.length && b3.length) {
       const reducer = (acc, val, idx, obj) => {
         const boneVal = boneIndices[val.bone];
         let boneIdx, weight;
@@ -322,7 +322,7 @@ export async function writeModels(modelFile, mod) {
       .setAttribute('WEIGHTS_0', primWeights);
   }
 
-  if (false && mod.bones.length) {
+  if (mod.bones.length) {
     const animWriter = new EQGAnimationWriter(
       document,
       skeletonNodes,

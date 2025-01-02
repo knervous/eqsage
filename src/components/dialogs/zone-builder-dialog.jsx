@@ -33,7 +33,6 @@ import { ZoneBuilder } from '../builder/zone-builder';
 import { optimizeBoundingBoxes } from '../../lib/s3d/bsp/region-utils';
 import { GlobalStore } from '../../state';
 import { useConfirm } from 'material-ui-confirm';
-// import { QuailWasm } from '../../modules/quail';
 
 const defaultZoneMetadata = {
   version           : VERSION,
@@ -77,7 +76,6 @@ export const ZoneBuilderDialog = ({ open }) => {
   );
   useEffect(() => {
     (async () => {
-
       const projectDir = await getEQDir('projects');
       if (projectDir) {
         const files = (

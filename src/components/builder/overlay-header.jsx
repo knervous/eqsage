@@ -18,21 +18,28 @@ import { useOverlayContext } from './provider';
 import { ExportDialog } from './export-dialog';
 import { useAlertContext } from '../../context/alerts';
 import { useProject } from './hooks/metadata';
+import { ExportS3DDialog } from './export-s3d-dialog';
 
 export const BuilderHeader = () => {
   const ref = useRef(null);
   const { saveProject, project } = useProject();
   const { openDrawer, goHome, toggleDrawer } = useOverlayContext();
   const [exportOpen, setExportOpen] = useState(false);
+  const [exportS3DOpen, setExportS3DOpen] = useState(false);
   const [name, setName] = useState(project.projectName);
   const { openAlert } = useAlertContext();
 
 
   const doExport = useCallback(() => {
-    console.log('do export');
     toggleDrawer('');
     setExportOpen(true);
   }, [toggleDrawer]);
+
+  const doExportS3D = useCallback(() => {
+    toggleDrawer('');
+    setExportS3DOpen(true);
+  }, [toggleDrawer]);
+
 
   useEffect(() => {
     gameController.ZoneBuilderController.name = `${name}.eqs`;
@@ -41,6 +48,7 @@ export const BuilderHeader = () => {
   return (
     <>
       <ExportDialog open={exportOpen} setOpen={setExportOpen} />
+      <ExportS3DDialog open={exportS3DOpen} setOpen={setExportS3DOpen} />
       <Box
         className="builder-header-bg"
         sx={
@@ -99,11 +107,19 @@ export const BuilderHeader = () => {
             </Button>
             <Button
               size={'small'}
-              sx={{ height: '40px', width: '150px' }}
+              sx={{ height: '40px', width: '150px', margin: '0 10px' }}
               variant="outlined"
               onClick={doExport}
             >
               Export EQG
+            </Button>
+            <Button
+              size={'small'}
+              sx={{ height: '40px', width: '150px' }}
+              variant="outlined"
+              onClick={doExportS3D}
+            >
+              Export S3D
             </Button>
             <Button
               size={'small'}
