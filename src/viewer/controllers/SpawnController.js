@@ -16,6 +16,8 @@ import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { WebIO } from '@gltf-transform/core';
 
+import assimpjs from '../../modules/assimp';
+
 import raceData from '../common/raceData.json';
 
 import { GameControllerChild } from './GameControllerChild';
@@ -29,11 +31,9 @@ import {
   GLOBAL_VERSION,
   processGlobal,
 } from '../../components/zone/processZone';
-
 /**
  * @typedef {import('@babylonjs/core').AssetContainer} AssetContainer
  */
-
 class SpawnController extends GameControllerChild {
   /**
    * @type {Object.<number, BabylonSpawn>}
@@ -67,7 +67,6 @@ class SpawnController extends GameControllerChild {
   removeClickCallback = (cb) => {
     this.clickCallbacks = this.clickCallbacks.filter((l) => l !== cb);
   };
-
 
   /** @type {import('@babylonjs/core').Octree<AbstractMesh>} */
 
@@ -123,7 +122,7 @@ class SpawnController extends GameControllerChild {
     const pickResult = scene.pick(
       scene.pointerX,
       scene.pointerY,
-      m => m === zoneMesh,
+      (m) => m === zoneMesh,
       false,
       this.CameraController.camera,
       (p0, p1, p2, ray) => {
@@ -139,10 +138,13 @@ class SpawnController extends GameControllerChild {
       const hitPoint = pickResult.pickedPoint;
       node.position.set(hitPoint.x, hitPoint.y + 5, hitPoint.z);
       node.resetPlane();
-      this.tubePath[node.metadata.idx] = new Vector3(hitPoint.x, hitPoint.y + 5, hitPoint.z);
+      this.tubePath[node.metadata.idx] = new Vector3(
+        hitPoint.x,
+        hitPoint.y + 5,
+        hitPoint.z
+      );
       this.updateTube();
     }
-
   }
 
   npcLight(spawn) {
@@ -150,7 +152,11 @@ class SpawnController extends GameControllerChild {
 
     if (!light) {
       // Create the light if it doesn't exist
-      light = new PointLight('spawn-light', new Vector3(0, 0, 0), this.currentScene);
+      light = new PointLight(
+        'spawn-light',
+        new Vector3(0, 0, 0),
+        this.currentScene
+      );
     }
 
     // Set light properties
@@ -180,7 +186,6 @@ class SpawnController extends GameControllerChild {
   }
   dynamicPlanes = [];
 
-
   renderCallback() {
     for (const plane of this.dynamicPlanes) {
       const distance = this.currentScene.activeCamera.position
@@ -200,7 +205,7 @@ class SpawnController extends GameControllerChild {
     const tube = scene.getMeshById('spawn-path');
 
     if (tube) {
-    // Update the existing tube by re-using the same mesh
+      // Update the existing tube by re-using the same mesh
       MeshBuilder.CreateTube(
         'tube',
         {
@@ -232,7 +237,7 @@ class SpawnController extends GameControllerChild {
     box.material = tubeMaterial;
     box.metadata = {
       emissiveColor: selected ? new Color3(1, 0.5, 0) : new Color3(0, 0.5, 1),
-      idx
+      idx,
     };
     this.ZoneController.glowLayer.addIncludedOnlyMesh(box);
 
@@ -372,7 +377,7 @@ class SpawnController extends GameControllerChild {
       },
       this.currentScene
     );
-    
+
     tube.id = 'spawn-path';
     const tubeMaterial = new StandardMaterial(
       'tubeMaterial',
@@ -387,7 +392,14 @@ class SpawnController extends GameControllerChild {
 
     // Place directional boxes along the path with updated scaling
     for (let i = 0; i < path.length; i++) {
-      this.createGridNode(tube, path[i], tubeMaterial, i, selectedIdx, updateCallback);
+      this.createGridNode(
+        tube,
+        path[i],
+        tubeMaterial,
+        i,
+        selectedIdx,
+        updateCallback
+      );
     }
   }
 
@@ -515,7 +527,7 @@ class SpawnController extends GameControllerChild {
   async exportSTL() {
     const clone = this.modelExport.rootNode.clone();
     clone.skeleton = this.modelExport.skeleton?.clone();
-    const children = clone.getChildMeshes().map(c => {
+    const children = clone.getChildMeshes().map((c) => {
       c?.clone();
       c?.makeGeometryUnique();
       return c;
@@ -523,11 +535,43 @@ class SpawnController extends GameControllerChild {
     clone.makeGeometryUnique();
     const position = clone.getPositionData(true, true);
     clone.setVerticesData(VertexBuffer.PositionKind, position);
-    STLExport.CreateSTL([clone, ...children], true, `${this.modelExport?.modelName}`, undefined, undefined, false);
+    STLExport.CreateSTL(
+      [clone, ...children],
+      true,
+      `${this.modelExport?.modelName}`,
+      undefined,
+      undefined,
+      false
+    );
     clone.dispose();
   }
 
-  async exportModel(withAnimations = true) {
+  async exportFBX() {
+    const glb = await this.exportModel(false, false);
+    assimpjs({
+      locateFile: (file) => {
+        return `/static/${file}`;
+      },
+      print   : console.log,
+      printErr: console.error,
+    }).then((ajs) => {
+      const fileList = new ajs.FileList();
+      fileList.AddFile('model.glb', glb);
+      const result = ajs.ConvertFileList(fileList, 'fbx');
+      window.rr = result;
+      if (result.IsSuccess()) {
+        const bin = result.GetFile(0).GetContent();
+        const assetBlob = new Blob([bin]);
+        const assetUrl = URL.createObjectURL(assetBlob);
+        const link = document.createElement('a');
+        link.href = assetUrl;
+        link.download = `${this.modelExport?.modelName}.fbx`;
+        link.click();
+      }
+    });
+  }
+
+  async exportModel(withAnimations = true, download = true) {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(
       `Exporting model ${this.modelExport?.modelName} with animations ${withAnimations}`
@@ -537,27 +581,39 @@ class SpawnController extends GameControllerChild {
     let originalPosition;
     if (!withAnimations) {
       const position = this.modelExport.rootNode.getPositionData(true, true);
-      originalPosition = this.modelExport.rootNode.getPositionData(false, false);
-      this.modelExport.rootNode.setVerticesData(VertexBuffer.PositionKind, position);
+      originalPosition = this.modelExport.rootNode.getPositionData(
+        false,
+        false
+      );
+      this.modelExport.rootNode.setVerticesData(
+        VertexBuffer.PositionKind,
+        position
+      );
       this.modelExport.rootNode.skeleton = null;
     }
-  
-    GLTF2Export.GLBAsync(this.currentScene, this.modelExport?.modelName, {
-      shouldExportNode(node) {
-        while (node.parent) {
-          node = node.parent;
-        }
-        return node.id === 'model_export';
-      },
-      shouldExportAnimation() {
-        return withAnimations;
-      },
 
-    })
+    return GLTF2Export.GLBAsync(
+      this.currentScene,
+      this.modelExport?.modelName,
+      {
+        shouldExportNode(node) {
+          while (node.parent) {
+            node = node.parent;
+          }
+          return node.id === 'model_export';
+        },
+        shouldExportAnimation() {
+          return withAnimations;
+        },
+      }
+    )
       .then(async (glb) => {
         if (!withAnimations) {
           this.modelExport.rootNode.skeleton = this.modelExport.skeleton;
-          this.modelExport.rootNode.setVerticesData(VertexBuffer.PositionKind, originalPosition);
+          this.modelExport.rootNode.setVerticesData(
+            VertexBuffer.PositionKind,
+            originalPosition
+          );
         }
 
         GlobalStore.actions.setLoadingTitle(
@@ -568,7 +624,6 @@ class SpawnController extends GameControllerChild {
         const arr = new Uint8Array(await blob.arrayBuffer());
         const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
         const doc = await io.readBinary(arr);
-        console.log('set', this.gc.settings);
         await doc.transform(
           dedup(),
           prune(),
@@ -577,12 +632,15 @@ class SpawnController extends GameControllerChild {
           })
         );
         const bin = await io.writeBinary(doc);
-        const assetBlob = new Blob([bin]);
-        const assetUrl = URL.createObjectURL(assetBlob);
-        const link = document.createElement('a');
-        link.href = assetUrl;
-        link.download = `${this.modelExport?.modelName}.glb`;
-        link.click();
+        if (download) {
+          const assetBlob = new Blob([bin]);
+          const assetUrl = URL.createObjectURL(assetBlob);
+          const link = document.createElement('a');
+          link.href = assetUrl;
+          link.download = `${this.modelExport?.modelName}.glb`;
+          link.click();
+        }
+        return bin;
       })
       .finally(() => {
         GlobalStore.actions.setLoading(false);
@@ -880,7 +938,6 @@ class SpawnController extends GameControllerChild {
           primaryHeld.rotationQuaternion = null;
           primaryHeld.rotation.setAll(0);
           primaryHeld.scaling.setAll(1);
-          primaryHeld.scaling.x = -1;
           primaryHeld.name = primary;
         } else {
           primaryHeld.dispose();
@@ -905,9 +962,7 @@ class SpawnController extends GameControllerChild {
           secondaryHeld.parent = transformNode;
           secondaryHeld.rotationQuaternion = null;
           secondaryHeld.rotation.setAll(0);
-
           secondaryHeld.scaling.setAll(1);
-          secondaryHeld.scaling.x = -1;
           secondaryHeld.name = secondary;
         } else {
           secondaryHeld.dispose();
