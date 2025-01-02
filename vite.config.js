@@ -3,6 +3,7 @@ import httpProxy from 'http-proxy';
 import react from '@vitejs/plugin-react';
 // import { viteStaticCopy } from 'vite-plugin-static-copy';
 import { esbuildCommonjs } from '@originjs/vite-plugin-commonjs';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 const proxy = httpProxy.createProxyServer({});
@@ -92,12 +93,11 @@ export default defineConfig({
   plugins: [
     react(),
     proxyPlugin(),
-    // viteStaticCopy({
-    //   targets: [
-    //     { src: 'node_modules/draco3dgltf/draco_encoder.wasm', dest: '.' },
-    //     { src: 'node_modules/draco3dgltf/draco_decoder_gltf.wasm', dest: '.' },
-    //   ],
-    // }),
+    viteStaticCopy({
+      targets: [
+        { src: 'node_modules/quail-wasm/quail.wasm', dest: 'static' },
+      ],
+    }),
     esbuildCommonjs(['spire-api']) // Add any other dependencies as needed
 
   ],
