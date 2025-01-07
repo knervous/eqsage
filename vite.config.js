@@ -159,7 +159,7 @@ export default defineConfig({
     },
     target   : 'esnext',
     minify   : 'esbuild',
-    sourcemap: process.env.NODE_ENV !== 'production',
+    sourcemap: true, // process.env.NODE_ENV !== 'production',
   },
   worker: {
     format: 'es',
