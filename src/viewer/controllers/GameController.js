@@ -65,8 +65,12 @@ class EQDatabase extends Database {
     _useArrayBuffer
   ) {
     if (url.startsWith('blob')) {
-      const res = await fetch(url).then((a) => a.arrayBuffer());
-      await sceneLoaded(res);
+      const res = await fetch(url).then((a) => a.arrayBuffer()).catch(() => null);
+      if (res) {
+        await sceneLoaded(res);
+      } else {
+        errorCallback();
+      }
       return;
     }
     const [, eq, folder, file] = url.split('/');

@@ -78,19 +78,19 @@ export const RegionProvider = ({ children }) => {
       const upgrades = [];
       let absoluteStartingIndex = ABSOLUTE_BASE;
       let referenceStartingIndex = REFERENCE_BASE;
-
-      for (const [idx, region] of Object.entries(regions)) {
+      const copyRegions = JSON.parse(JSON.stringify(regions));
+      for (const [idx, region] of Object.entries(copyRegions)) {
         // Absolute zone positions - we need to add these explicit zone definitions to the DB
         const zoneLineInfo = region.zoneLineInfo;
         if (zoneLineInfo?.zoneIndex !== undefined) {
           const absIndex = zoneLineInfo?.zoneIndex;
           if (absIndex < ATP_ABSOLUTE_BASE || !region.upgraded) {
             const newNumber = absoluteStartingIndex / 10;
-            regions[idx].zoneLineInfo = {
+            copyRegions[idx].zoneLineInfo = {
               type : 0,
               index: newNumber,
             };
-            regions[idx].upgraded = true;
+            copyRegions[idx].upgraded = true;
 
             const { x, y, z, zoneIndex, rot } = zoneLineInfo;
             const newZonePoint = {
@@ -132,11 +132,11 @@ export const RegionProvider = ({ children }) => {
           const numberIndex = zoneLineInfo.index;
           if (numberIndex < ATP_BASE || !region.upgraded) {
             const newNumber = referenceStartingIndex / 10;
-            regions[idx].zoneLineInfo = {
+            copyRegions[idx].zoneLineInfo = {
               type : 0,
               index: newNumber,
             };
-            regions[idx].upgraded = true;
+            copyRegions[idx].upgraded = true;
 
             const existingZonePoint = zonePoints.find(
               (z) => z.number === numberIndex
@@ -176,7 +176,7 @@ export const RegionProvider = ({ children }) => {
         fn: async () => {
           try {
             const regions = await Promise.all(upgrades.map((f) => f()));
-            console.log('Regions', regions);
+            console.log('Regions upgraded', regions);
             updateMetadata((m) => {
               m.regions = regions;
               return m;
