@@ -11,15 +11,24 @@ import { CreateQuail } from 'quail-wasm';
  * @param {[QueueItem]} entries
  * @param {FileSystemDirectoryHandle} eqFileHandle
  */
-async function convertS3D(entries, fileHandle) {
+async function convertS3D(entry) {
   console.log('Worker convert');
-  const { quail } = await CreateQuail('/static/quail.wasm');
-  for (const entry of entries) {
-    quail.fs.write('/qeynos2.s3d', new Uint8Array(entry.data));
+  const { quail, fs } = await CreateQuail('/static/quail.wasm');
+  fs.setEntry('/input.s3d', fs.makeFileEntry(undefined, new Uint8Array(entry.data)));
+  quail.convert('/input.s3d', '/input.json');
+
+  const existingJson = JSON.parse(new TextDecoder().decode(fs.getEntry('/input.json').data));
+  for (const [key, val] of Object.entries(entry.extra)) {
+    existingJson[key] = val;
   }
-  quail.convert('/qeynos2.s3d', '/new.s3d');
-  console.log('Quail', quail.fs);
-  return 'test';
+  console.log('Output write json', existingJson);
+  fs.getEntry('/input.json').data = new TextEncoder().encode(JSON.stringify(existingJson));
+  quail.convert('/input.json', '/output.s3d');
+    
+  console.log('Quail', fs.files);
+  const output = fs.files.get('/output.s3d');
+  console.log('Out', output);
+  return Comlink.transfer(output, [output]);
 }
 
 const exports = { convertS3D };
