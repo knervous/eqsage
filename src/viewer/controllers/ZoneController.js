@@ -585,6 +585,9 @@ class ZoneController extends GameControllerChild {
 
       for (const [key, value] of Object.entries(metadata.objects)) {
         for (const mesh of await this.instantiateObjects(key, value)) {
+          if (!mesh) {
+            continue;
+          }
           mesh.parent = this.objectContainer;
         }
       }
@@ -663,7 +666,10 @@ class ZoneController extends GameControllerChild {
       this.scene,
       undefined,
       '.glb'
-    );
+    ).catch(e => null);
+    if (!container) {
+      return [];
+    }
     const mergedMeshes = [];
 
     const rn = [];
