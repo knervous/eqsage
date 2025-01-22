@@ -6,7 +6,7 @@ import {
   Select,
   Stack,
 } from '@mui/material';
-import React, { useEffect, useState } from 'React';
+import React, { useEffect, useState } from 'react';
 import { MuiColorInput } from 'mui-color-input';
 import { getEQDir, getFiles } from '../../lib/util/fileHandler';
 import { useDebouncedCallback } from 'use-debounce';
