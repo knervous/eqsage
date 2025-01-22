@@ -28,6 +28,7 @@ import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
 import { GLTF2Export } from '@babylonjs/serializers';
 import { instantiate3dMover, teardown3dMover } from '../util/babylonUtil';
 import { flipImageX } from '../../lib/util/util';
+import { getEQFile } from '../../lib/util/fileHandler';
 
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
@@ -119,11 +120,22 @@ class ZoneBuilderController extends GameControllerChild {
     this.scene = new Scene(this.engine);
 
     this.scene.registerBeforeRender(this.renderLoop.bind(this));
-    this.scene.onPointerDown = (...args) => {
+    this.scene.onPointerDown = (pointerInfo, pickInfo) => {
       if (this.pickingRaycast) {
-        this.downButtons = args[0].buttons;
+        this.downButtons = pointerInfo.buttons;
       }
-      // this.CameraController.sceneMouseDown(...args);
+      switch (pointerInfo.type) {
+        case 'pointerdown':
+          if (
+            pickInfo.hit &&
+            (pickInfo.pickedMesh?.metadata?.debug ?? null) !== null
+          ) {
+            console.log('DEBUG MESH :: ', pickInfo.pickedMesh?.metadata);
+          }
+          break;
+        default:
+          break;
+      }
     };
     // this.scene.onPointerUp = this.CameraController.sceneMouseUp;
     this.scene.onPointerMove = (...args) => {
@@ -1219,17 +1231,18 @@ class ZoneBuilderController extends GameControllerChild {
   }
 
   async addTextureAnimations() {
-    const addTextureAnimation = (material, textureAnimation) => {
+    const addTextureAnimation = async (material, textureAnimation) => {
       const [baseTexture] = material.getActiveTextures();
-      return textureAnimation.frames.map((f) => {
+      return await Promise.all(textureAnimation.frames.map(async (f) => {
+        const fileBuffer = await getEQFile('textures', `${f}.png`);
         return new Texture(
           f,
           this.scene,
           baseTexture.noMipMap,
           baseTexture.invertY,
-          baseTexture.samplingMode
+          baseTexture.samplingMode, undefined, undefined, fileBuffer
         );
-      });
+      }));
     };
 
     let animationTimerMap = {};

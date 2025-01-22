@@ -74,14 +74,14 @@ class ImageProcessor {
    * 
    * @param {ArrayBuffer} buffer 
    */
-  async compressImage(arr) {
+  async compressImage(arr, name) {
     const idx = this.currentWorkerIdx % 4;
     const worker = this.babylonWorkers[idx];
     this.currentWorker++;
     const newBuffer = new ArrayBuffer(arr.byteLength);
     const newArray = new Uint8Array(newBuffer);
     newArray.set(arr);
-    return await worker.compressImage(newArray.buffer);
+    return await worker.convertPNGtoDDS(newArray.buffer, name);
   }
 
   /**

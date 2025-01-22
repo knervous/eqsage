@@ -88,6 +88,7 @@ export class S3DDecoder {
       }
 
       if (fileName.endsWith(".bmp") || fileName.endsWith(".dds")) {
+        await writeEQFile('img', `${fileName}`, this.files[fileName].buffer);
         images.push({ name: fileName, data: this.files[fileName].buffer });
         continue;
       }

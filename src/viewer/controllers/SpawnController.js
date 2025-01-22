@@ -417,6 +417,13 @@ class SpawnController extends GameControllerChild {
             c(pointerInfo.pickInfo.pickedMesh?.metadata?.spawn)
           );
         }
+
+        if (
+          pointerInfo.pickInfo.hit &&
+          (pointerInfo.pickInfo.pickedMesh?.metadata?.debug ?? null) !== null
+        ) {
+          console.log('Hit debug mesh. METADATA:', pointerInfo.pickInfo.pickedMesh?.metadata);
+        }
         break;
       default:
         break;
@@ -769,7 +776,8 @@ class SpawnController extends GameControllerChild {
     texture = -1,
     primary = null,
     secondary = null,
-    secondaryPoint = 0
+    secondaryPoint = 0,
+    config = null,
   ) {
     const wearsRobe = this.wearsRobe(modelName);
     GlobalStore.actions.setLoading(true);

@@ -33,7 +33,7 @@ import { usePermissions } from '../../hooks/permissions';
 import { useProject } from './hooks/metadata';
 import { imageProcessor } from '../../lib/util/image/image-processor';
 import { quailProcessor } from '../../modules/quail';
-import { createBsp } from '../../lib/s3d/export/export';
+import { createBsp } from '../../lib/s3d/export/bsp';
 import { createS3DZone } from '../../lib/s3d/export/s3d-export';
 
 const version = 2;
@@ -75,11 +75,6 @@ const propertiesUsed = [
 
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
-async function compressPNG(inputBuffer) {
-  const result = await imageProcessor.compressImage(inputBuffer);
-  const byteArray = new Uint8Array(result);
-  return byteArray;
-}
 
 export function getCleanByteArray(arr) {
   const newBuffer = new ArrayBuffer(arr.byteLength);
@@ -88,8 +83,6 @@ export function getCleanByteArray(arr) {
   return newArray;
 }
 
-const cStringLengthReduce = (arr) =>
-  arr.reduce((acc, name) => acc + name.length + 1, 0);
 
 export const ExportS3DDialog = ({ open, setOpen }) => {
   const { openAlert } = useAlertContext();
@@ -128,27 +121,13 @@ export const ExportS3DDialog = ({ open, setOpen }) => {
     }
 
     // Zone
-    const zoneMeshes = zb.zoneContainer.getChildMeshes();
-    const zoneMaterials = zoneMeshes.flatMap(m => m.material).filter(Boolean);
-    await createS3DZone(name, zb.currentScene, [], zoneMaterials, zoneMeshes, [], zb.metadata.regions)
-    // const s3d = await getEQFile('root', 'qeynos2.s3d', 'arrayBuffer');
-    // const res = await quailProcessor.convertS3D([{data: s3d}])
-    // console.log('Dialog got result', res);
-    // setExporting(false);
-    // console.log("Regions", metadata.regions);
-    // const bspTree = createBsp(
-    //   zb.zoneContainer.getChildMeshes(),
-    //   metadata.regions
-    // );
-    // console.log("Generated BSP tree", bspTree);
-
-    // const s3d = await getEQFile("root", "qeynos2.s3d", "arrayBuffer");
-    // const res = await quailProcessor.convertS3D(
-    //   { data: s3d, extra: bspTree },
-    // );
-    // await writeFile(fsHandle, "test.s3d", new Uint8Array(res));
+    const zoneMeshes = zb.zoneContainer.getChildMeshes().filter(m => m.getTotalVertices() > 0);
+    const collisionMeshes = zb.boundaryContainer.getChildMeshes().filter(m => m.getTotalVertices() > 0);
+    console.log('reg', metadata.regions)
+    const s3d = await createS3DZone(name, zb.currentScene, zoneMeshes, collisionMeshes, metadata.lights, metadata.objects, metadata.regions)
+    await writeFile(fsHandle, `${name}.s3d`, new Uint8Array(s3d));
     setExporting(false);
-
+    openAlert(`Successfully wrote ${name}.s3d to ${fsHandle.name}/${name}.s3d`)
   }, [fsWrite, zb, name]);
 
   useEffect(() => {
