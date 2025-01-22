@@ -16,10 +16,10 @@ import {
   Button,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import StopIcon from '@mui/icons-material/Stop';
-import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import PauseIcon from '@mui/icons-material/Pause';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
 
 import { useDebouncedCallback } from 'use-debounce';
 
@@ -27,8 +27,22 @@ import { OverlayDialogs } from './dialogs/dialogs';
 import { gameController } from '../../viewer/controllers/GameController';
 import { getEQDir, getFiles } from '../../lib/util/fileHandler';
 
-import './overlay.scss';
 import { items } from './constants';
+import { PCConfig } from './pc-config';
+
+import './overlay.scss';
+
+function rgbaNumberToHex(rgbaNumber) {
+  const r = (rgbaNumber >> 16) & 0xff;
+  const g = (rgbaNumber >> 8) & 0xff;
+  const b = rgbaNumber & 0xff;
+  const a = (rgbaNumber >> 24) & 0xff;
+  return `#${((1 << 8) + r).toString(16).slice(1)}${((1 << 8) + g)
+    .toString(16)
+    .slice(1)}${((1 << 8) + b).toString(16).slice(1)}${((1 << 8) + a)
+      .toString(16)
+      .slice(1)}`;
+}
 
 const animationDefinitions = {
   pos: 'None',
@@ -76,6 +90,36 @@ const animationDefinitions = {
   t08: 'Tiger Strike',
   t09: 'Dragon Punch',
 };
+
+const pcModels = [
+  'bam',
+  'baf',
+  'erm',
+  'erf',
+  'elf',
+  'elm',
+  'gnf',
+  'gnm',
+  'trf',
+  'trm',
+  'hum',
+  'huf',
+  'daf',
+  'dam',
+  'dwf',
+  'dwm',
+  'haf',
+  'ikf',
+  'ikm',
+  'ham',
+  'hif',
+  'him',
+  'hof',
+  'hom',
+  'ogm',
+  'ogf',
+];
+
 const animationNames = new Proxy(animationDefinitions, {
   get(target, prop, _receiver) {
     if (target[prop]) {
@@ -111,7 +155,6 @@ const AnimationBar = ({ animation, name }) => {
       setPlaying(false);
       return;
     }
-    console.log('Animation', animation);
     const cb = () => {
       const currentFrame = animation.animatables[0]?.masterFrame ?? 0;
       if (currentFrame !== 0) {
@@ -201,6 +244,8 @@ export const ExporterOverlayRightNav = ({
   const [secondary, setSecondary] = useState(null);
   const [asShield, setAsShield] = useState(false);
   const [currentAnimation, setCurrentAnimation] = useState(null);
+  const [config, setConfig] = useState(null);
+
   useEffect(() => {
     (async () => {
       setTexture(-1);
@@ -273,8 +318,85 @@ export const ExporterOverlayRightNav = ({
         texture,
         primary,
         secondary,
-        asShield ? 1 : 0
-      ).then(setBabylonModel);
+        config
+      ).then((model) => {
+        for (const [idx, mat] of Object.entries(
+          model.rootNode.material.subMaterials
+        )) {
+          if (!mat?._albedoTexture || !config) {
+            continue;
+          }
+          const modelName = babylonModel.modelName;
+          const prefixes = {
+            Face  : 'he',
+            Chest : 'ch',
+            Arms  : 'ua',
+            Wrists: 'fa',
+            Legs  : 'lg',
+            Hands : 'hn',
+            Feet  : 'ft',
+          };
+          for (const [key, entry] of Object.entries(prefixes)) {
+            prefixes[key] = `${modelName}${entry}`;
+          }
+          const doSwap = (str, color) => {
+            if (mat.name !== str) {
+              const existing = window.gameController.currentScene.materials
+                .flat()
+                .find((m) => m.name === str);
+              if (existing) {
+                model.rootNode.material.subMaterials[idx] = existing;
+              } else {
+                const newMat = new PBRMaterial(str);
+                newMat.metallic = 0;
+                newMat.roughness = 1;
+                newMat._albedoTexture = new Texture(
+                  str,
+                  window.gameController.currentScene,
+                  mat._albedoTexture.noMipMap,
+                  mat._albedoTexture.invertY,
+                  mat._albedoTexture.samplingMode
+                );
+                model.rootNode.material.subMaterials[idx] = newMat;
+              }
+              const material = model.rootNode.material.subMaterials[idx];
+              if (color !== undefined) {
+                const hexColor = rgbaNumberToHex(color);
+                const r = parseInt(hexColor.substring(1, 3), 16) / 255;
+                const g = parseInt(hexColor.substring(3, 5), 16) / 255;
+                const b = parseInt(hexColor.substring(5, 7), 16) / 255;
+                const a = parseInt(hexColor.substring(7, 9), 16) / 255;
+
+                material.albedoColor = new Color3(r, g, b);
+              }
+            }
+          };
+          // Face
+          if (mat.name.startsWith(prefixes.Face)) {
+            const faceString = `${config.face}`.padStart(2, '0');
+            const fullString = `${
+              prefixes.Face
+            }${head}${faceString}${mat.name.at(-1)}`;
+            doSwap(fullString);
+          }
+
+          ['Chest', 'Arms', 'Wrists', 'Legs', 'Hands', 'Feet'].forEach(
+            (key) => {
+              if (mat.name.startsWith(prefixes[key])) {
+                const chestString = `${config.pieces[key].texture}`.padStart(
+                  2,
+                  '0'
+                );
+                const fullString = `${
+                  prefixes[key]
+                }${chestString}${mat.name.slice(mat.name.length - 2)}`;
+                doSwap(fullString, config.pieces[key].color);
+              }
+            }
+          );
+        }
+        setBabylonModel(model);
+      });
     } else if (type === 1) {
       gameController.SpawnController.addObject(babylonModel.modelName).then(
         setBabylonModel
@@ -286,6 +408,7 @@ export const ExporterOverlayRightNav = ({
       ).then(setBabylonModel);
     }
   }, 100);
+
   useEffect(debouncedAdd, [
     head,
     babylonModel.modelName,
@@ -296,6 +419,7 @@ export const ExporterOverlayRightNav = ({
     primary,
     secondary,
     asShield,
+    config,
   ]);
 
   const animations = useMemo(() => {
@@ -311,6 +435,7 @@ export const ExporterOverlayRightNav = ({
       ...ag.sort((a, b) => (a.name > b.name ? 1 : -1)),
     ];
   }, [babylonModel?.animationGroups]);
+
   return (
     <>
       <Box
@@ -352,24 +477,35 @@ export const ExporterOverlayRightNav = ({
             ))}
           </Select>
         </FormControl>
-        <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
-          <FormLabel id="head-group">Texture</FormLabel>
-          <Select
-            aria-labelledby="head-group"
-            name="head-group"
-            value={texture}
-            onChange={(e) => setTexture(e.target.value)}
+        {pcModels.includes(babylonModel.modelName) ? (
+          <PCConfig
+            textures={textures}
+            setConfig={setConfig}
+            model={babylonModel.modelName}
+          />
+        ) : (
+          <FormControl
+            size="small"
+            sx={{ m: 1, width: 250, margin: '5px auto' }}
           >
-            <MenuItem value={-1} label={-1}>
+            <FormLabel id="head-group">Texture</FormLabel>
+            <Select
+              aria-labelledby="head-group"
+              name="head-group"
+              value={texture}
+              onChange={(e) => setTexture(e.target.value)}
+            >
+              <MenuItem value={-1} label={-1}>
                 Default
-            </MenuItem>
-            {textures.map((idx) => (
-              <MenuItem value={idx} label={idx}>
-                Texture {idx + 1}
               </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+              {textures.map((idx) => (
+                <MenuItem value={idx} label={idx}>
+                  Texture {idx + 1}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
 
         <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
           <FormLabel id="primary-group">Primary</FormLabel>

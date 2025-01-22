@@ -77,7 +77,7 @@ export class BspTree extends WldFragment {
    * @returns 
    */
   nodeSplitLeft(node, point) {
-    return ((point[0] * node.normalX) + 0.01 + (point[1] * node.normalY) + 0.01 + (point[2] * node.normalZ) + 0.01 + node.splitDistance) > 0;
+    return ((point[0] * node.normalX) + 0.00001 + (point[1] * node.normalY) + 0.00001 + (point[2] * node.normalZ) + 0.00001 + node.splitDistance) > 0;
   }
 
   /**
@@ -209,7 +209,8 @@ class BspRegionType {
     const flags = reader.readInt32();
     const regionCount = reader.readInt32();
     for (let i = 0; i < regionCount; i++) {
-      this.#bspTree.regions[reader.readInt32()].regionType = this;
+      const regionIdx = reader.readInt32();
+      this.#bspTree.regions[regionIdx].regionType = this;
     }
     const stringSize = reader.readInt32();
     const regionTypeString = (

@@ -19,6 +19,7 @@ const defaultOptions = {
   soundAutoPlay : false,
   soundRepeat   : false,
   soundShuffle  : false,
+  importBoundary: false,
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(

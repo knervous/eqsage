@@ -70,7 +70,6 @@ export class Mesh extends WldFragment {
     this.materialListIdx = reader.readUint32() - 1;
     this.animatedVerticesReferenceIdx = reader.readUint32() - 1;
     reader.addCursor(8);
-
     this.center = vec3.fromValues(
       reader.readFloat32(),
       reader.readFloat32(),

@@ -30,6 +30,7 @@ export const SettingsDialog = ({ onClose }) => {
     remoteUrl = '',
     showCompass = true,
     preferEqg = true,
+    importBoundary = false,
   } = useSettingsContext();
   const [testState, setTestState] = useState('Ready');
   const [user, setUser] = useState('');
@@ -177,6 +178,18 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Show Compass"
+      />
+      <br />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={importBoundary}
+            onChange={({ target: { checked } }) =>
+              setOption('importBoundary', checked)
+            }
+          />
+        }
+        label="Import Boundary (collision)"
       />
       <br />
       <FormControlLabel

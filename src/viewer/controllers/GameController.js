@@ -54,8 +54,13 @@ class EQDatabase extends Database {
     );
   }
 
-  open(success, _failure) {
-    success();
+  async open(success, _failure) {
+    try {
+      await success();
+
+    } catch (e) {
+      console.log('err in open', e);
+    }
   }
   async loadFile(
     url,

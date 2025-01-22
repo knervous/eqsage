@@ -116,8 +116,8 @@ export const ZoneChooserDialog = ({ open }) => {
   }, []);
 
   const selectAndExit = useCallback(
-    (zone) => {
-      if (!recentList.some((a) => a.short_name === zone.short_name)) {
+    (zone, save = true) => {
+      if (save && !recentList.some((a) => a.short_name === zone.short_name)) {
         recentList.push(zone);
         localStorage.setItem('recent-zones', JSON.stringify(recentList));
       }
@@ -319,12 +319,26 @@ export const ZoneChooserDialog = ({ open }) => {
               sx={{ margin: '15px 0' }}
               id="combo-box-demo"
               isOptionEqualToValue={(option, value) => option.key === value.key}
+              noOptionsText={'Enter Custom File and Press Return'}
+
+              onKeyDown={async e => {
+                if (e.key === 'Enter') {
+                  console.log('ent', e.target.value);
+                  console.log('ref', autocompleteRef.current);
+                  selectAndExit({
+                    short_name: e.target.value,
+                    id        : -1,
+                    long_name : e.target.value
+                  });
+                }
+              }}
               onChange={async (e, values) => {
                 if (!values) {
                   return;
                 }
                 if (e.key === 'Enter') {
-                  selectAndExit(filteredZoneList[values.id]);
+                  const selected = filteredZoneList[values.id];
+                  selectAndExit(selected, false);
                 }
                 setZone(filteredZoneList[values.id]);
               }}
@@ -387,14 +401,7 @@ export const ZoneChooserDialog = ({ open }) => {
         >
           Enter Zone
         </Button>
-        {/* <Button
-          color="primary"
-          onClick={enterZoneBuilder}
-          variant="outlined"
-          sx={{ margin: '5px auto' }}
-        >
-          Zone Builder
-        </Button> */}
+
       </Stack>
     </Dialog>
   );

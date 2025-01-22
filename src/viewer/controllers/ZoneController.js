@@ -559,11 +559,16 @@ class ZoneController extends GameControllerChild {
       undefined,
       '.glb'
     );
-    zone.meshes.forEach((m) => {
-      if (m.material?.metadata?.gltf?.extras?.boundary) {
-        m.dispose();
-      }
-    });
+    console.log('settings', this.gc.settings);
+    if (!this.gc.settings.importBoundary) {
+      console.log('Disposing');
+      zone.meshes.forEach((m) => {
+        if (m.material?.metadata?.gltf?.extras?.boundary) {
+          m.dispose();
+        }
+      });
+    }
+
     // const zoneMesh = this.mergeMeshesWithMaterials(zone.meshes.filter((m) => m.getTotalVertices() > 0), this.currentScene);
     if (import.meta.env.VITE_LOCAL_DEV !== 'true') {
       const zoneMesh = Mesh.MergeMeshes(
@@ -595,6 +600,7 @@ class ZoneController extends GameControllerChild {
       const regionNode = new TransformNode('regions', this.scene);
       this.regionNode = regionNode;
       regionNode.setEnabled(!!this.regionsShown);
+      console.log('Unoptimized', metadata.unoptimizedRegions);
       if (!metadata.regions?.length && metadata.unoptimizedRegions?.length) {
         metadata.regions = await optimizeBoundingBoxes(
           metadata.unoptimizedRegions
@@ -666,7 +672,7 @@ class ZoneController extends GameControllerChild {
       this.scene,
       undefined,
       '.glb'
-    ).catch(e => null);
+    ).catch(_e => null);
     if (!container) {
       return [];
     }
