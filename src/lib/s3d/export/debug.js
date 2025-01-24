@@ -40,7 +40,68 @@ export function toggleRegion() {
     }
   }
 }
-export function createBspVisualization(scene, bspData, doDrawPlanes = false, onlyDivider = false) {
+
+/**
+ * Creates a Babylon.js mesh from an array of polygons.
+ * @param {Array} polygons - Array of polygon objects.
+ * @param {BABYLON.Scene} scene - The Babylon.js scene.
+ * @param {BABYLON.TransformNode} parent - (Optional) Parent node to attach the mesh.
+ * @returns {BABYLON.Mesh} - The created mesh.
+ */
+function createMeshFromPolygons(polygons, scene, parent = null) {
+  const uniqueVertices = [];
+  const vertexMap = new Map(); // To avoid duplicates
+  const indices = [];
+
+  // Helper function to create a unique key for a vertex
+  const vertexKey = (v) => `${v.x.toFixed(6)}_${v.y.toFixed(6)}_${v.z.toFixed(6)}`;
+
+  polygons.forEach((polygon) => {
+    polygon.vertices.forEach((v) => {
+      const key = vertexKey(v);
+      if (!vertexMap.has(key)) {
+        vertexMap.set(key, uniqueVertices.length);
+        uniqueVertices.push(new Vector3(v.x, v.z, v.y));
+      }
+    });
+
+    // Assuming each polygon is a triangle
+    const idx0 = vertexMap.get(vertexKey(polygon.vertices[0]));
+    const idx1 = vertexMap.get(vertexKey(polygon.vertices[1]));
+    const idx2 = vertexMap.get(vertexKey(polygon.vertices[2]));
+
+    indices.push(idx0, idx1, idx2);
+  });
+
+  // Create the mesh
+  const mesh = new Mesh('aggregatedMesh', scene);
+  
+  // Assign the mesh to the parent if provided
+  if (parent) {
+    mesh.parent = parent;
+  }
+
+  // Create VertexData
+  const vertexData = new VertexData();
+  vertexData.positions = uniqueVertices.flatMap(v => [v.x, v.y, v.z]);
+  vertexData.indices = indices;
+
+  // Apply the vertex data to the mesh
+  vertexData.applyToMesh(mesh, true);
+
+  // Optional: Create a material for better visualization
+  const material = new StandardMaterial('meshMaterial', scene);
+  material.emissiveColor = new Color3(0.4, 0.6, 0.8);
+  material.backFaceCulling = false; // Render both sides
+  mesh.material = material;
+  mesh.isPickable = true;
+  // Enable collisions if needed
+  mesh.checkCollisions = false;
+
+  return mesh;
+}
+
+export function createBspVisualization(scene, bspData, doDrawPlanes = false, onlyDivider = false, size = 300, doPolys = false) {
   console.log('hmr 123');
   bspRoot?.dispose?.();
   planeRoot?.dispose?.();
@@ -56,17 +117,21 @@ export function createBspVisualization(scene, bspData, doDrawPlanes = false, onl
   
   // 1) Visualize each leaf region as a translucent sphere
   Regions.forEach((region, idx) => {
-    // region.Sphere is [cx, cy, cz, radius]
-    const [cx, cz, cy, radius] = region.Sphere || [0, 0, 0, 0];
-    // Create a sphere for the region
-    // const sphere = MeshBuilder.CreateSphere(
-    //     `regionSphere_${region.Tag}`,
-    //     { segments: 8, diameter: radius * 2 },
-    //     scene
-    // );
-    const size = radius * 2;
-    // Create a box for the region
-    const sphere = MeshBuilder.CreateBox(
+
+    if (region.polygons && doPolys) {
+      createMeshFromPolygons(region.polygons, scene, bspRoot);
+    } else if (!doPolys) {
+      // region.Sphere is [cx, cy, cz, radius]
+      const [cx, cz, cy, radius] = region.Sphere || [0, 0, 0, 0];
+      // Create a sphere for the region
+      // const sphere = MeshBuilder.CreateSphere(
+      //     `regionSphere_${region.Tag}`,
+      //     { segments: 8, diameter: radius * 2 },
+      //     scene
+      // );
+      const size = radius * 2;
+      // Create a box for the region
+      const sphere = MeshBuilder.CreateBox(
         `regionBox_${region.Tag}`,
         {
           width : size,
@@ -74,38 +139,41 @@ export function createBspVisualization(scene, bspData, doDrawPlanes = false, onl
           depth : size,
         },
         scene
-    );
+      );
   
-    // Positio
-    // Position at the region center
-    sphere.position.set(cx, cy, cz);
+      // Positio
+      // Position at the region center
+      sphere.position.set(cx, cy, cz);
   
-    // Give it a random color (or color by region type)
-    const material = new StandardMaterial(`mat_${region.Tag}`, scene);
-    material.diffuseColor = new Color3(
-      Math.random(), 
-      Math.random(), 
-      Math.random()
-    );
-    material.alpha = 0.1; // make it a bit translucent
-    sphere.material = material;
-    const zone = Zones.find(z => z.Regions.includes(idx));
-    if (zone) {
-      material.emissiveColor = new Color3(127, 0, 0);
-      material.alpha = 0.5;
+      // Give it a random color (or color by region type)
+      const material = new StandardMaterial(`mat_${region.Tag}`, scene);
+      material.diffuseColor = new Color3(
+        Math.random(), 
+        Math.random(), 
+        Math.random()
+      );
+      material.alpha = 0.1; // make it a bit translucent
+      sphere.material = material;
+      const zone = Zones.find(z => z.Regions.includes(idx - 1));
+      if (zone) {
+        material.emissiveColor = new Color3(127, 0, 0);
+        material.alpha = 0.5;
+      }
+      // Store any metadata you want to retrieve later
+      sphere.metadata = {
+        debug      : true,
+        isBspRegion: true,
+        regionTag  : region.Tag,
+        userData   : region.UserData, // e.g. "DRN__..." if you added custom data
+        regionIndex: idx,
+        zone
+      };
+      sphere.isPickable = true;
+      // Parent to the main root
+      sphere.parent = bspRoot;
+
     }
-    // Store any metadata you want to retrieve later
-    sphere.metadata = {
-      debug      : true,
-      isBspRegion: true,
-      regionTag  : region.Tag,
-      userData   : region.UserData, // e.g. "DRN__..." if you added custom data
-      regionIndex: idx,
-      zone
-    };
-    sphere.isPickable = true;
-    // Parent to the main root
-    sphere.parent = bspRoot;
+    
   });
   
   // 2) (Optional) Visualize the BSP planes from WorldTrees[0].WorldNodes
@@ -165,19 +233,19 @@ export function createBspVisualization(scene, bspData, doDrawPlanes = false, onl
     const debugPlane = MeshBuilder.CreateGround(
         `debugPlane_${nodeIndex}`,
         {
-          width       : 300,
-          height      : 300,
+          width       : size,
+          height      : size,
           subdivisions: 1,
         },
         scene
     );
     debugPlane.parent = planeTransform;
     debugPlane.isPickable = true;
-    debugPlane.setEnabled(onlyDivider ? !!nodeData.regionDivider : true);
+    debugPlane.setEnabled(true);
   
     // Give it a semi-transparent material so we can see it
     const planeMat = new StandardMaterial(`planeMat_${nodeIndex}`, scene);
-    planeMat.emissiveColor = nodeData.regionDivider ? new Color3(0.5, 0, 0) : new Color3(0, 0.5, 0.5); // red
+    planeMat.emissiveColor = nodeData.regionDivider ? new Color3(0.2, 0.4, 0) : new Color3(0, 0.5, 0.5); // red
 
     planeMat.alpha = 0.2;
     planeMat.backFaceCulling = false;
@@ -212,7 +280,10 @@ export function createBspVisualization(scene, bspData, doDrawPlanes = false, onl
     // Apply the dynamic texture to a material
     // planeMat.diffuseTexture = dynamicTexture;
     planeMat.backFaceCulling = false; // Enable rendering on both sides
-
+    if (onlyDivider && !nodeData.regionDivider) {
+      debugPlane.dispose();
+      planeMat.dispose();
+    }
     // Recurse into front & back
     drawNodePlane(nodeData.FrontTree, parentTransform, onlyDivider);
     drawNodePlane(nodeData.BackTree, parentTransform, onlyDivider);

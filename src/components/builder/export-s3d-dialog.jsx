@@ -8,73 +8,16 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
-import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { WebIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { CommonDialog } from '../spire/dialogs/common';
 import {
   getEQDir,
-  getEQFile,
-  getEQSageDir,
   writeEQFile,
   writeFile,
 } from '../../lib/util/fileHandler';
-import { PFSArchive } from '../../lib/pfs/pfs';
 import { useAlertContext } from '../../context/alerts';
-import { SoundInstance } from '../../lib/s3d/sound/sound';
-import { TypedArrayWriter } from '../../lib/util/typed-array-reader';
-import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
-import { mat4, vec3 } from 'gl-matrix';
 import { usePermissions } from '../../hooks/permissions';
 import { useProject } from './hooks/metadata';
-import { imageProcessor } from '../../lib/util/image/image-processor';
-import { quailProcessor } from '../../modules/quail';
-import { createBsp } from '../../lib/s3d/export/bsp';
 import { createS3DZone } from '../../lib/s3d/export/s3d-export';
-
-const version = 2;
-const shadersUsed = [
-  'Opaque_MaxC1.fx',
-  'Opaque_MaxCB1.fx',
-  'Opaque_MaxCG1.fx',
-  'Opaque_MaxCSG1.fx',
-  'Opaque_MaxCBSG1.fx',
-  'Opaque_MaxWaterFall.fx',
-  'Opaque_MaxWater.fx',
-  'Alpha_MaxCBSG1.fx',
-  'Alpha_MaxC1.fx',
-  'Chroma_MaxC1.fx',
-];
-const propertiesUsed = [
-  // Normal
-  'e_TextureDiffuse0', // ex sp_tunn05.dds or png will swap out later
-  'e_TextureGlow0', // ex sp_tunn05.dds or png will swap out later
-  'e_TextureNormal0', // ex sp_tunn05.dds or png will swap out later
-  'e_TextureEnvironment0', // ex sp_tunn05.dds or png will swap out later
-  // Glow
-  'e_fShininess0',
-  // Waterfall
-  'e_fSlide1X', // ex -0.12
-  'e_fSlide1Y', // ex -0.32
-  'e_fSlide2X', // ex 0
-  'e_fSlide2Y', // ex -0.5
-  // Water static
-  'e_fFresnelBias', // 0.17
-  'e_fFresnelPower', // 10
-  'e_fWaterColor1', // 255 0 0 21
-  'e_fWaterColor2', // 255 0 30 23
-  'e_fReflectionAmount', // 0.5
-  'e_fReflectionColor', // 255 255 255 255
-  // Water flowing -- all from above plus
-  // e_fSlide properties
-];
-
-const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
-
 
 export function getCleanByteArray(arr) {
   const newBuffer = new ArrayBuffer(arr.byteLength);

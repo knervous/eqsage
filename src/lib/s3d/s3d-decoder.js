@@ -56,7 +56,6 @@ export class S3DDecoder {
    * @param {FileSystemHandle} file
    */
   async processS3D(file) {
-    console.log("handle s3d", file.name);
     const arrayBuffer = await file.arrayBuffer();
     const buf = Buffer.from(arrayBuffer);
     if (buf.length === 0) {
@@ -64,7 +63,6 @@ export class S3DDecoder {
     }
     this.pfsArchive = new PFSArchive();
     this.pfsArchive.openFromFile(arrayBuffer);
-
     this.files = {};
     const images = [];
     // Preprocess images
@@ -88,13 +86,12 @@ export class S3DDecoder {
       }
 
       if (fileName.endsWith(".bmp") || fileName.endsWith(".dds")) {
-        await writeEQFile('img', `${fileName}`, this.files[fileName].buffer);
+        //   await writeEQFile('img', `${fileName}`, this.files[fileName].buffer);
         images.push({ name: fileName, data: this.files[fileName].buffer });
         continue;
       }
     }
 
-    console.log(`Files ${file.name}`, Object.keys(this.files));
 
     for (const image of images) {
       image.shaderType = this.shaderMap[image.name];
@@ -460,7 +457,7 @@ export class S3DDecoder {
           ? `${scrubbedName}.glb`
           : `[${this.#fileHandle.name}] ${scrubbedName}.glb`;
       await appendObjectMetadata(scrubbedName, wld.name.replace(".wld", ""));
-      if (await getEQFileExists(path, diskFileName)) {
+      if (false && await getEQFileExists(path, diskFileName)) {
         continue;
       }
       const document = new Document(scrubbedName);
@@ -540,13 +537,13 @@ export class S3DDecoder {
 
           vecs.push(
             ...[v1, v2, v3].flatMap((v) => [
-              v[0] + mesh.center[0],
+              (v[0] + mesh.center[0]),
               v[2] + mesh.center[2],
               v[1] + mesh.center[1],
             ])
           );
           normals.push(...[n1, n2, n3].flatMap((v) => [v[0] * -1, v[2], v[1]]));
-          uv.push(...[u1, u2, u3].flatMap((v) => [-v[0], v[1]]));
+          uv.push(...[u1, u2, u3].flatMap((v) => [v[0], v[1]]));
           polygonIndex++;
         }
       }

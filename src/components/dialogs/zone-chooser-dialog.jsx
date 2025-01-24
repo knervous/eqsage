@@ -211,8 +211,11 @@ export const ZoneChooserDialog = ({ open }) => {
           enterZoneBuilder();
         });
       }
+      if (urlParams.get('md') === 'true') {
+        enterModelExporter();
+      }
     }
-  }, [open, Spire, enterZoneBuilder, setZones]);
+  }, [open, Spire, enterZoneBuilder, setZones, enterModelExporter]);
 
   useEffect(() => setZones(zoneList), [zoneList, setZones]);
 

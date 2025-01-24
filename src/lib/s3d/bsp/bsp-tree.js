@@ -77,7 +77,7 @@ export class BspTree extends WldFragment {
    * @returns 
    */
   nodeSplitLeft(node, point) {
-    return ((point[0] * node.normalX) + 0.00001 + (point[1] * node.normalY) + 0.00001 + (point[2] * node.normalZ) + 0.00001 + node.splitDistance) > 0;
+    return ((point[0] * node.normalX) + 0.000000001 + (point[1] * node.normalY) + 0.000000001 + (point[2] * node.normalZ) + 0.000000001 + node.splitDistance) > 0;
   }
 
   /**

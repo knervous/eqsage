@@ -19,6 +19,7 @@ import { ExportDialog } from './export-dialog';
 import { useAlertContext } from '../../context/alerts';
 import { useProject } from './hooks/metadata';
 import { ExportS3DDialog } from './export-s3d-dialog';
+import { DebugDialog } from './debug-dialog';
 
 export const BuilderHeader = () => {
   const ref = useRef(null);
@@ -49,6 +50,7 @@ export const BuilderHeader = () => {
     <>
       <ExportDialog open={exportOpen} setOpen={setExportOpen} />
       <ExportS3DDialog open={exportS3DOpen} setOpen={setExportS3DOpen} />
+      {/* <DebugDialog /> */}
       <Box
         className="builder-header-bg"
         sx={

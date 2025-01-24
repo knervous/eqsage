@@ -37,9 +37,8 @@ export const createS3DZone = async (
   collisionMeshes,
   lights,
   objects,
-  regions1
+  regions
 ) => {
-  const regions = regions1.slice(0, 1);
   const zoneTemplate = createTemplate(name);
   // Mat Defs
   const {
@@ -48,7 +47,7 @@ export const createS3DZone = async (
     simpleSpriteDefs,
     materialPalette,
     materialMap,
-  } = await createMaterials(name, scene, zoneMeshes, collisionMeshes, regions);
+  } = await createMaterials(name, scene, zoneMeshes, collisionMeshes);
   zoneTemplate.MaterialPalettes.push(materialPalette);
   zoneTemplate.MaterialDefs = materialDefs;
   zoneTemplate.SimpleSpriteDefs = simpleSpriteDefs;
@@ -60,12 +59,11 @@ export const createS3DZone = async (
     zoneMeshes,
     collisionMeshes,
     materialMap,
-    regions
   );
   zoneTemplate.DMSpriteDef2s = dmSpriteDef2s;
 
   // Define WorldTree
-  const { WorldTrees, Regions, Zones } = createBsp(dmSpriteDef2s);
+  const { WorldTrees, Regions, Zones } = createBsp(dmSpriteDef2s, regions);
   zoneTemplate.WorldTrees = WorldTrees;
   zoneTemplate.Regions = Regions;
   zoneTemplate.Zones = Zones;
@@ -82,11 +80,15 @@ export const createS3DZone = async (
   );
   console.log('Awaited Textures', textures);
 
-  window.debug = (draw = false, onlyDivider = false) => {
-    createBspVisualization(scene, { WorldTrees, Regions, Zones }, draw, onlyDivider);
+  window.debug = (drawPlanes = false, onlyDivider = false, size = 300, doPolys) => {
+    createBspVisualization(scene, { WorldTrees, Regions, Zones }, drawPlanes, onlyDivider, size, doPolys);
+  };
+  window.debugPoly = () => {
+    createBspVisualization(scene, { WorldTrees, Regions, Zones }, false, false, 300, true);
+
   };
   window.debug(false);
-
+  // window.debug(true, true);
   window.toggleRegion = () => {
     toggleRegion();
   };

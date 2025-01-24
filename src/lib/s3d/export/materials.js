@@ -12,7 +12,7 @@ async function compressPNG(inputBuffer, name) {
 }
   
 
-export const createMaterials = async (name, scene, zoneMeshes, collisionMeshes, regions = []) => {
+export const createMaterials = async (name, scene, zoneMeshes, collisionMeshes) => {
   const texturePromises = [];
   const addTexture = async (name, extension, buffer) => {
     const fullName = `${name}${extension}`;
@@ -36,17 +36,7 @@ export const createMaterials = async (name, scene, zoneMeshes, collisionMeshes, 
   }
   const materialMap = new Map();
 
-  const regionMaterials = [];
-  for (const [idx, region] of Object.entries(regions)) {
-    materialMap.set(region, idx);
-    regionMaterials.push({
-      name        : `REGION_SENTINEL_${idx}`,
-      EQ_COLLISION: true,
-      EQ_REGION   : true
-    });
-  }
   const materials = [
-    ...regionMaterials,
     ...zoneMaterials,
     ...collisionMaterials,
   ];
@@ -125,12 +115,8 @@ export const createMaterials = async (name, scene, zoneMeshes, collisionMeshes, 
       },
       SimpleSpriteFrames: spriteFrames,
     });
-    if (!material.EQ_REGION) {
-      console.log('m', material);
-      materialMap.set(material, simpleSpriteDefs.length - 1);
-    }
+    materialMap.set(material, simpleSpriteDefs.length - 1);
   }
-  console.log('MM', materialMap);
 
   return {
     texturePromises,
