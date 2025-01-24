@@ -776,8 +776,7 @@ class SpawnController extends GameControllerChild {
     texture = -1,
     primary = null,
     secondary = null,
-    secondaryPoint = 0,
-    config = null,
+    secondaryPoint = false,
   ) {
     const wearsRobe = this.wearsRobe(modelName);
     GlobalStore.actions.setLoading(true);
@@ -957,12 +956,12 @@ class SpawnController extends GameControllerChild {
       const secondaryHeld = await this.createItem(secondary);
       if (secondaryHeld) {
         const secondaryBone = skeletonRoot.skeleton.bones.find(
-          (b) => b.name === (secondaryPoint === 0 ? 'l_point' : 'shield_point')
+          (b) => b.name === (secondaryPoint ? 'shield_point' : 'l_point')
         );
         const transformNode = rootNode
           .getChildTransformNodes()
           .find((a) =>
-            a.name.includes(secondaryPoint === 0 ? 'l_point' : 'shield_point')
+            a.name.includes(secondaryPoint ? 'shield_point' : 'l_point')
           );
         // Some item type check here for shield_point
         if (secondaryBone && transformNode) {

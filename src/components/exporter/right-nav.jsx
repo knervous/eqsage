@@ -91,6 +91,23 @@ const animationDefinitions = {
   t09: 'Dragon Punch',
 };
 
+function wearsRobe(modelName) {
+  return [
+    'daf01',
+    'dam01',
+    'erf01',
+    'erm01',
+    'gnf01',
+    'gnm01',
+    'huf01',
+    'hum01',
+    'ikf01',
+    'ikm01',
+    'hif01',
+    'him01',
+  ].includes(modelName);
+}
+
 const pcModels = [
   'bam',
   'baf',
@@ -118,6 +135,21 @@ const pcModels = [
   'hom',
   'ogm',
   'ogf',
+  'kef',
+  'kem',
+  // Robes
+  'daf01',
+  'dam01',
+  'erf01',
+  'erm01',
+  'gnf01',
+  'gnm01',
+  'hif01',
+  'him01',
+  'huf01',
+  'hum01',
+  'ikf01',
+  'ikm01'
 ];
 
 const animationNames = new Proxy(animationDefinitions, {
@@ -316,9 +348,9 @@ export const ExporterOverlayRightNav = ({
         babylonModel.modelName,
         head,
         texture,
-        primary,
-        secondary,
-        config
+        config.primary,
+        config.secondary,
+        !config.shieldPoint
       ).then((model) => {
         for (const [idx, mat] of Object.entries(
           model.rootNode.material.subMaterials
@@ -326,7 +358,7 @@ export const ExporterOverlayRightNav = ({
           if (!mat?._albedoTexture || !config) {
             continue;
           }
-          const modelName = babylonModel.modelName;
+          const modelName = babylonModel.modelName.slice(0, 3);
           const prefixes = {
             Face  : 'he',
             Chest : 'ch',
@@ -376,7 +408,7 @@ export const ExporterOverlayRightNav = ({
             const faceString = `${config.face}`.padStart(2, '0');
             const fullString = `${
               prefixes.Face
-            }${head}${faceString}${mat.name.at(-1)}`;
+            }0${faceString}${mat.name.at(-1)}`;
             doSwap(fullString);
           }
 
@@ -394,6 +426,14 @@ export const ExporterOverlayRightNav = ({
               }
             }
           );
+
+          if (wearsRobe(babylonModel.modelName)) {
+            if (mat.name.startsWith('clk')) {
+              const val = config.robe.toString().padStart(2, '0');
+              const fullString = `clk${val}${mat.name.slice(mat.name.length - 2)}`;
+              doSwap(fullString);
+            }
+          }
         }
         setBabylonModel(model);
       });
@@ -479,6 +519,7 @@ export const ExporterOverlayRightNav = ({
         </FormControl>
         {pcModels.includes(babylonModel.modelName) ? (
           <PCConfig
+            itemOptions={itemOptions}
             textures={textures}
             setConfig={setConfig}
             model={babylonModel.modelName}
@@ -506,70 +547,6 @@ export const ExporterOverlayRightNav = ({
             </Select>
           </FormControl>
         )}
-
-        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
-          <FormLabel id="primary-group">Primary</FormLabel>
-          <Autocomplete
-            value={primary ? items[primary] : ''}
-            size="small"
-            sx={{ margin: '5px 0', maxWidth: '270px' }}
-            isOptionEqualToValue={(option, value) => option.key === value.key}
-            onChange={async (e, values) => {
-              if (!values) {
-                return;
-              }
-              setPrimary(values.model);
-            }}
-            renderOption={(props, option) => {
-              return (
-                <li {...props} key={option.key}>
-                  {option.label}
-                </li>
-              );
-            }}
-            options={itemOptions}
-            renderInput={(params) => (
-              <TextField {...params} model="Select Primary" />
-            )}
-          />
-        </FormControl>
-        <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
-          <FormLabel id="secondary-group">Secondary</FormLabel>
-          <Autocomplete
-            value={secondary ? items[secondary] : ''}
-            size="small"
-            sx={{ margin: '5px 0', maxWidth: '270px' }}
-            isOptionEqualToValue={(option, value) => option.key === value.key}
-            onChange={async (e, values) => {
-              if (!values) {
-                return;
-              }
-              setSecondary(values.model);
-            }}
-            renderOption={(props, option) => {
-              return (
-                <li {...props} key={option.key}>
-                  {option.label}
-                </li>
-              );
-            }}
-            options={itemOptions}
-            renderInput={(params) => (
-              <TextField {...params} model="Select Secondary" />
-            )}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                value={asShield}
-                onChange={() => setAsShield((v) => !v)}
-              >
-                Shield Point
-              </Checkbox>
-            }
-            label="Shield Point"
-          />
-        </FormControl>
       </Box>
       <OverlayDialogs />
     </>

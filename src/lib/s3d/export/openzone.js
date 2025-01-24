@@ -8,7 +8,9 @@ export function polygonsFromSpriteDef(dmSpriteDef, idx) {
     const [x3, y3, z3] = dmSpriteDef.Vertices[i3];
 
     const [x, y, z] = dmSpriteDef.CenterOffset;
-
+    if (dmSpriteDef.region) {
+      dmSpriteDef.region.idx = idx;
+    }
     const poly = new TPolygon(
       [
         { x: x1 + x, y: y1 + y, z: z1 + z },
@@ -17,7 +19,6 @@ export function polygonsFromSpriteDef(dmSpriteDef, idx) {
       ],
       face.Passable,
       dmSpriteDef.Tag,
-      dmSpriteDef.region ? { ...dmSpriteDef.region, idx } : null
     );
 
     polygons.push(poly);
@@ -26,35 +27,58 @@ export function polygonsFromSpriteDef(dmSpriteDef, idx) {
   return polygons;
 }
 
-export function buildMeshFromSpriteDefs(dmSpriteDefs2, onlyRegions = false) {
+export function buildMeshFromSpriteDefs(dmSpriteDefs2, regions) {
   const polygons = [];
   let idx = 0;
   for (const spriteDef of dmSpriteDefs2) {
-    // const polys = polygonsFromSpriteDef(spriteDef, idx);
-    // polygons.push(...polys);
-    if (onlyRegions && spriteDef.region) {
-      const polys = polygonsFromSpriteDef(spriteDef, idx);
-      polygons.push(...polys);
-    } else if (!onlyRegions) {
-      const polys = polygonsFromSpriteDef(spriteDef, idx);
-      polygons.push(...polys);
-    }
-  
     if (spriteDef.region) {
       idx++;
     }
+    const polys = polygonsFromSpriteDef(spriteDef, idx);
+    polygons.push(...polys);
+  }
+  // 2) Now also add bounding-box polygons for each region, with .flag = true
+  for (const region of regions) {
+    const [minX, minZ, minY] = region.minVertex;
+    const [maxX, maxZ, maxY] = region.maxVertex;
+
+    // Create a polygon that encloses the bounding box corners
+    // For a *real* bounding box you might want 6 separate faces.
+    // But let's do a single poly that has the 8 corners (not planar, but for demonstration):
+    const vertices = [
+      { x: minX, y: minY, z: minZ },
+      { x: maxX, y: minY, z: minZ },
+      { x: maxX, y: maxY, z: minZ },
+      { x: minX, y: maxY, z: minZ },
+      { x: minX, y: minY, z: maxZ },
+      { x: maxX, y: minY, z: maxZ },
+      { x: maxX, y: maxY, z: maxZ },
+      { x: minX, y: maxY, z: maxZ },
+    ];
+
+    // Mark this polygon with .flag = true
+    const regionPoly = new TPolygon(
+      vertices,
+      /* passable=*/ false,
+      /* ownerTag=*/ 'bbox',
+      /* regions=*/ [region],
+      /* flag=*/ true
+    );
+
+    polygons.push(regionPoly);
   }
   return polygons;
 }
 
-export function buildBSPFromDmSpriteDef2s(dmSpriteDef2s) {
-  const polys = buildMeshFromSpriteDefs(dmSpriteDef2s);
-  const bspWhole = new TTree(polys);
-  const regionPolys = buildMeshFromSpriteDefs(dmSpriteDef2s, true);
-  const bsp = new TTree(regionPolys);
-  bsp.root.minPt = bspWhole.root.minPt;
-  bsp.root.maxPt = bspWhole.root.maxPt;
+export function buildBSPFromDmSpriteDef2s(dmSpriteDef2s, regions) {
+  const polys = buildMeshFromSpriteDefs(dmSpriteDef2s, regions);
+  const bsp = new TTree(polys, regions);
   bsp.splitAlongGrid();
+  bsp.clipLeafNodesByRegions();
+
+
+  console.log('BSP', bsp);
+
   return bsp.root;
 }
 
@@ -125,16 +149,85 @@ export function computeBoundingSphereFromPolygons(polygons) {
   return [cx, cy, cz, radius];
 }
 
+function isPointInBoundingBox(point, eqRegion) {
+  const [minX, minZ, minY] = eqRegion.minVertex;
+  const [maxX, maxZ, maxY] = eqRegion.maxVertex;
+  return (
+    point.x >= minX &&
+    point.x <= maxX &&
+    point.y >= minY &&
+    point.y <= maxY &&
+    point.z >= minZ &&
+    point.z <= maxZ
+  );
+}
+
+/**
+ * Check if every vertex of `poly` is inside the bounding box of `eqRegion`.
+ * 
+ * @param {TPolygon} poly      A polygon with `poly.vertices[]`.
+ * @param {Object}   eqRegion  Has `minVertex = [minX, minZ, minY]`
+ *                             and `maxVertex = [maxX, maxZ, maxY]`.
+ * @returns {boolean}          True if all polygon vertices are within the box.
+ */
+export function isFullyInsideBox(poly, eqRegion) {
+  const [minX, minZ, minY] = eqRegion.minVertex;
+  const [maxX, maxZ, maxY] = eqRegion.maxVertex;
+
+  for (const v of poly.vertices) {
+    if (v.x < minX || v.x > maxX) {
+      return false;
+    }
+    if (v.y < minY || v.y > maxY) {
+      return false;
+    }
+    if (v.z < minZ || v.z > maxZ) {
+      return false;
+    }
+  }
+  return true; // All vertices were within the bounding box
+}
+
+function doBoundingBoxesOverlap(box1, box2) {
+  if (box1.maxX < box2.minX || box1.minX > box2.maxX) {
+    return false;
+  }
+
+  if (box1.maxY < box2.minY || box1.minY > box2.maxY) {
+    return false;
+  }
+
+  if (box1.maxZ < box2.minZ || box1.minZ > box2.maxZ) {
+    return false;
+  }
+
+  return true;
+}
+
+
 export class TPolygon {
-  constructor(vertices = [], passable = false, ownerTag = '', region = null) {
+  regions = [];
+  constructor(vertices = [], passable = false, ownerTag = '', regions = [], flag = false) {
     this.vertices = vertices;
     this.passable = passable;
     this.ownerTag = ownerTag;
-    this.region = region;
+    this.regions = regions;
+    this.flag = flag;
   }
 
   insertVertex(idx, insertPos) {
     this.vertices.splice(insertPos, 0, idx);
+  }
+
+  addRegion(eqRegion) {
+    console.log('call me');
+
+    if (!this.regions.includes(eqRegion)) {
+      this.regions.push(eqRegion);
+    }
+  }
+  clearRegions() {
+    this.regions = [];
   }
 }
 
@@ -198,6 +291,20 @@ function pointsAreEqual(a, b, eps = 1e-9) {
   );
 }
 
+function isLeafFullyInsideRegion(leaf, eqRegion) {
+  const [rMinX, rMinZ, rMinY] = eqRegion.minVertex;
+  const [rMaxX, rMaxZ, rMaxY] = eqRegion.maxVertex;
+  return (
+    leaf.minPt.x >= rMinX &&
+    leaf.maxPt.x <= rMaxX &&
+    leaf.minPt.y >= rMinY &&
+    leaf.maxPt.y <= rMaxY &&
+    leaf.minPt.z >= rMinZ &&
+    leaf.maxPt.z <= rMaxZ
+  );
+}
+
+
 export class TRegion {
   constructor(polygons) {
     this.polygons = polygons ?? [];
@@ -206,7 +313,6 @@ export class TRegion {
 
     this.minPt = { x: 0, y: 0, z: 0 };
     this.maxPt = { x: 0, y: 0, z: 0 };
-    this.calcBounds();
   }
 
   get childCount() {
@@ -309,8 +415,109 @@ export class TRegion {
     recurse(this);
     return found;
   }
+  
 
-  getLeafRegionsWithPolygons() {
+  /**
+ * In this method, we:
+ * 1) Check if `this` is already an internal node. If yes, we can either do nothing
+ *    or we can recursively handle children. But let's assume we only do this on leaves.
+ * 2) Define 6 planes for the region bounding box (minX, maxX, minY, maxY, minZ, maxZ).
+ * 3) For each plane, we call `splitAlongPlane()`.
+ *    - That yields this.left and this.right, with polygons assigned accordingly.
+ *    - We set `this.plane.regionDivider = eqRegion` for clarity.
+ *    - Then we pick the child that represents the "inside" portion and continue splitting it
+ *      against the next plane.
+ * 4) At the end, the node that remains is the final intersection with the bounding box.
+ *    We label that node’s polygons with `polygon.region = eqRegion`.
+ */
+  splitByRegionBox(eqRegion) {
+    if (this.left || this.right) {
+      // Already an internal node; optionally handle children, 
+      // but let's assume we only do box-splitting on leaves.
+      console.log('Called splitByRegionBox on non-leaf node. Skipping...');
+      return;
+    }
+  
+    const [minX, minZ, minY] = eqRegion.minVertex;
+    const [maxX, maxZ, maxY] = eqRegion.maxVertex;
+  
+    const planes = [
+      // "x >= minX" plane
+      { normal: { x: 1, y: 0, z: 0 }, dist: minX },
+      // "x <= maxX" plane
+      { normal: { x: -1, y: 0, z: 0 }, dist: -maxX },
+      // "y >= minY"
+      { normal: { x: 0, y: 1, z: 0 }, dist: minY },
+      // "y <= maxY"
+      { normal: { x: 0, y: -1, z: 0 }, dist: -maxY },
+      // "z >= minZ"
+      { normal: { x: 0, y: 0, z: 1 }, dist: minZ },
+      // "z <= maxZ"
+      { normal: { x: 0, y: 0, z: -1 }, dist: -maxZ },
+    ];
+  
+    // We'll iteratively do plane splits. 
+    // If the inside portion is "planeEval >= 0" => that is the RIGHT child.
+    const node = this;
+  
+    for (let i = 0; i < planes.length; i++) {
+      node.splitAlongPlane(planes[i]);
+  
+      // Now node has two children: node.left, node.right
+      if (!node.right) {
+        // Means there's nothing on the "inside" side
+        // => no intersection
+        // Clear node polygons to indicate empty?
+        node.polygons.length = 0;
+        return; 
+      }
+  
+      // We want to keep only the inside portion => node.right
+      const insideChild = node.right;
+  
+      // If the inside child has no polygons, done
+      if (insideChild.polygons.length === 0 &&
+          !insideChild.left && !insideChild.right) {
+        // no geometry remains
+        node.polygons.length = 0;
+        return;
+      }
+  
+      // "Collapse" insideChild up to node:
+      // 1) copy polygons 
+      node.polygons = insideChild.polygons;
+      // 2) copy children
+      node.left = insideChild.left;
+      node.right = insideChild.right;
+      // 3) copy plane if you want to track it
+      node.plane = insideChild.plane;
+  
+      // 4) recalc bounding box => node.calcBounds()
+      node.calcBounds();
+  
+      // If node is still an internal node, we can keep going or break
+      // but typically you'd want to flatten it back to a leaf:
+      node.left = null;
+      node.right = null;
+  
+      // Now node is effectively a LEAF with the clipped polygons for that plane
+    }
+    
+    // After all 6 planes, node.polygons is the portion inside eqRegion.
+    // node’s bounding box is updated to that portion only.
+    // If you want to mark them, do:
+    for (const p of node.polygons) {
+      if (!p.regions.includes(eqRegion)) {
+        p.addRegion(eqRegion);
+      }
+    }
+  }
+
+  /**
+   *
+   * @returns {[TRegion]}
+   */
+  getLeafRegionsWithPolygons(eqRegion) {
     const found = [];
     function recurse(region) {
       if (!region) {
@@ -321,7 +528,34 @@ export class TRegion {
         region.right === null &&
         region.polygons.length > 0
       ) {
-        found.push(region);
+        if (eqRegion) {
+          const [minX, minZ, minY] = eqRegion.minVertex;
+          const [maxX, maxZ, maxY] = eqRegion.maxVertex;
+          if (
+            doBoundingBoxesOverlap(
+              {
+                minX,
+                minY,
+                minZ,
+                maxX,
+                maxY,
+                maxZ,
+              },
+              {
+                minX: region.minPt.x,
+                minY: region.minPt.y,
+                minZ: region.minPt.z,
+                maxX: region.maxPt.x,
+                maxY: region.maxPt.y,
+                maxZ: region.maxPt.z,
+              }
+            )
+          ) {
+            found.push(region);
+          }
+        } else {
+          found.push(region);
+        }
       }
       recurse(region.left);
       recurse(region.right);
@@ -337,17 +571,11 @@ export class TRegion {
    * @param {Object} plane       An object { normal: {x,y,z}, dist: number }
    */
   splitAlongPlane(plane, regionDivider = false) {
-
-    if (!this.plane) {
-      this.plane = {
-        regionDivider
-      };
+    if (this.left && this.right) {
+      this.left.splitAlongPlane(plane, regionDivider);
+      this.right.splitAlongPlane(plane, regionDivider);
+      return;
     }
-    this.plane.x = plane.normal.x;
-    this.plane.y = plane.normal.y;
-    this.plane.z = plane.normal.z;
-    this.plane.d = plane.dist;
-
     // We'll accumulate polygons that go into left vs right
     const newLeftPolys = [];
     const newRightPolys = [];
@@ -355,8 +583,10 @@ export class TRegion {
     // For each polygon currently in this region:
     for (const poly of this.polygons) {
       // Split it => we get up to two sub-polygons, each labeled 'left' or 'right'
-      const splitted = this.splitPolygonByPlane(poly, plane);
-
+      const splitted = this.splitPolygonByPlane(
+        poly,
+        plane,
+      );
       // Distribute them to left or right
       for (const sp of splitted) {
         if (sp.side === 'left') {
@@ -366,69 +596,32 @@ export class TRegion {
         }
       }
     }
-    const leftRegion = new TRegion(newLeftPolys);
-    const rightRegion = new TRegion(newRightPolys);
-  
-    // Calculate the bounds for the left and right regions based on the parent bounding box divided by the plane
-    // minPt and maxPt are {x:number, y:number, z:number}
-    const parentMin = this.minPt;
-    const parentMax = this.maxPt;
-  
- 
-    if (plane.normal.x !== 0) {
-      const splitX = plane.dist;
-      leftRegion.minPt = { x: parentMin.x, y: parentMin.y, z: parentMin.z };
-      leftRegion.maxPt = { x: splitX, y: parentMax.y, z: parentMax.z };
-      rightRegion.minPt = { x: splitX, y: parentMin.y, z: parentMin.z };
-      rightRegion.maxPt = { x: parentMax.x, y: parentMax.y, z: parentMax.z };
-    } else if (plane.normal.y !== 0) {
-      const splitY = plane.dist;
-      leftRegion.minPt = { x: parentMin.x, y: parentMin.y, z: parentMin.z };
-      leftRegion.maxPt = { x: parentMax.x, y: splitY, z: parentMax.z };
-      rightRegion.minPt = { x: parentMin.x, y: splitY, z: parentMin.z };
-      rightRegion.maxPt = { x: parentMax.x, y: parentMax.y, z: parentMax.z };
-    } else if (plane.normal.z !== 0) {
-      const splitZ = plane.dist;
-      leftRegion.minPt = { x: parentMin.x, y: parentMin.y, z: parentMin.z };
-      leftRegion.maxPt = { x: parentMax.x, y: parentMax.y, z: splitZ };
-      rightRegion.minPt = { x: parentMin.x, y: parentMin.y, z: splitZ };
-      rightRegion.maxPt = { x: parentMax.x, y: parentMax.y, z: parentMax.z };
+
+    if (!this.left) {
+      this.left = new TRegion();
     }
-  
-  
-    this.left = leftRegion;
-    this.right = rightRegion;
+    if (!this.right) {
+      this.right = new TRegion();
+    }
+    if (!this.plane) {
+      this.plane = {
+        regionDivider,
+      };
+    }
+    this.plane.x = plane.normal.x;
+    this.plane.y = plane.normal.y;
+    this.plane.z = plane.normal.z;
+    this.plane.d = plane.dist;
+
+    // Place those polygons in the child regions
+    this.left.polygons = this.left.polygons.concat(newLeftPolys);
+    this.right.polygons = this.right.polygons.concat(newRightPolys);
+    this.left.calcBounds();
+    this.right.calcBounds();
+
     this.polygons = [];
   }
 
-  /**
-   * This is for testing a plane to see if the split would split polys into those containing region info and not
-   * @param {*} plane
-   * @returns
-   */
-  previewSplitAlongPlane(plane) {
-    const newLeftPolys = [];
-    const newRightPolys = [];
-
-    // For each polygon currently in this region:
-    for (const poly of this.polygons) {
-      // Split it => we get up to two sub-polygons, each labeled 'left' or 'right'
-      const splitted = this.splitPolygonByPlane(poly, plane);
-
-      // Distribute them to left or right
-      for (const sp of splitted) {
-        if (sp.side === 'left') {
-          newLeftPolys.push(sp.poly);
-        } else if (sp.side === 'right') {
-          newRightPolys.push(sp.poly);
-        }
-      }
-    }
-
-    return [newLeftPolys, newRightPolys];
-  }
-
-  
   splitPolygonByPlane(poly, plane) {
     const { normal, dist } = plane;
     const verts = poly.vertices.map((v) => {
@@ -457,6 +650,8 @@ export class TRegion {
     if (allRight && !allLeft) {
       return [{ side: 'right', poly }];
     }
+
+
     // Otherwise, do the actual split:
     return this.performActualSplit(verts, poly, plane);
   }
@@ -474,7 +669,7 @@ export class TRegion {
    *       { side: "right", poly: TPolygon(...) }
    *     ]
    */
-  performActualSplit(verts, poly, plane) {
+  performActualSplit(verts, poly, plane, forceSplit, sign) {
     const leftVerts = [];
     const rightVerts = [];
 
@@ -487,8 +682,17 @@ export class TRegion {
       } else if (curr.sign > 0) {
         rightVerts.push(curr.pos);
       } else {
-        leftVerts.push(curr.pos);
-        rightVerts.push(curr.pos);
+        if (false && forceSplit) {
+          if (sign) {
+            leftVerts.push(curr.pos);
+          } else {
+            rightVerts.push(curr.pos);
+          }
+        } else {
+          // console.log('ASSIGN BOTH', poly);
+          leftVerts.push(curr.pos);
+          rightVerts.push(curr.pos);
+        }
       }
 
       if (
@@ -515,7 +719,7 @@ export class TRegion {
           cleanedLeft,
           poly.passable,
           poly.ownerTag,
-          poly.region
+          poly.regions
         ),
       });
     }
@@ -526,13 +730,14 @@ export class TRegion {
           cleanedRight,
           poly.passable,
           poly.ownerTag,
-          poly.region
+          poly.regions
         ),
       });
     }
 
     return final;
   }
+
 }
 
 /**
@@ -551,19 +756,53 @@ function planeEval(normal, dist, point) {
  *  - The "tree" that owns a root TRegion
  ************************************************/
 export class TTree {
-  constructor(polys) {
+  constructor(polys, regions) {
     this.root = new TRegion(polys);
+    let idx = 0;
+    for (const region of regions) {
+      region.idx = idx++;
+    }
+    this.regions = regions;
   }
 
+
+
+  clipLeafNodesByRegions() {
+
+    for (const eqRegion of this.regions) {
+      const leaves = this.root.getLeafRegionsWithPolygons(eqRegion);
+      for (const leaf of leaves) {
+        leaf.calcBounds();
+        if (isLeafFullyInsideRegion(leaf, eqRegion)) {
+          for (const p of leaf.polygons) {
+            p.addRegion(eqRegion);
+          }
+          continue; // no need to clip
+        }
+        leaf.splitByRegionBox(eqRegion);
+      }
+    }
+
+    for (const eqRegion of this.regions) {
+      const leaves = this.root.getLeafRegionsWithPolygons(eqRegion);
+      for (const leaf of leaves) {
+        leaf.polygons.forEach(p => {
+          p.addRegion(eqRegion);
+        });
+    
+      }
+    }
+  }
   /**
    * Split the entire tree along a 3D grid, recursively.
    * @param {number} gridSize
    *        The maximum allowed bounding-box size (in x, y, or z). If a region
    *        is bigger than gridSize along any axis, we split it.
    */
-  splitAlongGrid(gridSize = 128) {
+  splitAlongGrid(gridSize = 256) {
     // ...
     // let's get the bounding box from the root region
+    this.root.calcBounds();
     const dx = this.root.maxPt.x - this.root.minPt.x;
     const dy = this.root.maxPt.y - this.root.minPt.y;
     const dz = this.root.maxPt.z - this.root.minPt.z;
@@ -588,6 +827,8 @@ export class TTree {
    * @returns
    */
   _splitAlongGridRec(region, gridSize) {
+    // Always recalc bounding box
+    region.calcBounds();
 
     // 1) Decide if we need a plane split along the largest axis
     const dx = region.maxPt.x - region.minPt.x;
@@ -645,83 +886,6 @@ export class TTree {
       }
       if (region.right) {
         this._splitAlongGridRec(region.right, gridSize);
-      }
-      return;
-    }
-
-    // 3) This region is a leaf (no children) and is within gridSize.
-    //    Check if polygons are "mixed" (some have region, some do not).
-    const hasRegion = region.polygons.some((p) => p.region);
-    const hasNoRegion = region.polygons.some((p) => !p.region);
-
-    // If it’s a mix, partition them into two child TRegions:
-    if (false && hasRegion && hasNoRegion) {
-      // OK in this part I want to split the region into two parts with the best possible plane
-      // to separate the two types of polygons -- region and not region.
-      // I want this to keep happening until regions area split out into their own leaf nodes.
-      console.log('Partition leaf', region);
-
-      const subStack = [[region, 0]];
-      while (subStack.length > 0) {
-        /**
-         * @type {[TRegion, number]}
-         */
-        const [sub, depth] = subStack.pop();
-        if (depth >= 6) {
-          continue;
-        }
-        // Re-check bounding box, in case new polygons were assigned
-
-        // Check if sub-region is still mixed
-        const firstEQRegion = sub.polygons.find((p) => p.region);
-        const subHasNoReg = sub.polygons.some((p) => !p.region);
-        const subHasReg = !!firstEQRegion;
-
-        if (subHasReg && subHasNoReg) {
-          // Choose a plane that cuts through the volume here
-          const [minX, minY, minZ] = firstEQRegion.region.minVertex;
-          const [maxX, maxY, maxZ] = firstEQRegion.region.maxVertex;
-
-          const planes = [
-            { normal: { x: 1, y: 0, z: 0 }, dist: minX },
-            { normal: { x: -1, y: 0, z: 0 }, dist: -maxX },
-            { normal: { x: 0, y: 1, z: 0 }, dist: minY },
-            { normal: { x: 0, y: -1, z: 0 }, dist: -maxY },
-            { normal: { x: 0, y: 0, z: 1 }, dist: minZ },
-            { normal: { x: 0, y: 0, z: -1 }, dist: -maxZ },
-          ];
-          let plane;
-          let bestScore = -Infinity;
-          for (const candidate of planes) {
-            const [left, right] = sub.previewSplitAlongPlane(candidate);
-            const regionPolysInLeft = left.filter((p) => p.region).length;
-            const nonRegionPolysInLeft = left.filter((p) => !p.region).length;
-            const regionPolysInRight = right.filter((p) => p.region).length;
-            const nonRegionPolysInRight = right.filter((p) => !p.region).length;
-            if (left.length === 0 || right.length === 0) {
-              continue;
-            }
-            const score =
-              Math.abs(regionPolysInLeft - nonRegionPolysInLeft) +
-              Math.abs(regionPolysInRight - nonRegionPolysInRight);
-
-            if (score > bestScore) {
-              bestScore = score;
-              plane = candidate;
-            }
-          }
-          if (plane) {
-            sub.splitAlongPlane(plane, true);
-            if (sub.left.polygons.length) {
-              subStack.push([sub.left, depth + 1]);
-            }
-            if (sub.right.polygons.length) {
-              subStack.push([sub.right, depth + 1]);
-            }
-
-          }
-       
-        }
       }
     }
   }

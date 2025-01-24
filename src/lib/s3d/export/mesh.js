@@ -2,7 +2,6 @@ import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 
 const createMeshTemplate = (index, materialPalette) => ({
   Tag                  : `R${index}_DMSPRITEDEF`,
@@ -32,47 +31,6 @@ const createMeshTemplate = (index, materialPalette) => ({
   HexTwentyThousandFlag: 0,
 });
 
-const createRegions = regions => {
-  const meshes = [];
-  for (const region of regions) {
-    const minVertex = new Vector3(
-      region.minVertex[0],
-      region.minVertex[1],
-      region.minVertex[2]
-    );
-    const maxVertex = new Vector3(
-      region.maxVertex[0],
-      region.maxVertex[1],
-      region.maxVertex[2]
-    );
-
-    const width = maxVertex.x - minVertex.x;
-    const height = maxVertex.y - minVertex.y;
-    const depth = maxVertex.z - minVertex.z;
-
-    const box = MeshBuilder.CreateBox(
-      'box',
-      {
-        width    : width,
-        height   : height,
-        depth    : depth,
-        updatable: true,
-      },
-      null
-    );
-    box.position = new Vector3(
-      region.center[0],
-      region.center[1],
-      region.center[2]
-    );
-    box.metadata = {
-      region,
-    };
-    meshes.push(box);
-  }
-  return meshes;
-};
-
 /**
  *
  * @param {import('@babylonjs/core/scene').Scene} scene
@@ -88,22 +46,18 @@ export const createMeshes = (
   zoneMeshes,
   collisionMeshes,
   materialMap,
-  regions = [],
   computeBoundingMinMax = false
 ) => {
   const dmSpriteDef2s = [];
-  const regionMeshes = createRegions(regions);
 
   // Merge zone meshes + collision meshes (marked isBoundary)
   const meshes = zoneMeshes
-    .concat(collisionMeshes.map((m) => {
-      m.isBoundary = true;
-      return m;
-    }))
-    .concat(regionMeshes.map((m) => {
-      m.eqRegion = true;
-      return m;
-    }))
+    .concat(
+      collisionMeshes.map((m) => {
+        m.isBoundary = true;
+        return m;
+      })
+    )
     .filter((mesh) => {
       const isSubmesh = mesh instanceof SubMesh;
       const parentMesh = isSubmesh ? mesh.getMesh() : mesh;
@@ -118,7 +72,8 @@ export const createMeshes = (
     const boundary = mesh.isBoundary;
     const template = createMeshTemplate(+idx + 1, materialPalette);
 
-    const passThroughFlag = mesh.eqRegion || mesh.metadata?.gltf?.extras?.passThrough ? 1 : 0;
+    const passThroughFlag =
+      mesh.eqRegion || mesh.metadata?.gltf?.extras?.passThrough ? 1 : 0;
     const isSubmesh = mesh instanceof SubMesh;
     const parentMesh = isSubmesh ? mesh.getMesh() : mesh;
 
@@ -292,7 +247,6 @@ export const createMeshes = (
           meshIndices[i * 3 + 0] + vertexOffset,
           meshIndices[i * 3 + 1] + vertexOffset,
           meshIndices[i * 3 + 2] + vertexOffset,
-
         ],
       });
     }
@@ -302,17 +256,13 @@ export const createMeshes = (
     // ------------------------------------------------------------
     // 5) Fill material groups
     // ------------------------------------------------------------
-    const matIdx = materialMap.has(mesh.material) ? materialMap.get(mesh.material) :
-      materialMap.has(mesh.metadata?.region) ? 
-        materialMap.get(mesh.metadata?.region) : 0;
-    template.FaceMaterialGroups.push([
-      template.Faces.length,
-      +matIdx,
-    ]);
-    template.VertexMaterialGroups.push([
-      template.Vertices.length,
-      +matIdx,
-    ]);
+    const matIdx = materialMap.has(mesh.material)
+      ? materialMap.get(mesh.material)
+      : materialMap.has(mesh.metadata?.region)
+        ? materialMap.get(mesh.metadata?.region)
+        : 0;
+    template.FaceMaterialGroups.push([template.Faces.length, +matIdx]);
+    template.VertexMaterialGroups.push([template.Vertices.length, +matIdx]);
 
     // ------------------------------------------------------------
     // 6) Now compute BoundingBoxMin, BoundingBoxMax, CenterOffset
@@ -322,15 +272,10 @@ export const createMeshes = (
       template.BoundingBoxMin = [minX, minY, minZ];
       template.BoundingBoxMax = [maxX, maxY, maxZ];
     }
-    
-    if (mesh.eqRegion) {
-      template.CenterOffset = [mesh.position.x, mesh.position.z, mesh.position.y];
-      template.region = mesh.metadata.region;
-    } else {
-      template.CenterOffset = [0, 0, 0];
 
-    }
-    // 
+    template.CenterOffset = [0, 0, 0];
+
+    //
 
     template.BoundingRadius = mesh.getBoundingInfo().boundingSphere.radius;
 
@@ -339,8 +284,7 @@ export const createMeshes = (
     // ------------------------------------------------------------
     dmSpriteDef2s.push(template);
   }
-  console.log('RM', regionMeshes);
-  regionMeshes.forEach(r => r.dispose());
+
   return {
     dmSpriteDef2s,
   };

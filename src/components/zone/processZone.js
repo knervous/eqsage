@@ -92,7 +92,7 @@ export async function processEquip(settings, rootFileSystemHandle, standalone = 
 
     const obj = new EQFileHandle(
       'gequip',
-      handles,
+      handles, // handles.filter(h => h.name.endsWith('gequip.s3d')),
       rootFileSystemHandle,
       settings
     );

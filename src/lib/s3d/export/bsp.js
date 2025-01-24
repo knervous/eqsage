@@ -1,4 +1,7 @@
-import { buildBSPFromDmSpriteDef2s, computeBoundingSphereFromPolygons } from './openzone';
+import {
+  buildBSPFromDmSpriteDef2s,
+  computeBoundingSphereFromPolygons,
+} from './openzone';
 
 export const RegionType = {
   Normal       : 0,
@@ -64,18 +67,17 @@ function createRegionData(region) {
 
 function addOrCreateRegion(Zones, region, bspRegionIdx) {
   const zoneTag = `Z${String(region.idx).padStart(4, '0')}_ZONE`;
-  let existingZone = Zones.find(z => z.Tag === zoneTag);
+  let existingZone = Zones.find((z) => z.Tag === zoneTag);
   if (!existingZone) {
     existingZone = {
       Tag     : zoneTag,
       Regions : [],
-      UserData: createRegionData(region)
+      UserData: createRegionData(region),
     };
     Zones.push(existingZone);
   }
   existingZone.Regions.push(bspRegionIdx);
 }
-
 
 function encodeVisRegionsRLE(regions) {
   if (!regions || regions.length === 0) {
@@ -91,7 +93,7 @@ function encodeVisRegionsRLE(regions) {
   const groups = [];
   let currentRegion = 1;
   let groupStart = 1;
-  let visible = (regions[0] === currentRegion);
+  let visible = regions[0] === currentRegion;
   let idx = 0;
 
   while (currentRegion <= maxRegionID) {
@@ -131,10 +133,10 @@ function encodeVisRegionsRLE(regions) {
         outBytes.push(combinedByte);
         g++;
       } else if (count <= 62) {
-        outBytes.push(0xC0 + count);
+        outBytes.push(0xc0 + count);
       } else {
-        outBytes.push(0xFF);
-        outBytes.push(count & 0xFF, (count >> 8) & 0xFF);
+        outBytes.push(0xff);
+        outBytes.push(count & 0xff, (count >> 8) & 0xff);
       }
     } else {
       if (
@@ -149,8 +151,8 @@ function encodeVisRegionsRLE(regions) {
       } else if (count <= 62) {
         outBytes.push(count);
       } else {
-        outBytes.push(0x3F);
-        outBytes.push(count & 0xFF, (count >> 8) & 0xFF);
+        outBytes.push(0x3f);
+        outBytes.push(count & 0xff, (count >> 8) & 0xff);
       }
     }
   }
@@ -193,10 +195,11 @@ function assignVisibilityByDistance(Regions, maxDistance = 500) {
 }
 
 function distance3D(ax, ay, az, bx, by, bz) {
-  const dx = ax - bx, dy = ay - by, dz = az - bz;
+  const dx = ax - bx,
+    dy = ay - by,
+    dz = az - bz;
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
-
 
 function flattenBSP(root) {
   const WorldTree = [];
@@ -208,12 +211,14 @@ function flattenBSP(root) {
     if (!node) {
       return 0;
     }
-    console.log('R node', node);
     // 1-based index, this is intentional
     const thisIndex = WorldTree.length + 1;
 
     // If plane is null => leaf or empty
-    let nx = 0, ny = 0, nz = 0, dd = 0;
+    let nx = 0,
+      ny = 0,
+      nz = 0,
+      dd = 0;
     let regionDivider;
     if (node.plane) {
       nx = node.plane.x;
@@ -224,11 +229,8 @@ function flattenBSP(root) {
     }
 
     // Check if leaf
-    const isLeaf = 
-      !node.left && 
-      !node.right && 
-      node.polygons && 
-      node.polygons.length > 0;
+    const isLeaf =
+      !node.left && !node.right && node.polygons && node.polygons.length > 0;
 
     let regionTag = '';
     if (isLeaf) {
@@ -258,9 +260,7 @@ function flattenBSP(root) {
               BackTree    : 0,
             },
           ],
-          VisLists: [
-            { Ranges: '' },
-          ],
+          VisLists: [{ Ranges: '' }],
         },
         Sphere      : sphere,
         ReverbVolume: 0,
@@ -268,22 +268,26 @@ function flattenBSP(root) {
         UserData    : '',
         SpriteTag   : node.polygons[0].ownerTag,
       };
-      const associatedRegion = node.polygons.find(p => p.region);
-      const everyRegion = true; // node.polygons.every(p => p.region);
-      if (everyRegion && associatedRegion) {
-        addOrCreateRegion(Zones, associatedRegion.region, regionNumber);
+      const associatedRegions = Array.from(
+        new Set(node.polygons.flatMap((p) => p.regions))
+      );
+      if (associatedRegions.length) {
+        regionObj.polygons = node.polygons;
+        for (const region of associatedRegions) {
+          addOrCreateRegion(Zones, region, regionNumber - 1);
+        }
       }
       regionNumber++;
       Regions.push(regionObj);
     }
 
     WorldTree.push({
-      Normals       : [nx, ny, nz, dd],
+      Normals       : [-nx, -ny, -nz, dd],
       WorldRegionTag: regionTag,
       FrontTree     : 0,
       BackTree      : 0,
       Distance      : 0,
-      regionDivider
+      regionDivider,
     });
 
     const frontIndex = recurse(node.left);
@@ -298,8 +302,8 @@ function flattenBSP(root) {
   return { WorldTrees: [{ Tag: '', WorldNodes: WorldTree }], Regions, Zones };
 }
 
-export function createBsp(dmSpriteDef2s, distance = 500) {
-  const root = buildBSPFromDmSpriteDef2s(dmSpriteDef2s);
+export function createBsp(dmSpriteDef2s, regions, distance = 500) {
+  const root = buildBSPFromDmSpriteDef2s(dmSpriteDef2s, regions);
   const { WorldTrees, Regions, Zones } = flattenBSP(root, dmSpriteDef2s);
   assignVisibilityByDistance(Regions, distance);
   return { WorldTrees, Regions, Zones };
