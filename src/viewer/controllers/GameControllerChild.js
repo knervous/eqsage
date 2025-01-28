@@ -44,50 +44,22 @@ export class GameControllerChild {
   setLoading(val) {
     this.#gc.setLoading(val);
   }
-
   get zoneLoaded() {
     return this.#gc.ZoneController.zoneLoaded;
   }
-
   get ZoneController() {
     return this.#gc.ZoneController;
   }
-
   get ZoneBuilderController() {
     return this.#gc.ZoneBuilderController;
   }
-
   get CameraController () {
     return this.#gc.CameraController;
-  }
-  get LightController () {
-    return this.#gc.LightController;
   }
   get SkyController () {
     return this.#gc.SkyController;
   }
-  get MusicController () {
-    return this.#gc.MusicController;
-  }
-  get SoundController () {
-    return this.#gc.SoundController;
-  }
   get SpawnController () {
     return this.#gc.SpawnController;
-  }
-  get GuiController () {
-    return this.#gc.GuiController;
-  }
-  get ItemController () {
-    return this.#gc.ItemController;
-  }
-  get NetLoginController () {
-    return this.#gc.NetLoginController;
-  }
-  get NetWorldController () {
-    return this.#gc.NetWorldController;
-  }
-  get NetZoneController () {
-    return this.#gc.NetZoneController;
   }
 }

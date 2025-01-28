@@ -18,8 +18,9 @@ function customProxyMiddleware(context, options) {
     }
 
     delete req.headers.host;
-    const httpTarget = target.startsWith('http://') ? target : `http://${target}`;
-
+    const httpTarget = target.startsWith('http://')
+      ? target
+      : `http://${target}`;
 
     proxy.web(
       req,
@@ -63,10 +64,15 @@ const silenceSomeSassDeprecationWarnings = {
     warn(message, options) {
       const { stderr } = process;
       const span = options.span ?? undefined;
-      const stack = (options.stack === 'null' ? undefined : options.stack) ?? undefined;
+      const stack =
+        (options.stack === 'null' ? undefined : options.stack) ?? undefined;
 
       if (options.deprecation) {
-        if (message.startsWith('Using / for division outside of calc() is deprecated')) {
+        if (
+          message.startsWith(
+            'Using / for division outside of calc() is deprecated'
+          )
+        ) {
           // silences above deprecation warning
           return;
         }
@@ -81,12 +87,14 @@ const silenceSomeSassDeprecationWarnings = {
 
       if (stack !== undefined) {
         // indent each line of the stack
-        stderr.write(`    ${stack.toString().trimEnd().replace(/\n/gm, '\n    ')}\n`);
+        stderr.write(
+          `    ${stack.toString().trimEnd().replace(/\n/gm, '\n    ')}\n`
+        );
       }
 
       stderr.write('\n');
-    }
-  }
+    },
+  },
 };
 
 export default defineConfig({
@@ -94,17 +102,14 @@ export default defineConfig({
     react(),
     proxyPlugin(),
     viteStaticCopy({
-      targets: [
-        { src: 'node_modules/quail-wasm/quail.wasm', dest: 'static' },
-      ],
+      targets: [{ src: 'node_modules/quail-wasm/quail.wasm', dest: 'static' }],
     }),
-    esbuildCommonjs(['spire-api']) // Add any other dependencies as needed
-
+    esbuildCommonjs(['spire-api']), // Add any other dependencies as needed
   ],
   optimizeDeps: {
     include: ['spire-api'],
   },
-  
+
   server: {
     headers: {
       'Access-Control-Allow-Origin': '*',
@@ -114,34 +119,138 @@ export default defineConfig({
         errors: true,
       },
     },
-    port: 4100
+    port: 4100,
   },
   build: {
     assetsDir    : 'static',
     rollupOptions: {
       output: {
         manualChunks(id, { getModuleInfo }) {
+          // First handle babylonjs separately
+          if (id.includes('node_modules')) {
+            if (id.includes('@babylonjs/core/Animations')) {
+              return '@babylonjs/core/Misc';
+            }
+
+            if (id.includes('@babylonjs/core/Behaviors')) {
+              return '@babylonjs/core/Misc';
+            }
+
+            if (id.includes('@babylonjs/core/Cameras')) {
+              return '@babylonjs/core/Base';
+            }
+
+            if (id.includes('@babylonjs/core/Engines')) {
+              return '@babylonjs/core/types';
+            }
+
+            if (id.includes('@babylonjs/core/Gizmos')) {
+              return '@babylonjs/core/Misc';
+            }
+
+            if (id.includes('@babylonjs/core/Layers')) {
+              return '@babylonjs/core/Misc';
+            }
+
+            if (id.includes('@babylonjs/core/Lights')) {
+              return '@babylonjs/core/Misc';
+            }
+
+            if (id.includes('@babylonjs/core/Materials')) {
+              if (id.includes('@babylonjs/core/Materials/Node')) {
+                return '@babylonjs/core/Materials/Node';
+              }
+              return '@babylonjs/core/Materials';
+            }
+
+            if (id.includes('@babylonjs/core/Maths')) {
+              return '@babylonjs/core/Science';
+            }
+
+            if (id.includes('@babylonjs/core/Meshes')) {
+              return '@babylonjs/core/Meshes';
+            }
+
+            if (id.includes('@babylonjs/core/Misc')) {
+              return '@babylonjs/core/Misc';
+            }
+
+            if (id.includes('@babylonjs/core/Particles')) {
+              return '@babylonjs/core/Base';
+            }
+
+            if (id.includes('@babylonjs/core/Physics')) {
+              return '@babylonjs/core/Science';
+            }
+
+            if (id.includes('@babylonjs/core/PostProcesses')) {
+              return '@babylonjs/core/Processing';
+            }
+
+            if (id.includes('@babylonjs/core/Rendering')) {
+              return '@babylonjs/core/Processing';
+            }
+
+            if (id.includes('@babylonjs/core/scene')) {
+              return '@babylonjs/core/types';
+            }
+
+            if (id.includes('@babylonjs/core/Shaders')) {
+              if (id.includes('/ShadersInclude')) {
+                return '@babylonjs/core/ShadersInclude';
+              }
+
+              return '@babylonjs/core/Shaders';
+            }
+
+            if (id.includes('@babylonjs/core/XR')) {
+              return '@babylonjs/core/Base';
+            }
+
+            if (id.includes('@babylonjs/core')) {
+              return '@babylonjs/core';
+            }
+
+            if (id.includes('@babylonjs/gui-editor')) {
+              return '@babylonjs/gui-editor';
+            }
+
+            if (id.includes('@babylonjs/gui')) {
+              return '@babylonjs/gui';
+            }
+
+            if (id.includes('@babylonjs/inspector')) {
+              return '@babylonjs/inspector';
+            }
+
+            return id
+              .toString()
+              .split('node_modules/')[1]
+              .split('/')[0]
+              .toString();
+          }
+
           const match = /.*\.strings\.(\w+)\.js/.exec(id);
           if (match) {
             const language = match[1]; // e.g. "en"
             const dependentEntryPoints = [];
-        
+
             // we use a Set here so we handle each module at most once. This
             // prevents infinite loops in case of circular dependencies
             const idsToHandle = new Set(getModuleInfo(id).dynamicImporters);
-        
+
             for (const moduleId of idsToHandle) {
               const { isEntry, dynamicImporters, importers } =
                 getModuleInfo(moduleId);
               if (isEntry || dynamicImporters.length > 0) {
                 dependentEntryPoints.push(moduleId);
               }
-        
+
               for (const importerId of importers) {
                 idsToHandle.add(importerId);
               }
             }
-        
+
             if (dependentEntryPoints.length === 1) {
               return `${
                 dependentEntryPoints[0].split('/').slice(-1)[0].split('.')[0]
@@ -184,4 +293,3 @@ export default defineConfig({
     'process.env': {},
   },
 });
-

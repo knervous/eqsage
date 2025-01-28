@@ -30,7 +30,6 @@ export const BuilderHeader = () => {
   const [name, setName] = useState(project.projectName);
   const { openAlert } = useAlertContext();
 
-
   const doExport = useCallback(() => {
     toggleDrawer('');
     setExportOpen(true);
@@ -41,16 +40,14 @@ export const BuilderHeader = () => {
     setExportS3DOpen(true);
   }, [toggleDrawer]);
 
-
   useEffect(() => {
     gameController.ZoneBuilderController.name = `${name}.eqs`;
-
   }, [name, openAlert]);
   return (
     <>
       <ExportDialog open={exportOpen} setOpen={setExportOpen} />
       <ExportS3DDialog open={exportS3DOpen} setOpen={setExportS3DOpen} />
-      {/* <DebugDialog /> */}
+      {import.meta.env.VITE_LOCAL_DEV === 'true' ? <DebugDialog /> : null}
       <Box
         className="builder-header-bg"
         sx={

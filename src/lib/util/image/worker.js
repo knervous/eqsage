@@ -214,7 +214,7 @@ async function convertPNGtoDDS(pngFile, name) {
     rgbaPixels, // Raw RGBA input
     canvas.width,
     canvas.height,
-    dxt.flags.DXT5 // Compression flag for DXT5
+    dxt.flags.DXT5
   );
 
   // Step 3: Create a DDS header for a DXT5 texture

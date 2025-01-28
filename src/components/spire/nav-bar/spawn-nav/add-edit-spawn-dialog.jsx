@@ -16,7 +16,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 import { useDebouncedCallback } from 'use-debounce';
-import { deepClone } from '@mui/x-data-grid/utils/utils';
 import { useZoneContext } from '../../../zone/zone-context';
 import { useMainContext } from '../../../main/context';
 import { useAlertContext } from '../../../../context/alerts';
@@ -62,7 +61,7 @@ export const AddEditSpawnDialog = ({
               );
             } else {
               // Or see if there's a diff and update
-              const cloneMatch = deepClone(matched);
+              const cloneMatch = JSON.parse(JSON.stringify(matched));
               if (
                 JSON.stringify({ ...cloneMatch, npc_type: 0 }) !==
                 JSON.stringify({ ...existing, npc_type: 0 })

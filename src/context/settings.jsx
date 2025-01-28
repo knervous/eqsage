@@ -20,6 +20,7 @@ const defaultOptions = {
   soundRepeat   : false,
   soundShuffle  : false,
   importBoundary: false,
+  parseImages   : true,
 };
 export const SettingsProvider = ({ children }) => {
   const [options, setOptions] = useState(

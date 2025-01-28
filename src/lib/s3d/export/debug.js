@@ -1,24 +1,11 @@
 
-// import { Color3, MeshBuilder, Quaternion, StandardMaterial, TransformNode, Vector3, } from '../../../common/bjs';
-import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
-import { Engine } from '@babylonjs/core/Engines/engine';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
-import { Vector3, Quaternion, Vector2, Vector4 } from '@babylonjs/core/Maths/math.vector';
-import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { Light } from '@babylonjs/core/Lights/light';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3, Quaternion } from '@babylonjs/core/Maths/math.vector';
 import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
-import { Tools } from '@babylonjs/core/Misc/tools';
-import { Scene } from '@babylonjs/core/scene';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
-import { Color3Gradient } from '@babylonjs/core/Misc/gradients';
-import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
 
 /**
@@ -101,6 +88,58 @@ function createMeshFromPolygons(polygons, scene, parent = null) {
   return mesh;
 }
 
+window.showBspNode = (node) => {
+  bspRoot?.dispose?.();
+  planeRoot?.dispose?.();
+
+  const { bsp } = window;
+  const n = bsp.getAllNodes().find(n => n === node);
+
+  if (n) {
+    // This has x,y,z in each of them
+    const { minPt, maxPt } = n;
+    // Calculate the dimensions of the box
+    const width = maxPt.x - minPt.x;
+    const height = maxPt.z - minPt.z;
+    const depth = maxPt.y - minPt.y;
+
+    // Calculate the center position of the box
+    const centerX = (minPt.x + maxPt.x) / 2;
+    const centerY = (minPt.z + maxPt.z) / 2;
+    const centerZ = (minPt.y + maxPt.y) / 2;
+
+    const bspPartition = MeshBuilder.CreateBox(
+      'region_node',
+      {
+        width,
+        height,
+        depth,
+      },
+      window.zb.currentScene
+    );
+  
+
+    bspPartition.position = new Vector3(centerX, centerY, centerZ);
+
+    // Give it a random color (or color by region type)
+    const material = new StandardMaterial('region_node_mat', window.zb.currentScene);
+    material.emissiveColor = new Color3(0.5, 0.5, 0);
+    material.alpha = 0.5;
+    bspPartition.material = material;
+
+    // Store any metadata you want to retrieve later
+    bspPartition.metadata = {
+      debug      : true,
+      isBspRegion: true,
+
+    };
+    bspPartition.isPickable = true;
+    // Parent to the main root
+    bspPartition.parent = bspRoot;
+  }
+
+};
+
 export function createBspVisualization(scene, bspData, doDrawPlanes = false, onlyDivider = false, size = 300, doPolys = false) {
   console.log('hmr 123');
   bspRoot?.dispose?.();
@@ -121,6 +160,20 @@ export function createBspVisualization(scene, bspData, doDrawPlanes = false, onl
     if (region.polygons && doPolys) {
       createMeshFromPolygons(region.polygons, scene, bspRoot);
     } else if (!doPolys) {
+
+      const { minPt, maxPt } = region.node;
+      // Calculate the dimensions of the box
+      const width = maxPt.x - minPt.x;
+      const height = maxPt.z - minPt.z;
+      const depth = maxPt.y - minPt.y;
+  
+      // Calculate the center position of the box
+      const centerX = (minPt.x + maxPt.x) / 2;
+      const centerY = (minPt.z + maxPt.z) / 2;
+      const centerZ = (minPt.y + maxPt.y) / 2;
+  
+      
+
       // region.Sphere is [cx, cy, cz, radius]
       const [cx, cz, cy, radius] = region.Sphere || [0, 0, 0, 0];
       // Create a sphere for the region
@@ -134,16 +187,16 @@ export function createBspVisualization(scene, bspData, doDrawPlanes = false, onl
       const sphere = MeshBuilder.CreateBox(
         `regionBox_${region.Tag}`,
         {
-          width : size,
-          height: size,
-          depth : size,
+          width,
+          height,
+          depth,
         },
         scene
       );
   
       // Positio
       // Position at the region center
-      sphere.position.set(cx, cy, cz);
+      sphere.position.set(centerX, centerY, centerZ);
   
       // Give it a random color (or color by region type)
       const material = new StandardMaterial(`mat_${region.Tag}`, scene);
@@ -154,7 +207,7 @@ export function createBspVisualization(scene, bspData, doDrawPlanes = false, onl
       );
       material.alpha = 0.1; // make it a bit translucent
       sphere.material = material;
-      const zone = Zones.find(z => z.Regions.includes(idx - 1));
+      const zone = Zones.find(z => z.Regions.includes(idx));
       if (zone) {
         material.emissiveColor = new Color3(127, 0, 0);
         material.alpha = 0.5;
@@ -246,7 +299,9 @@ export function createBspVisualization(scene, bspData, doDrawPlanes = false, onl
     // Give it a semi-transparent material so we can see it
     const planeMat = new StandardMaterial(`planeMat_${nodeIndex}`, scene);
     planeMat.emissiveColor = nodeData.regionDivider ? new Color3(0.2, 0.4, 0) : new Color3(0, 0.5, 0.5); // red
-
+    if (nodeData.regionDivider) {
+      console.log('REGION DIVIDER', nodeData);
+    }
     planeMat.alpha = 0.2;
     planeMat.backFaceCulling = false;
 

@@ -2,6 +2,7 @@ import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 
 const createMeshTemplate = (index, materialPalette) => ({
   Tag                  : `R${index}_DMSPRITEDEF`,
@@ -31,6 +32,48 @@ const createMeshTemplate = (index, materialPalette) => ({
   HexTwentyThousandFlag: 0,
 });
 
+const createRegions = regions => {
+  const meshes = [];
+  const push = 1.01;
+  for (const region of regions) {
+    const minVertex = new Vector3(
+      region.minVertex[0] + push,
+      region.minVertex[1] + push,
+      region.minVertex[2] + push
+    );
+    const maxVertex = new Vector3(
+      region.maxVertex[0] - push,
+      region.maxVertex[1] - push,
+      region.maxVertex[2] - push
+    );
+
+    const width = maxVertex.x - minVertex.x;
+    const height = maxVertex.y - minVertex.y;
+    const depth = maxVertex.z - minVertex.z;
+
+    const box = MeshBuilder.CreateBox(
+      'box',
+      {
+        width    : width,
+        height   : height,
+        depth    : depth,
+        updatable: true,
+      },
+      null
+    );
+    box.position = new Vector3(
+      region.center[0],
+      region.center[1],
+      region.center[2]
+    );
+    box.metadata = {
+      region,
+    };
+    meshes.push(box);
+  }
+  return meshes;
+};
+
 /**
  *
  * @param {import('@babylonjs/core/scene').Scene} scene
@@ -46,18 +89,22 @@ export const createMeshes = (
   zoneMeshes,
   collisionMeshes,
   materialMap,
+  regions = [],
   computeBoundingMinMax = false
 ) => {
   const dmSpriteDef2s = [];
+  const regionMeshes = createRegions(regions);
 
   // Merge zone meshes + collision meshes (marked isBoundary)
   const meshes = zoneMeshes
-    .concat(
-      collisionMeshes.map((m) => {
-        m.isBoundary = true;
-        return m;
-      })
-    )
+    .concat(collisionMeshes.map((m) => {
+      m.isBoundary = true;
+      return m;
+    }))
+    .concat(regionMeshes.map((m) => {
+      m.eqRegion = true;
+      return m;
+    }))
     .filter((mesh) => {
       const isSubmesh = mesh instanceof SubMesh;
       const parentMesh = isSubmesh ? mesh.getMesh() : mesh;
@@ -65,18 +112,23 @@ export const createMeshes = (
     });
 
   // We’ll keep a running offset if we have multiple submeshes
-
-  for (const [idx, mesh] of Object.entries(meshes)) {
+  let idx = 0;
+  for (const [_idx, mesh] of Object.entries(meshes)) {
     let vertexOffset = 0;
-
+    console.log('Hi mehs', mesh);
     const boundary = mesh.isBoundary;
     const template = createMeshTemplate(+idx + 1, materialPalette);
 
-    const passThroughFlag =
-      mesh.eqRegion || mesh.metadata?.gltf?.extras?.passThrough ? 1 : 0;
+    const passThroughFlag = mesh.eqRegion || mesh.metadata?.gltf?.extras?.passThrough ? 1 : 0;
     const isSubmesh = mesh instanceof SubMesh;
     const parentMesh = isSubmesh ? mesh.getMesh() : mesh;
 
+    template.A_originalMesh = mesh.name;
+    if (mesh.name.startsWith('M0000')) {
+      idx++;
+      continue;
+    }
+    
     // Grab positions, normals, etc. (submesh vs. standard mesh)
     const positions = isSubmesh
       ? parentMesh
@@ -185,9 +237,10 @@ export const createMeshes = (
       });
 
       // Convert finalColor to 0–255
-      const r = Math.min(255, Math.max(0, Math.round(finalColor.r * 255)));
-      const g = Math.min(255, Math.max(0, Math.round(finalColor.g * 255)));
-      const b = Math.min(255, Math.max(0, Math.round(finalColor.b * 255)));
+      // TODO, Do this!
+      const r = 0; // Math.min(255, Math.max(0, Math.round(finalColor.r * 255)));
+      const g = 0; // Math.min(255, Math.max(0, Math.round(finalColor.g * 255)));
+      const b = 0; // Math.min(255, Math.max(0, Math.round(finalColor.b * 255)));
 
       // Push final vertex color
       template.VertexColors.push([r, g, b, 255]);
@@ -247,6 +300,7 @@ export const createMeshes = (
           meshIndices[i * 3 + 0] + vertexOffset,
           meshIndices[i * 3 + 1] + vertexOffset,
           meshIndices[i * 3 + 2] + vertexOffset,
+
         ],
       });
     }
@@ -256,13 +310,20 @@ export const createMeshes = (
     // ------------------------------------------------------------
     // 5) Fill material groups
     // ------------------------------------------------------------
-    const matIdx = materialMap.has(mesh.material)
-      ? materialMap.get(mesh.material)
-      : materialMap.has(mesh.metadata?.region)
-        ? materialMap.get(mesh.metadata?.region)
-        : 0;
-    template.FaceMaterialGroups.push([template.Faces.length, +matIdx]);
-    template.VertexMaterialGroups.push([template.Vertices.length, +matIdx]);
+    const matIdx = materialMap.has(mesh.material) ? materialMap.get(mesh.material) :
+      materialMap.has(mesh.metadata?.region) ? 
+        materialMap.get(mesh.metadata?.region) : 0;
+    if (matIdx > 3) {
+    //  matIdx = 4;
+    }
+    template.FaceMaterialGroups.push([
+      template.Faces.length,
+      +matIdx,
+    ]);
+    template.VertexMaterialGroups.push([
+      template.Vertices.length,
+      +matIdx,
+    ]);
 
     // ------------------------------------------------------------
     // 6) Now compute BoundingBoxMin, BoundingBoxMax, CenterOffset
@@ -273,18 +334,26 @@ export const createMeshes = (
       template.BoundingBoxMax = [maxX, maxY, maxZ];
     }
 
-    template.CenterOffset = [0, 0, 0];
+    template.BoundingRadius = 0;// mesh.getBoundingInfo().boundingSphere.radius;
 
-    //
+    
+    if (mesh.eqRegion) {
+      template.CenterOffset = [mesh.position.x, mesh.position.z, mesh.position.y];
+      template.region = mesh.metadata.region;
+    } else {
+      template.CenterOffset = [0, 0, 0];
+    }
 
-    template.BoundingRadius = mesh.getBoundingInfo().boundingSphere.radius;
 
     // ------------------------------------------------------------
     // 7) Finally, push this mesh’s data into dmSpriteDef2s
     // ------------------------------------------------------------
     dmSpriteDef2s.push(template);
+    idx++;
+  
   }
-
+  console.log('RM', regionMeshes);
+  regionMeshes.forEach(r => r.dispose());
   return {
     dmSpriteDef2s,
   };
