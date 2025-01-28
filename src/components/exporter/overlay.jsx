@@ -612,9 +612,9 @@ export const ExporterOverlay = () => {
         }
       />
       <OverlayDialogs />
-      {import.meta.env.VITE_LOCAL_DEV === 'true' && (
+      {/* {import.meta.env.VITE_LOCAL_DEV === 'true' && (
         <DevOverlay doProcessZone={doProcessZone} />
-      )}
+      )} */}
       {babylonModel && (
         <ExporterOverlayRightNav
           itemOptions={itemOptions}
