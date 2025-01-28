@@ -336,18 +336,18 @@ export class GameController {
         if (!this.currentScene) {
           break;
         }
-        // let inspector;
-        // await import('@babylonjs/inspector').then((i) => {
-        //   inspector = i.Inspector;
-        // });
-        // if (inspector.IsVisible) {
-        //   inspector.Hide();
-        // } else {
-        //   inspector.Show(zoneController.scene, {
-        //     embedMode: true,
-        //     overlay  : true,
-        //   });
-        // }
+        let inspector;
+        await import('@babylonjs/inspector').then((i) => {
+          inspector = i.Inspector;
+        });
+        if (inspector.IsVisible) {
+          inspector.Hide();
+        } else {
+          inspector.Show(zoneController.scene, {
+            embedMode: true,
+            overlay  : true,
+          });
+        }
         break;
       }
       default:
