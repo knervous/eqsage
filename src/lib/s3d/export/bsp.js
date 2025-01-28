@@ -205,7 +205,7 @@ function flattenBSP(root) {
   const WorldTree = [];
   const Regions = [];
   const Zones = [];
-  let regionNumber = 0;
+  let regionNumber = 1;
 
   function recurse(node) {
     if (!node) {
@@ -233,6 +233,19 @@ function flattenBSP(root) {
       !node.left && !node.right && node.polygons && node.polygons.length > 0;
 
     let regionTag = '';
+    const owners = [];
+    for (const p of node.polygons) {
+      if (!owners.includes(p.ownerTag)) {
+        owners.push(p.ownerTag);
+      }
+    }
+    let oTag = '';
+    if (owners.length > 1) {
+      console.log('Multiple owners', node, owners);
+      if (owners.includes('R7_DMSPRITEDEF')) {
+        oTag = 'R7_DMSPRITEDEF';
+      } 
+    }
     if (isLeaf) {
       const tag = `${regionNumber}`.padStart(6, '0');
       regionTag = `R${tag}`;
@@ -266,13 +279,18 @@ function flattenBSP(root) {
         ReverbVolume: 0,
         ReverbOffset: 0,
         UserData    : '',
-        SpriteTag   : node.polygons[0].ownerTag,
+        SpriteTag   : oTag || node.polygons.at(-1).ownerTag,
       };
       const associatedRegions = Array.from(
         new Set(node.polygons.flatMap((p) => p.regions))
       );
+      regionObj.node = node;
+
       if (associatedRegions.length) {
         regionObj.polygons = node.polygons;
+        const regPolys = node.polygons.filter(p => p.regions.length);
+        regionObj.Sphere = computeBoundingSphereFromPolygons(regPolys);
+
         for (const region of associatedRegions) {
           addOrCreateRegion(Zones, region, regionNumber - 1);
         }
@@ -288,6 +306,7 @@ function flattenBSP(root) {
       BackTree      : 0,
       Distance      : 0,
       regionDivider,
+      node
     });
 
     const frontIndex = recurse(node.left);
@@ -304,6 +323,7 @@ function flattenBSP(root) {
 
 export function createBsp(dmSpriteDef2s, regions, distance = 500) {
   const root = buildBSPFromDmSpriteDef2s(dmSpriteDef2s, regions);
+  window.bsp = root;
   const { WorldTrees, Regions, Zones } = flattenBSP(root, dmSpriteDef2s);
   assignVisibilityByDistance(Regions, distance);
   return { WorldTrees, Regions, Zones };

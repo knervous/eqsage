@@ -128,8 +128,7 @@ export const ExportS3DDialog = ({ open, setOpen }) => {
             color="text.primary"
             gutterBottom
           >
-            Note: This feature is in development and currently does not work,
-            only the client aspects are functional
+            Note: This feature is in development and isn't fully functional.
           </Typography>
           <Typography
             sx={{

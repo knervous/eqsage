@@ -22,6 +22,7 @@ import { GlobalStore } from "../../state";
 import { EQGDecoder } from "../eqg/eqg-decoder";
 import { PFSArchive } from "../pfs/pfs";
 import { Sound } from "./sound/sound";
+import { gameController } from "../../viewer/controllers/GameController";
 
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
@@ -96,9 +97,13 @@ export class S3DDecoder {
     for (const image of images) {
       image.shaderType = this.shaderMap[image.name];
     }
-    console.log(`Processed - ${file.name}`);
-    await imageProcessor.parseImages(images);
-    console.log(`Done processing images ${file.name} - ${images.length}`);
+    if (gameController.settings.parseImages) {
+      console.log(`Processed - ${file.name}`);
+      await imageProcessor.parseImages(images);
+      console.log(`Done processing images ${file.name} - ${images.length}`);
+    } else {
+      console.log('Skipped parsing images')
+    }
   }
 
   /**

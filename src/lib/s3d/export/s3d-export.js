@@ -37,8 +37,11 @@ export const createS3DZone = async (
   collisionMeshes,
   lights,
   objects,
-  regions
+  eqRegions
 ) => {
+  const regions = eqRegions.filter(r => {
+    return r.maxVertex.some(v => v !== 0) || r.minVertex.some(v => v !== 0);
+  });
   const zoneTemplate = createTemplate(name);
   // Mat Defs
   const {
@@ -47,7 +50,7 @@ export const createS3DZone = async (
     simpleSpriteDefs,
     materialPalette,
     materialMap,
-  } = await createMaterials(name, scene, zoneMeshes, collisionMeshes);
+  } = await createMaterials(name, scene, zoneMeshes, collisionMeshes, regions);
   zoneTemplate.MaterialPalettes.push(materialPalette);
   zoneTemplate.MaterialDefs = materialDefs;
   zoneTemplate.SimpleSpriteDefs = simpleSpriteDefs;
@@ -59,6 +62,7 @@ export const createS3DZone = async (
     zoneMeshes,
     collisionMeshes,
     materialMap,
+    regions
   );
   zoneTemplate.DMSpriteDef2s = dmSpriteDef2s;
 
@@ -67,6 +71,7 @@ export const createS3DZone = async (
   zoneTemplate.WorldTrees = WorldTrees;
   zoneTemplate.Regions = Regions;
   zoneTemplate.Zones = Zones;
+  zoneTemplate.AmbientLights[0].Regions = zoneTemplate.Regions.map((_, idx) => idx);
 
   // Lights
   const lightsTemplate = createLights();
@@ -92,6 +97,8 @@ export const createS3DZone = async (
   window.toggleRegion = () => {
     toggleRegion();
   };
+  zoneTemplate.DMSpriteDef2s = zoneTemplate.DMSpriteDef2s.filter(d => d.A_originalMesh !== 'box');
+
   return await quailProcessor.convertS3D(
     name,
     zoneTemplate,

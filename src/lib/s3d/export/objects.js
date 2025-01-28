@@ -51,7 +51,7 @@ const createActorInst = (
     Valid : false,
   },
   Location: {
-    Float32Slice6: [x, z, y, rotateY, rotateX, rotateZ],
+    Float32Slice6: [x, z, y, rotateY * (512 / 360), rotateX * (512 / 360), rotateZ * (512 / 360)],
     Valid        : true,
   },
   BoundingRadius: {

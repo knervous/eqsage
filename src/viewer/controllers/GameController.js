@@ -1,17 +1,12 @@
 import '@babylonjs/loaders/glTF';
 
 import { cameraController } from './CameraController';
-import { lightController } from './LightController';
 import { skyController } from './SkyController';
 import { modelController } from './ModelController';
-import { musicController } from './MusicController';
-import { soundController } from './SoundController';
 import { spawnController } from './SpawnController';
-import { guiController } from './GUIController';
-import { itemController } from './ItemController';
 import { zoneController } from './ZoneController';
 import { zoneBuilderController } from './ZoneBuilderController';
-import { Engine, } from '@babylonjs/core/Engines/engine';
+import { Engine } from '@babylonjs/core/Engines/engine';
 import { ThinEngine } from '@babylonjs/core/Engines/thinEngine';
 import { WebGPUEngine } from '@babylonjs/core/Engines/webgpuEngine';
 import { Database } from '@babylonjs/core/Offline/database';
@@ -57,7 +52,6 @@ class EQDatabase extends Database {
   async open(success, _failure) {
     try {
       await success();
-
     } catch (e) {
       console.log('err in open', e);
     }
@@ -70,7 +64,9 @@ class EQDatabase extends Database {
     _useArrayBuffer
   ) {
     if (url.startsWith('blob')) {
-      const res = await fetch(url).then((a) => a.arrayBuffer()).catch(() => null);
+      const res = await fetch(url)
+        .then((a) => a.arrayBuffer())
+        .catch(() => null);
       if (res) {
         await sceneLoaded(res);
       } else {
@@ -90,7 +86,6 @@ class EQDatabase extends Database {
       }
       try {
         await sceneLoaded(fileBuffer);
-
       } catch (e) {
         console.warn(e);
       }
@@ -136,26 +131,16 @@ export class GameController {
   dev = import.meta.env.VITE_DEV === 'true';
 
   CameraController = cameraController;
-  LightController = lightController;
   SkyController = skyController;
-  MusicController = musicController;
-  SoundController = soundController;
   SpawnController = spawnController;
-  GuiController = guiController;
-  ItemController = itemController;
   ZoneController = zoneController;
   ModelController = modelController;
   ZoneBuilderController = zoneBuilderController;
 
   constructor() {
     this.CameraController.setGameController(this);
-    this.LightController.setGameController(this);
     this.SkyController.setGameController(this);
-    this.MusicController.setGameController(this);
-    this.SoundController.setGameController(this);
     this.SpawnController.setGameController(this);
-    this.GuiController.setGameController(this);
-    this.ItemController.setGameController(this);
     this.ZoneController.setGameController(this);
     this.ModelController.setGameController(this);
     this.ZoneBuilderController.setGameController(this);
@@ -186,12 +171,43 @@ export class GameController {
       );
     };
     const origCreate = ThinEngine.prototype.createTexture;
-    ThinEngine.prototype.createTexture = function(
-      url, noMipmap, _invertY, scene, samplingMode, onLoad, onError, buffer, fallback, format, forcedExtension, mimeType, loaderOptions, creationFlags, useSRGBBuffer
+    ThinEngine.prototype.createTexture = function (
+      url,
+      noMipmap,
+      _invertY,
+      scene,
+      samplingMode,
+      onLoad,
+      onError,
+      buffer,
+      fallback,
+      format,
+      forcedExtension,
+      mimeType,
+      loaderOptions,
+      creationFlags,
+      useSRGBBuffer
     ) {
-      const doFlip = zoneBuilderController.scene || (!url.includes('eq/models') && !/\w+\d{4}/.test(url));
+      const doFlip =
+        zoneBuilderController.scene ||
+        (!url.includes('eq/models') && !/\w+\d{4}/.test(url));
       return origCreate.call(
-        this, url, noMipmap, doFlip, scene, samplingMode, onLoad, onError, buffer, fallback, format, forcedExtension, mimeType, loaderOptions, creationFlags, useSRGBBuffer
+        this,
+        url,
+        noMipmap,
+        doFlip,
+        scene,
+        samplingMode,
+        onLoad,
+        onError,
+        buffer,
+        fallback,
+        format,
+        forcedExtension,
+        mimeType,
+        loaderOptions,
+        creationFlags,
+        useSRGBBuffer
       );
     };
 
@@ -216,7 +232,6 @@ export class GameController {
         } catch (e) {
           console.warn('Error with image', image);
         }
-
       }
       if (!image._data) {
         const data = await getEQFile('textures', `${image.name}.png`);
@@ -226,10 +241,7 @@ export class GameController {
         } else {
           console.warn(`Unhandled image ${image.name}`);
           try {
-            
-          } catch {
-
-          }
+          } catch {}
           // Solid gray 1px png until this is solved
           const pngData = new Uint8Array([
             0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00,
@@ -251,7 +263,11 @@ export class GameController {
   }
 
   get currentScene() {
-    return zoneController.scene ?? modelController.scene ?? zoneBuilderController.scene;
+    return (
+      zoneController.scene ??
+      modelController.scene ??
+      zoneBuilderController.scene
+    );
   }
 
   async loadEngine(canvas, webgpu = false) {
@@ -320,18 +336,18 @@ export class GameController {
         if (!this.currentScene) {
           break;
         }
-        let inspector;
-        await import('@babylonjs/inspector').then(i => {
-          inspector = i.Inspector;
-        });
-        if (inspector.IsVisible) {
-          inspector.Hide();
-        } else {
-          inspector.Show(zoneController.scene, {
-            embedMode: true,
-            overlay  : true,
-          });
-        }
+        // let inspector;
+        // await import('@babylonjs/inspector').then((i) => {
+        //   inspector = i.Inspector;
+        // });
+        // if (inspector.IsVisible) {
+        //   inspector.Hide();
+        // } else {
+        //   inspector.Show(zoneController.scene, {
+        //     embedMode: true,
+        //     overlay  : true,
+        //   });
+        // }
         break;
       }
       default:
@@ -356,12 +372,8 @@ export class GameController {
     this.aabbTree = null;
     this.ZoneController.dispose();
     this.CameraController.dispose();
-    this.LightController.dispose();
     this.SkyController.dispose();
-    this.MusicController.dispose();
-    this.SoundController.dispose();
     this.SpawnController.dispose();
-    this.ItemController.dispose();
   }
 }
 

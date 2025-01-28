@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
+  Box,
   Button,
   FormControl,
   Input,
@@ -9,6 +10,8 @@ import {
   ListItem,
   ListSubheader,
   Stack,
+  Collapse,
+  IconButton,
   Typography,
 } from '@mui/material';
 import { CommonDialog } from '../spire/dialogs/common';
@@ -17,6 +20,8 @@ import { useAlertContext } from '../../context/alerts';
 import { usePermissions } from '../../hooks/permissions';
 import { useProject } from './hooks/metadata';
 import { createS3DZone } from '../../lib/s3d/export/s3d-export';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 
 export const DebugDialog = () => {
   const { openAlert } = useAlertContext();
@@ -32,8 +37,17 @@ export const DebugDialog = () => {
   ] = usePermissions('zb-s3d-out');
   const [fsHandle, setFsHandle] = useState(null);
   const [regionString, setRegionString] = useState(
-    zb.metadata.regions.map((_, idx) => idx).join(',')
+    zb.metadata.regions
+      .map((_, idx) => idx)
+      .join(',')
   );
+  const [bspTree, setBspTree] = useState(null);
+
+  // Load the BSP tree from the global window object
+  useEffect(() => {
+    setBspTree(window.bsp?.root || null);
+  }, []);
+
   const fsWrite = useCallback(
     async (folder, name, data, subdir) => {
       setExportedFiles((f) => [...f, name]);
@@ -63,7 +77,7 @@ export const DebugDialog = () => {
     const collisionMeshes = zb.boundaryContainer
       .getChildMeshes()
       .filter((m) => m.getTotalVertices() > 0);
-    const indices = regionString.split(',').map(a => +a);
+    const indices = regionString.split(",").map((a) => +a);
     const filteredRegions = [];
     metadata.regions.forEach((r, i) => {
       if (indices.includes(i)) {
@@ -84,6 +98,7 @@ export const DebugDialog = () => {
     await writeFile(fsHandle, `${name}.s3d`, new Uint8Array(s3d));
     setExporting(false);
     openAlert(`Successfully wrote ${name}.s3d to ${fsHandle.name}/${name}.s3d`);
+    setBspTree(window.bsp);
   }, [fsWrite, zb, name, regionString]);
 
   useEffect(() => {
@@ -94,6 +109,57 @@ export const DebugDialog = () => {
     }
   }, [fsHandleSelected]);
 
+  // Recursive component to display the BSP tree with collapsible nodes
+  const BspNode = ({ node, left, right, level = 0 }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    if (!node) return null;
+
+    const handleToggleExpand = () => {
+      setIsExpanded((prev) => !prev);
+    };
+
+    const handleShowNode = () => {
+      if (window.showBspNode) {
+        console.log("Node", node);
+        window.showBspNode(node);
+      }
+    };
+    const childCount = useMemo(() => node.childCount, [node]);
+    const region = useMemo(
+      () => node.polygons.some((p) => p.regions.length),
+      [node]
+    );
+    return (
+      <Box sx={{ marginLeft: `${level * 5}px`, marginTop: "10px" }}>
+        <Stack direction="row" alignItems="center">
+          <IconButton size="small" onClick={handleToggleExpand}>
+            {isExpanded ? <ExpandLess /> : <ExpandMore />}
+          </IconButton>
+          <Typography
+            variant="body2"
+            sx={{
+              color: region ? "green" : "white",
+              fontWeight: "bold",
+              flexGrow: 1,
+            }}
+          >
+            [{level}] {level === 0 ? "Root" : left ? "Left" : "Right"} ::
+            Children {childCount}
+          </Typography>
+          <Button size="small" variant="outlined" onClick={handleShowNode}>
+            Show
+          </Button>
+        </Stack>
+        {/* Collapsible children */}
+        <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+          {node.left && <BspNode node={node.left} level={level + 1} left />}
+          {node.right && <BspNode node={node.right} level={level + 1} right />}
+        </Collapse>
+      </Box>
+    );
+  };
+
   return (
     <CommonDialog
       fullWidth
@@ -103,7 +169,10 @@ export const DebugDialog = () => {
       hideButtons
       aria-labelledby="draggable-dialog-title"
     >
-      <FormControl size="small" variant="standard" sx={{ margin: "20px" }}>
+      <FormControl
+        variant="outlined"
+        sx={{ margin: "20px 0px", width: "100%" }}
+      >
         <InputLabel>Regions</InputLabel>
         <Input
           value={regionString}
@@ -112,15 +181,7 @@ export const DebugDialog = () => {
       </FormControl>
       <Stack direction="row" justifyContent={"space-evenly"}>
         <Button
-          sx={{ width: "50%" }}
-          variant="outlined"
-          onClick={() => onFolderSelected()}
-        >
-          Select Output Folder ({fsHandle?.name ?? "none"})
-        </Button>
-
-        <Button
-          sx={{ width: "50%" }}
+          sx={{ width: "100%" }}
           variant="outlined"
           disabled={exporting}
           onClick={() =>
@@ -165,12 +226,29 @@ export const DebugDialog = () => {
         <Button
           variant="outlined"
           onClick={() => {
+            window.debug(true, true, 300);
+          }}
+        >
+          Divider
+        </Button>
+        <Button
+          variant="outlined"
+          onClick={() => {
             window.toggleRegion(true);
           }}
         >
           Toggle
         </Button>
       </Stack>
+      <Box sx={{ maxHeight: "200px", maxWidth: "100%", overflow: "auto" }}>
+        {bspTree ? (
+          <BspNode node={bspTree} />
+        ) : (
+          <Typography sx={{ margin: "10px" }} variant="body2">
+            No BSP tree loaded.
+          </Typography>
+        )}
+      </Box>
     </CommonDialog>
   );
 };

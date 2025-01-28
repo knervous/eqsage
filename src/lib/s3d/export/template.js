@@ -116,7 +116,7 @@ const createTemplate = (name) => ({
       },
       SkipFrames : 0,
       LightLevels: [1],
-      Colors     : [[1.1, 1.1, 1.1]],
+      Colors     : null,
     },
   ],
   MaterialDefs     : [],

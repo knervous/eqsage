@@ -31,6 +31,7 @@ export const SettingsDialog = ({ onClose }) => {
     showCompass = true,
     preferEqg = true,
     importBoundary = false,
+    parseImages = true,
   } = useSettingsContext();
   const [testState, setTestState] = useState('Ready');
   const [user, setUser] = useState('');
@@ -202,6 +203,18 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Prefer EQG when parsing zones"
+      />
+      <br />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={parseImages}
+            onChange={({ target: { checked } }) =>
+              setOption('parseImages', checked)
+            }
+          />
+        }
+        label="Parse Images"
       />
       <br />
       <FormControl size={'small'}>
