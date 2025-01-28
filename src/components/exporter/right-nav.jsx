@@ -8,6 +8,8 @@ import {
   Typography,
   Stack,
   Button,
+  FormLabel,
+  Slider,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
@@ -328,9 +330,9 @@ export const ExporterOverlayRightNav = ({
         babylonModel.modelName,
         head,
         texture,
-        config.primary,
-        config.secondary,
-        !config.shieldPoint
+        config?.primary,
+        config?.secondary,
+        !config?.shieldPoint
       ).then((model) => {
         for (const [idx, mat] of Object.entries(
           model.rootNode.material.subMaterials
