@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
-import { Tools } from '@babylonjs/core/Misc/tools';
+import BABYLON from '@bjs';
 
 import { gameController } from '../../../viewer/controllers/GameController';
 import compass from './CompassFinalLarge.webp';
 import compassDot from './compass-dot.png';
+
+const { Tools } = BABYLON;
 
 const initialOffset = {
   left: 45,

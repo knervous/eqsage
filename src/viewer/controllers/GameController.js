@@ -1,20 +1,16 @@
-import '@babylonjs/loaders/glTF';
-
+import BABYLON from '@bjs';
 import { cameraController } from './CameraController';
 import { skyController } from './SkyController';
 import { modelController } from './ModelController';
 import { spawnController } from './SpawnController';
 import { zoneController } from './ZoneController';
 import { zoneBuilderController } from './ZoneBuilderController';
-import { Engine } from '@babylonjs/core/Engines/engine';
-import { ThinEngine } from '@babylonjs/core/Engines/thinEngine';
-import { WebGPUEngine } from '@babylonjs/core/Engines/webgpuEngine';
-import { Database } from '@babylonjs/core/Offline/database';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
-import { GLTFLoader } from '@babylonjs/loaders/glTF/2.0';
 
 import { GlobalStore } from '../../state';
 import { getEQFile } from '../../lib/util/fileHandler';
+
+const { Engine, ThinEngine, WebGPUEngine, Database, SceneLoader, GLTFLoader } =
+  BABYLON;
 
 /**
  * @typedef Spire
@@ -336,7 +332,7 @@ export class GameController {
         if (!this.currentScene) {
           break;
         }
-        let inspector;
+        let inspector; 
         await import('@babylonjs/inspector').then((i) => {
           inspector = i.Inspector;
         });

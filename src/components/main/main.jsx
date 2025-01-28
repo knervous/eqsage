@@ -7,10 +7,11 @@ import { BabylonZoneOverlay } from '../zone/overlay';
 import { BabylonZone } from '../zone/zone';
 import { ZoneProvider } from '../zone/zone-context';
 import { LoadingDialog } from '../spire/dialogs/loading-dialog';
-import './main.scss';
 import { useMainContext } from './context';
 import { ZoneBuilderDialog } from '../dialogs/zone-builder-dialog';
 import { AudioDialog } from '../dialogs/audio-dialog';
+
+import './main.scss';
 
 const CONSTANTS = {
   BONE         : '#ccc',

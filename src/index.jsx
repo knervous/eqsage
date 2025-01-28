@@ -1,14 +1,23 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { Main } from './components/main/main';
-import { GlobalStoreProvider } from './state';
-import { MainProvider } from './components/main/context';
-import { SettingsProvider } from './context/settings';
+import bjs from '@bjs';
 
 import './index.css';
-import { AlertProvider } from './context/alerts';
 
-function render() {
+async function render() {
+  const [
+    { Main },
+    { GlobalStoreProvider },
+    { MainProvider },
+    { SettingsProvider },
+    { AlertProvider },
+  ] = await Promise.all([
+    import('./components/main/main'),
+    import('./state'),
+    import('./components/main/context'),
+    import('./context/settings'),
+    import('./context/alerts'),
+  ]);
   const root = ReactDOM.createRoot(document.getElementById('root'));
   root.render(
     <GlobalStoreProvider>
@@ -22,4 +31,4 @@ function render() {
     </GlobalStoreProvider>
   );
 }
-render();
+bjs.initialize().then(render);

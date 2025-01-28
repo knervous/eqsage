@@ -1,36 +1,27 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Autocomplete,
   Box,
   Divider,
   FormControl,
-  FormControlLabel,
-  FormLabel,
   MenuItem,
   Select,
-  TextField,
   Typography,
-  Checkbox,
-  Slider,
   Stack,
   Button,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
+import BABYLON from '@bjs';
 
 import { useDebouncedCallback } from 'use-debounce';
-
 import { OverlayDialogs } from './dialogs/dialogs';
 import { gameController } from '../../viewer/controllers/GameController';
 import { getEQDir, getFiles } from '../../lib/util/fileHandler';
-
-import { items } from './constants';
 import { PCConfig } from './pc-config';
 
 import './overlay.scss';
+
+const { PBRMaterial, Texture, Color3 } = BABYLON;
 
 function rgbaNumberToHex(rgbaNumber) {
   const r = (rgbaNumber >> 16) & 0xff;

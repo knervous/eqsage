@@ -1,7 +1,6 @@
 import * as Comlink from 'comlink';
-import { exportNavMesh, init, NavMeshParams, NavMeshCreateParams, Recast } from '@recast-navigation/core';
+import { exportNavMesh, init, NavMeshParams, NavMeshCreateParams } from '@recast-navigation/core';
 import { generateTiledNavMesh } from '@recast-navigation/generators';
-import { Vector3 } from '@babylonjs/core/Maths/math.js';
 
 const NavigationPolyFlags = 
 {

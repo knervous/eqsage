@@ -1,12 +1,16 @@
+import BABYLON from '@bjs';
 
-import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Vector3, Quaternion } from '@babylonjs/core/Maths/math.vector';
-import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
+const {
+  Color3,
+  Vector3,
+  Quaternion,
+  VertexData,
+  TransformNode,
+  Mesh,
+  StandardMaterial,
+  MeshBuilder,
+  DynamicTexture
+} = BABYLON;
 
 /**
  * Visualize the BSP result in Babylon.js
