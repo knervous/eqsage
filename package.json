@@ -28,6 +28,7 @@
     "comlink": "^4.4.1",
     "draco3dgltf": "^1.5.7",
     "dxt-js": "^0.0.3",
+    "events": "^3.3.0",
     "fflate": "^0.8.2",
     "gl-matrix": "^3.4.3",
     "idb-keyval": "^6.2.1",
