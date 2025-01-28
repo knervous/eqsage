@@ -1,17 +1,19 @@
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
-import { Scene } from '@babylonjs/core/scene';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
-import { Color3Gradient } from '@babylonjs/core/Misc/gradients';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
-import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
-import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
-
+import BABYLON from '@bjs';
 import { GameControllerChild } from './GameControllerChild';
-
 import { GlobalStore } from '../../state';
 
+const {
+  Texture,
+  Scene,
+  MeshBuilder,
+  StandardMaterial,
+  CubeTexture,
+  Color3Gradient,
+  Color3,
+  Color4,
+  GlowLayer,
+  PointerEventTypes,
+} = BABYLON;
 class ModelController extends GameControllerChild {
   /**
    * @type {import('@babylonjs/core/scene').Scene}
@@ -62,24 +64,46 @@ class ModelController extends GameControllerChild {
     this.scene.onPointerUp = this.sceneMouseUp;
     this.CameraController.createModelCamera();
     const glowLayer = new GlowLayer('glow', this.scene, {
-      blurKernelSize: 10
+      blurKernelSize: 10,
     });
     this.glowLayer = glowLayer;
     glowLayer.intensity = 0.7;
-    glowLayer.customEmissiveColorSelector = function (mesh, subMesh, material, result) {
+    glowLayer.customEmissiveColorSelector = function (
+      mesh,
+      subMesh,
+      material,
+      result
+    ) {
       if (mesh?.metadata?.emissiveColor) {
-        result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.5);
+        result.set(
+          mesh?.metadata?.emissiveColor.r,
+          mesh?.metadata?.emissiveColor.g,
+          mesh?.metadata?.emissiveColor.b,
+          0.5
+        );
         if (mesh?.metadata?.onlyOccluded) {
           if (mesh.isOccluded) {
-            result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.5);
+            result.set(
+              mesh?.metadata?.emissiveColor.r,
+              mesh?.metadata?.emissiveColor.g,
+              mesh?.metadata?.emissiveColor.b,
+              0.5
+            );
           } else {
-            result.set(mesh?.metadata?.emissiveColor.r, mesh?.metadata?.emissiveColor.g, mesh?.metadata?.emissiveColor.b, 0.00);
+            result.set(
+              mesh?.metadata?.emissiveColor.r,
+              mesh?.metadata?.emissiveColor.g,
+              mesh?.metadata?.emissiveColor.b,
+              0.0
+            );
           }
         }
       }
-      
     };
-    const hdrTexture = CubeTexture.CreateFromPrefilteredData('/static/environment.env', this.scene);
+    const hdrTexture = CubeTexture.CreateFromPrefilteredData(
+      '/static/environment.env',
+      this.scene
+    );
     this.scene.environmentTexture = hdrTexture;
     this.scene.environmentIntensity = 1.0;
     this.regionMaterial = new StandardMaterial('region-material', this.scene);
@@ -146,9 +170,7 @@ class ModelController extends GameControllerChild {
     const png_array = [];
     const map = ['px', 'py', 'pz', 'nx', 'ny', 'nz'];
     for (let i = 0; i < 6; i++) {
-      png_array.push(
-        `/static/skybox_${map[i]}.jpg`
-      );
+      png_array.push(`/static/skybox_${map[i]}.jpg`);
     }
     skyboxMaterial.reflectionTexture = new CubeTexture(
       '/',
@@ -166,14 +188,11 @@ class ModelController extends GameControllerChild {
     skyboxMaterial.diffuseColor = new Color3Gradient(0, 0, 0);
     skyboxMaterial.specularColor = new Color3(0, 0, 0);
     skybox.material = skyboxMaterial;
-    
 
     this.loadCallbacks.forEach((l) => l());
 
     GlobalStore.actions.setLoading(false);
   }
-
-
 }
 
 export const modelController = new ModelController();

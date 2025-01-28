@@ -7,13 +7,10 @@ import {
   ListSubheader,
   Typography,
 } from '@mui/material';
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
-import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
+import BABYLON from '@bjs';
+
 import { WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { CommonDialog } from '../spire/dialogs/common';
 import {
   getEQDir,
@@ -31,6 +28,8 @@ import { mat4, vec3 } from 'gl-matrix';
 import { usePermissions } from '../../hooks/permissions';
 import { useProject } from './hooks/metadata';
 import { imageProcessor } from '../../lib/util/image/image-processor';
+
+const { SubMesh, Vector3, Color3, VertexBuffer } = BABYLON;
 
 const version = 2;
 const shadersUsed = [

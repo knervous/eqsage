@@ -17,12 +17,13 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { Button, FormControl, Stack, TextField } from '@mui/material';
 import { gameController } from '../../../viewer/controllers/GameController';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import BABYLON from '@bjs';
 import { useMainContext } from '../../main/context';
 import { useZoneContext } from '../../zone/zone-context';
 import { useAlertContext } from '../../../context/alerts';
 import { useOverlayContext } from '../provider';
 
+const { Vector3 } = BABYLON;
 export const NpcDialog = ({ onClose }) => {
   const [spawnFilter, setSpawnFilter] = useState('');
   const { selectedZone } = useMainContext();

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import httpProxy from 'http-proxy';
 import react from '@vitejs/plugin-react';
-// import { viteStaticCopy } from 'vite-plugin-static-copy';
+import path from 'path';
 import { esbuildCommonjs } from '@originjs/vite-plugin-commonjs';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
@@ -104,10 +104,10 @@ export default defineConfig({
     viteStaticCopy({
       targets: [{ src: 'node_modules/quail-wasm/quail.wasm', dest: 'static' }],
     }),
-    esbuildCommonjs(['spire-api']), // Add any other dependencies as needed
+    esbuildCommonjs(['spire-api']),
   ],
   optimizeDeps: {
-    include: ['spire-api'],
+    include: ['spire-api', '@babylonjs/core', '@babylonjs/gui', '@babylonjs/inspector'],
   },
 
   server: {
@@ -125,39 +125,58 @@ export default defineConfig({
     assetsDir    : 'static',
     rollupOptions: {
       output: {
-        manualChunks(id, { getModuleInfo }) {
-          const match = /.*\.strings\.(\w+)\.js/.exec(id);
-          if (match) {
-            const language = match[1]; // e.g. "en"
-            const dependentEntryPoints = [];
+        // manualChunks(id, { getModuleInfo }) {
+        //   if (id.includes('node_modules')) {
+        //     if (id.includes('@babylonjs/core')) {
+        //       return '@babylonjs/core';
+        //     }
 
-            // we use a Set here so we handle each module at most once. This
-            // prevents infinite loops in case of circular dependencies
-            const idsToHandle = new Set(getModuleInfo(id).dynamicImporters);
+        //     if (id.includes('@babylonjs/gui-editor')) {
+        //       return '@babylonjs/gui-editor';
+        //     }
 
-            for (const moduleId of idsToHandle) {
-              const { isEntry, dynamicImporters, importers } =
-                getModuleInfo(moduleId);
-              if (isEntry || dynamicImporters.length > 0) {
-                dependentEntryPoints.push(moduleId);
-              }
+        //     if (id.includes('@babylonjs/gui')) {
+        //       return '@babylonjs/gui';
+        //     }
 
-              for (const importerId of importers) {
-                idsToHandle.add(importerId);
-              }
-            }
+        //     if (id.includes('@babylonjs/inspector')) {
+        //       return '@babylonjs/inspector';
+        //     }
 
-            if (dependentEntryPoints.length === 1) {
-              return `${
-                dependentEntryPoints[0].split('/').slice(-1)[0].split('.')[0]
-              }.strings.${language}`;
-            }
-            // For multiple entries, we put it into a "shared" chunk
-            if (dependentEntryPoints.length > 1) {
-              return `shared.strings.${language}`;
-            }
-          }
-        },
+        //     return id.toString().split('node_modules/')[1].split('/')[0].toString();
+        //   }
+        //   const match = /.*\.strings\.(\w+)\.js/.exec(id);
+        //   if (match) {
+        //     const language = match[1]; // e.g. "en"
+        //     const dependentEntryPoints = [];
+
+        //     // we use a Set here so we handle each module at most once. This
+        //     // prevents infinite loops in case of circular dependencies
+        //     const idsToHandle = new Set(getModuleInfo(id).dynamicImporters);
+
+        //     for (const moduleId of idsToHandle) {
+        //       const { isEntry, dynamicImporters, importers } =
+        //         getModuleInfo(moduleId);
+        //       if (isEntry || dynamicImporters.length > 0) {
+        //         dependentEntryPoints.push(moduleId);
+        //       }
+
+        //       for (const importerId of importers) {
+        //         idsToHandle.add(importerId);
+        //       }
+        //     }
+
+        //     if (dependentEntryPoints.length === 1) {
+        //       return `${
+        //         dependentEntryPoints[0].split('/').slice(-1)[0].split('.')[0]
+        //       }.strings.${language}`;
+        //     }
+        //     // For multiple entries, we put it into a "shared" chunk
+        //     if (dependentEntryPoints.length > 1) {
+        //       return `shared.strings.${language}`;
+        //     }
+        //   }
+        // },
         chunkFileNames: 'static/js/eqsage-[name].[hash].js',
         entryFileNames: 'static/js/eqsage-[name].[hash].js',
       },
@@ -173,6 +192,7 @@ export default defineConfig({
     alias: {
       buffer: 'buffer/',
       util  : 'util/',
+      '@bjs': path.resolve(__dirname, 'src/bjs'),
     },
   },
   css: {

@@ -1,8 +1,5 @@
-import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import BABYLON from '@bjs';
+const { SubMesh, Vector3, Color3, VertexBuffer, MeshBuilder } = BABYLON;
 
 const createMeshTemplate = (index, materialPalette) => ({
   Tag                  : `R${index}_DMSPRITEDEF`,

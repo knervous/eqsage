@@ -1,18 +1,21 @@
-import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
-import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem';
-import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
-import { Tools } from '@babylonjs/core/Misc/tools';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-
+import BABYLON from '@bjs';
 import { Spawn } from './Spawn';
 import { eqtoBabylonVector } from '../util/vector';
 import { AnimationNames, mapAnimations } from '../helpers/animationUtils';
+
+const {
+  Color3,
+  Vector3,
+  Texture,
+  Mesh,
+  AbstractMesh,
+  StandardMaterial,
+  PBRMaterial,
+  ParticleSystem,
+  DynamicTexture,
+  Tools,
+  MeshBuilder,
+} = BABYLON;
 
 /** @typedef {import('@babylonjs/core/Meshes').Mesh} Mesh */
 
@@ -72,7 +75,7 @@ export class BabylonSpawn {
   }
 
   setLods(value) {
-    this.rootNode.getLODLevels().forEach(lod => {
+    this.rootNode.getLODLevels().forEach((lod) => {
       this.rootNode.removeLODLevel(lod.mesh);
     });
     this.rootNode.addLODLevel(value, this.instance);
@@ -84,13 +87,15 @@ export class BabylonSpawn {
   async initializeSpawn() {
     const modelVariation =
       this.spawnEntry.texture >= 10
-        ? `${this.modelName}${(Number(this.spawnEntry.texture.toString()[0]))
+        ? `${this.modelName}${Number(this.spawnEntry.texture.toString()[0])
           .toString()
           .padStart(2, '0')}`
         : this.modelName;
 
     const assetContainer =
-      await window.gameController.SpawnController.getAssetContainer(modelVariation);
+      await window.gameController.SpawnController.getAssetContainer(
+        modelVariation
+      );
     this.instanceContainer = assetContainer.instantiateModelsToScene();
     this.animationGroups = this.instanceContainer.animationGroups;
 
@@ -104,7 +109,12 @@ export class BabylonSpawn {
 
     this.rootNode.id = `spawn_${this.spawn.id}`;
     this.rootNode.name = this.spawn.name;
-    const scale = this.modelName === 'fis' ? 0.005 : (this.spawn.size ?? 0) === 0 ? 1.5 : this.spawn.size / 4;
+    const scale =
+      this.modelName === 'fis'
+        ? 0.005
+        : (this.spawn.size ?? 0) === 0
+          ? 1.5
+          : this.spawn.size / 4;
     this.scale = scale;
     for (const mesh of this.rootNode.getChildMeshes()) {
       mesh.checkCollisions = true;
@@ -122,25 +132,27 @@ export class BabylonSpawn {
     const instanceSkeleton = this.instanceContainer.skeletons[0];
     const skeletonRoot = this.rootNode.getChildren(undefined, true)[0];
 
+    const secondaryMeshes =
+      this.rootNode.getChildTransformNodes()[0]?.metadata?.gltf?.extras
+        ?.secondaryMeshes ?? 0;
 
-    const secondaryMeshes = this.rootNode.getChildTransformNodes()[0]?.metadata?.gltf?.extras?.secondaryMeshes ?? 0;
-  
     // Secondary mesh
     let secModel = null;
     if (secondaryMeshes > 0) {
-      const variation = this.spawnEntry.helmtexture?.toString().padStart(2, '0') ?? '00';
-      const container = await window.gameController.SpawnController.getAssetContainer(`${this.modelName}he${variation}`, true);
+      const variation =
+        this.spawnEntry.helmtexture?.toString().padStart(2, '0') ?? '00';
+      const container =
+        await window.gameController.SpawnController.getAssetContainer(
+          `${this.modelName}he${variation}`,
+          true
+        );
       const secondaryModel = container.instantiateModelsToScene();
       secModel = secondaryModel;
       try {
-        secondaryModel.rootNodes[0].getChildMeshes()?.forEach(m => {
+        secondaryModel.rootNodes[0].getChildMeshes()?.forEach((m) => {
           this.rootNode.addChild(m);
         });
-
-
-      } catch (e) {
-
-      }
+      } catch (e) {}
       // this.rootNode.addChild(secondaryModel.rootNodes[0].getChildMeshes()[0]);
       // if (secondaryModel.rootNodes.length) {
       //   this.rootNode.addChild(secondaryModel.rootNodes[0].getChildMeshes()[0]);
@@ -183,10 +195,9 @@ export class BabylonSpawn {
             continue;
           }
           const isVariationTexture = this.spawnEntry.texture >= 10;
-          let text =
-            isVariationTexture
-              ? this.spawnEntry.texture - 10
-              : this.spawnEntry.texture;
+          let text = isVariationTexture
+            ? this.spawnEntry.texture - 10
+            : this.spawnEntry.texture;
           if (mat.name.startsWith('clk')) {
             text += 4;
           }
@@ -236,8 +247,12 @@ export class BabylonSpawn {
     this.rootNode.metadata = { ...this.metadata, onlyOccluded: true };
     this.rootNode.addLODLevel(window.gameController.settings.spawnLOD, sphere);
 
-    window.gameController.ZoneController.glowLayer.addIncludedOnlyMesh(this.rootNode);
-    window.gameController.ZoneController.glowLayer.addIncludedOnlyMesh(this.instance);
+    window.gameController.ZoneController.glowLayer.addIncludedOnlyMesh(
+      this.rootNode
+    );
+    window.gameController.ZoneController.glowLayer.addIncludedOnlyMesh(
+      this.instance
+    );
 
     this.rootNode.id = `spawn_${this.spawn.id}`;
     this.rootNode.name = this.spawn.name;
@@ -286,9 +301,10 @@ export class BabylonSpawn {
 
   disableLoopedAnimation(removeAnimatables = false) {
     if (removeAnimatables) {
-      const startIdx = window.gameController.currentScene._activeAnimatables.findIndex(
-        (ag) => this.animatables[0] === ag
-      );
+      const startIdx =
+        window.gameController.currentScene._activeAnimatables.findIndex(
+          (ag) => this.animatables[0] === ag
+        );
       if (startIdx > -1) {
         window.gameController.currentScene._activeAnimatables.splice(
           startIdx,
@@ -407,7 +423,9 @@ export class BabylonSpawn {
     plane.addLODLevel(500, null);
     plane.isPickable = false;
     // const height = Math.abs(this.rootNode.getBoundingInfo().boundingBox.maximumWorld.y - this.rootNode.getBoundingInfo().boundingBox.minimumWorld.y);
-    plane.position.y = Math.abs(this.rootNode.getBoundingInfo().boundingBox.minimum.y - 1.2);
+    plane.position.y = Math.abs(
+      this.rootNode.getBoundingInfo().boundingBox.minimum.y - 1.2
+    );
     plane.billboardMode = ParticleSystem.BILLBOARDMODE_ALL;
     plane.parent = this.rootNode;
     const material = new StandardMaterial(

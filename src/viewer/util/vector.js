@@ -1,11 +1,11 @@
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import BABYLON from '@bjs';
 
 export const eqtoBabylonVector = (x, y, z) => {
-  return new Vector3(y, z, x);
+  return new BABYLON.Vector3(y, z, x);
 };
 
 export const babylonToEqVector = (x, y, z) => {
-  return new Vector3(z, x, y);
+  return new BABYLON.Vector3(z, x, y);
 };
 
 // x -> y       -  

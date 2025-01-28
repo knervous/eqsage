@@ -1,13 +1,16 @@
-import { Color3 } from '@babylonjs/core/Maths/math.color';
-import { Engine } from '@babylonjs/core/Engines/engine';
-import { Material } from '@babylonjs/core/Materials/material';
-import { MultiMaterial } from '@babylonjs/core/Materials/multiMaterial';
-import { Scene } from '@babylonjs/core/scene';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
-import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
-
-import { GradientMaterial } from '@babylonjs/materials';
+import BABYLON from '@bjs';
 import { GameControllerChild } from './GameControllerChild';
+
+const {
+  Color3,
+  Engine,
+  Material,
+  MultiMaterial,
+  Scene,
+  SceneLoader,
+  SubMesh,
+  GradientMaterial,
+} = BABYLON;
 
 const skyUrl = 'https://eqrequiem.blob.core.windows.net/assets/sky/';
 

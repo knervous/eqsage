@@ -1,27 +1,16 @@
-// Import necessary Babylon.js modules
-import '@babylonjs/core/Materials/Textures/Loaders/envTextureLoader';
-import '@babylonjs/core/Helpers/sceneHelpers';
-import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
-import { Engine } from '@babylonjs/core/Engines/engine';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture';
-import { Material } from '@babylonjs/core/Materials/material';
-import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { Light } from '@babylonjs/core/Lights/light';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
-import { Tools } from '@babylonjs/core/Misc/tools';
-import { Scene } from '@babylonjs/core/scene';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
-import { Color3Gradient } from '@babylonjs/core/Misc/gradients';
-import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
-import { PointerDragBehavior } from '@babylonjs/core/Behaviors/Meshes/pointerDragBehavior';
+import BABYLON from '@bjs';
+const {
+  AbstractMesh,
+  Color3,
+  Color4,
+  Vector3,
+  Material,
+  Mesh,
+  StandardMaterial,
+  PointerEventTypes,
+  MeshBuilder,
+  PointerDragBehavior,
+} = BABYLON;
 
 // Module-level variable to track the current mover
 let currentMover = null;

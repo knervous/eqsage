@@ -1,9 +1,9 @@
-import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
-import { UniversalCamera } from '@babylonjs/core/Cameras/universalCamera';
-import { Tools } from '@babylonjs/core/Misc/tools.js';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import BABYLON from '@bjs';
+
 import { GameControllerChild } from './GameControllerChild';
 import { eqtoBabylonVector } from '../util/vector';
+
+const { ArcRotateCamera, UniversalCamera, Tools, Vector3 } = BABYLON;
 
 class CameraController extends GameControllerChild {
   /**

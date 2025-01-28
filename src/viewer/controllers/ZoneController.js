@@ -1,24 +1,4 @@
-import '@babylonjs/core/Materials/Textures/Loaders/envTextureLoader';
-import '@babylonjs/core/Helpers/sceneHelpers';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
-import { Tools } from '@babylonjs/core/Misc/tools';
-import { Scene } from '@babylonjs/core/scene';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
-import { Color3Gradient } from '@babylonjs/core/Misc/gradients';
-import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
-import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
-import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
-import { MultiMaterial } from '@babylonjs/core/Materials/multiMaterial';
-
+import BABYLON from '@bjs';
 import { GameControllerChild } from './GameControllerChild';
 import {
   AABBNode,
@@ -28,11 +8,33 @@ import {
 } from '../../lib/s3d/bsp/region-utils';
 import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
-import { GLTF2Export, STLExport } from '@babylonjs/serializers';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { WebIO } from '@gltf-transform/core';
 import { dedup, prune, textureCompress } from '@gltf-transform/functions';
 
+const {
+  Color3,
+  Color4,
+  Vector3,
+  Texture,
+  TransformNode,
+  Mesh,
+  StandardMaterial,
+  PointLight,
+  PointerEventTypes,
+  SceneLoader,
+  Tools,
+  Scene,
+  MeshBuilder,
+  GlowLayer,
+  Color3Gradient,
+  CubeTexture,
+  VertexData,
+  SubMesh,
+  MultiMaterial,
+  GLTF2Export,
+  STLExport
+} = BABYLON;
 class ZoneController extends GameControllerChild {
   /**
    * @type {import('@babylonjs/core/scene').Scene}
@@ -99,7 +101,8 @@ class ZoneController extends GameControllerChild {
   }
   async exportSTL(name) {
     const zone = this.currentScene.getMeshByName('zone');
-    const objects = this.currentScene.getNodeByName('static-objects')?.getChildMeshes() ?? [];
+    const objects =
+      this.currentScene.getNodeByName('static-objects')?.getChildMeshes() ?? [];
     const zoneChildren = zone.getChildMeshes(false);
     const objectsChildren = zone.getChildMeshes(false);
 
@@ -586,7 +589,10 @@ class ZoneController extends GameControllerChild {
     const metadata = await getEQFile('zones', `${name}.json`, 'json');
     if (metadata) {
       this.metadata = metadata;
-      this.objectContainer = new TransformNode('static-objects', this.currentScene);
+      this.objectContainer = new TransformNode(
+        'static-objects',
+        this.currentScene
+      );
 
       for (const [key, value] of Object.entries(metadata.objects)) {
         for (const mesh of await this.instantiateObjects(key, value)) {
@@ -672,7 +678,7 @@ class ZoneController extends GameControllerChild {
       this.scene,
       undefined,
       '.glb'
-    ).catch(_e => null);
+    ).catch((_e) => null);
     if (!container) {
       return [];
     }
@@ -716,13 +722,13 @@ class ZoneController extends GameControllerChild {
         if (mergedMesh) {
           mergedMesh.name = mergedMesh.id = `${modelName}_${idx}`;
           mergedMesh.position = new Vector3(x, y, z);
-  
+
           mergedMesh.rotation = new Vector3(
             Tools.ToRadians(rotateX),
             Tools.ToRadians(rotateY),
             Tools.ToRadians(rotateZ)
           );
-          
+
           mergedMesh.checkCollisions = true;
           mergedMesh.scaling.z =
             mergedMesh.scaling.y =
@@ -742,7 +748,7 @@ class ZoneController extends GameControllerChild {
       } catch (e) {
         console.warn(`Warning merging object ${modelName}`, e);
       }
-     
+
       instanceContainer.rootNodes[0].dispose();
     }
 

@@ -1,35 +1,36 @@
-import '@babylonjs/core/Materials/Textures/Loaders/envTextureLoader';
-import '@babylonjs/core/Helpers/sceneHelpers';
-import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
-import { Engine } from '@babylonjs/core/Engines/engine';
-import { Color3, Color4 } from '@babylonjs/core/Maths/math.color';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import { PointLight } from '@babylonjs/core/Lights/pointLight';
-import { Light } from '@babylonjs/core/Lights/light';
-import { Texture } from '@babylonjs/core/Materials/Textures/texture';
-import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { Mesh } from '@babylonjs/core/Meshes/mesh';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
-import { Tools } from '@babylonjs/core/Misc/tools';
-import { Scene } from '@babylonjs/core/scene';
+import BABYLON from '@bjs';
 import { WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
-import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
-import { Color3Gradient } from '@babylonjs/core/Misc/gradients';
-import { CubeTexture } from '@babylonjs/core/Materials/Textures/cubeTexture';
 import { GameControllerChild } from './GameControllerChild';
 import { GlobalStore } from '../../state';
-import '@babylonjs/core/Rendering/edgesRenderer';
 import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
-import { GLTF2Export } from '@babylonjs/serializers';
 import { instantiate3dMover, teardown3dMover } from '../util/babylonUtil';
 import { flipImageX } from '../../lib/util/util';
 import { getEQFile } from '../../lib/util/fileHandler';
 
+const {
+  AbstractMesh,
+  Engine,
+  Color3,
+  Color4,
+  Vector3,
+  PointLight,
+  Light,
+  Texture,
+  VertexData,
+  TransformNode,
+  Mesh,
+  StandardMaterial,
+  PointerEventTypes,
+  SceneLoader,
+  Tools,
+  Scene,
+  MeshBuilder,
+  GlowLayer,
+  Color3Gradient,
+  GLTF2Export,
+  CubeTexture,
+} = BABYLON;
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
 class ZoneBuilderController extends GameControllerChild {
@@ -1233,16 +1234,21 @@ class ZoneBuilderController extends GameControllerChild {
   async addTextureAnimations() {
     const addTextureAnimation = async (material, textureAnimation) => {
       const [baseTexture] = material.getActiveTextures();
-      return await Promise.all(textureAnimation.frames.map(async (f) => {
-        const fileBuffer = await getEQFile('textures', `${f}.png`);
-        return new Texture(
-          f,
-          this.scene,
-          baseTexture.noMipMap,
-          baseTexture.invertY,
-          baseTexture.samplingMode, undefined, undefined, fileBuffer
-        );
-      }));
+      return await Promise.all(
+        textureAnimation.frames.map(async (f) => {
+          const fileBuffer = await getEQFile('textures', `${f}.png`);
+          return new Texture(
+            f,
+            this.scene,
+            baseTexture.noMipMap,
+            baseTexture.invertY,
+            baseTexture.samplingMode,
+            undefined,
+            undefined,
+            fileBuffer
+          );
+        })
+      );
     };
 
     let animationTimerMap = {};

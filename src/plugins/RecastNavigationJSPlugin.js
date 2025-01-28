@@ -1,16 +1,5 @@
-import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData.js';
-import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
-import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
-import { CreateGreasedLine } from '@babylonjs/core/Meshes/Builders/greasedLineBuilder';
-import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
-import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
-import { VertexBuffer } from '@babylonjs/core/Buffers/buffer.js';
-import '@babylonjs/core/Meshes/meshSimplification.js';
-import '@babylonjs/core/Meshes/meshSimplificationSceneComponent.js';
-import { Epsilon, Vector3 } from '@babylonjs/core/Maths/math.js';
-import { Observable } from '@babylonjs/core/Misc/observable.js';
-import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
-import { Color3 } from '@babylonjs/core/Maths/math.color';
+import BABYLON from '@bjs';
+
 import * as Comlink from 'comlink';
 import { init } from '@recast-navigation/core';
 import { zlibSync } from 'fflate';
@@ -25,6 +14,21 @@ import {
   setRandomSeed,
 } from 'recast-navigation';
 import { TypedArrayWriter } from '../lib/util/typed-array-reader.js';
+
+const {
+  VertexData,
+  CreateBox,
+  TransformNode,
+  CreateGreasedLine,
+  Mesh,
+  PointerEventTypes,
+  VertexBuffer,
+  Epsilon,
+  Vector3,
+  Observable,
+  StandardMaterial,
+  Color3,
+} = BABYLON;
 
 const DEFAULT_TILE_SIZE = 16;
 
@@ -64,25 +68,25 @@ const transformPositions = (positions) => {
     const x = positions[i];
     const y = positions[i + 1];
     const z = positions[i + 2];
-  
+
     // Rearrange components: X -> Z, Y stays Y, Z -> X
     transformedPositions[i] = z; // New X = Old Z
     transformedPositions[i + 1] = y; // New Y = Old Y
     transformedPositions[i + 2] = x; // New Z = Old X
   }
-  
+
   return transformedPositions;
 };
 
 const transformIndices = (indices) => {
   const updatedIndices = new Uint32Array(indices.length);
-  
+
   for (let i = 0; i < indices.length; i += 3) {
     updatedIndices[i] = indices[i]; // Keep the first index
     updatedIndices[i + 1] = indices[i + 2]; // Swap the second and third indices
     updatedIndices[i + 2] = indices[i + 1]; // Swap the second and third indices
   }
-  
+
   return updatedIndices;
 };
 
@@ -146,9 +150,9 @@ export class RecastNavigationJSPlugin {
   }
 
   /**
-   * 
-   * @param {[import('@babylonjs/core').Mesh]} meshes 
-   * @returns 
+   *
+   * @param {[import('@babylonjs/core').Mesh]} meshes
+   * @returns
    */
   async _getPositionsAndIndices(meshes) {
     // Filter out invalid or empty meshes
@@ -227,11 +231,11 @@ export class RecastNavigationJSPlugin {
     // Create a new mesh for the debug navmesh
     const mesh = new Mesh('NavMeshDebug', scene);
     const vertexData = new VertexData();
-  
+
     vertexData.indices = swappedIndices;
     vertexData.positions = swappedPositions;
     vertexData.applyToMesh(mesh, true);
-  
+
     // Create a material for the debug mesh
     const matdebug = new StandardMaterial('mat-navmesh-debug', scene);
     matdebug.emissiveColor = new Color3(0, 0, 1); // Blue color
@@ -239,10 +243,9 @@ export class RecastNavigationJSPlugin {
     matdebug.disableLighting = true;
     matdebug.alpha = 0.25; // Semi-transparent
     mesh.material = matdebug;
-  
+
     return mesh;
   }
-  
 
   /**
    *
@@ -286,10 +289,8 @@ export class RecastNavigationJSPlugin {
     const compressed = zlibSync(new Uint8Array(writer.buffer), {
       level: 6,
     });
-    
-    const dataWriter = new TypedArrayWriter(
-      new ArrayBuffer(1024)
-    );
+
+    const dataWriter = new TypedArrayWriter(new ArrayBuffer(1024));
     dataWriter.writeCString('EQNAVMESH');
     dataWriter.setCursor(dataWriter.cursor - 1);
     dataWriter.writeUint32(2); // Version
@@ -301,7 +302,7 @@ export class RecastNavigationJSPlugin {
 
   getClosestPoint(position) {
     const transformedPosition = inverseTransformVector3(position);
-  
+
     const ret = this._navMeshQuery.findClosestPoint(transformedPosition);
     return new Vector3(ret.point.x, ret.point.y, ret.point.z);
   }
@@ -311,7 +312,7 @@ export class RecastNavigationJSPlugin {
       position,
       maxRadius
     );
-  
+
     return new Vector3(ret.randomPoint.x, ret.randomPoint.y, ret.randomPoint.z);
   }
 
@@ -327,16 +328,19 @@ export class RecastNavigationJSPlugin {
     } else {
       console.warn('Unable to convert navigation path points.');
     }
-  
+
     return positions;
   }
 
   computePath(start, end) {
     const transformedStart = inverseTransformVector3(start);
     const transformedEnd = inverseTransformVector3(end);
-  
-    const navPath = this._navMeshQuery.computePath(transformedStart, transformedEnd);
-  
+
+    const navPath = this._navMeshQuery.computePath(
+      transformedStart,
+      transformedEnd
+    );
+
     return this._convertNavPathPoints(navPath);
   }
 
@@ -362,7 +366,7 @@ export class RecastNavigationJSPlugin {
     targetCube.material = matTarget;
 
     const transforms = [];
-    
+
     for (let i = 0; i < maxAgents; i++) {
       const agentCube = CreateBox('agent', { size: 3 }, this._scene);
 
@@ -379,7 +383,11 @@ export class RecastNavigationJSPlugin {
 
       const transform = new TransformNode('agent-parent');
       transforms.push(transform);
-      const agentIndex = crowd.addAgent(inverseTransformVector3(randomPos), agentParams, transform);
+      const agentIndex = crowd.addAgent(
+        inverseTransformVector3(randomPos),
+        agentParams,
+        transform
+      );
       this._agents.push({
         idx   : agentIndex,
         trf   : transform,
@@ -394,7 +402,7 @@ export class RecastNavigationJSPlugin {
       const pickinfo = this._scene.pick(
         this._scene.pointerX,
         this._scene.pointerY,
-        m => m.name === 'NavMeshDebug'
+        (m) => m.name === 'NavMeshDebug'
       );
       if (pickinfo.hit) {
         return pickinfo.pickedPoint;
@@ -411,21 +419,20 @@ export class RecastNavigationJSPlugin {
           }
           if (pointerInfo.pickInfo?.hit) {
             const pathPoints = [];
-    
+
             startingPoint = getGroundPosition();
             if (startingPoint) {
               // Transform the starting point for the navmesh query
-    
+
               const agents = crowd.getAgents();
               for (let i = 0; i < agents.length; i++) {
                 const agentIndex = agents[i];
-                
+
                 // Get the closest point on the navmesh in Recast's coordinate system
                 const closestPointRecast = this.getClosestPoint(startingPoint);
-            
-                
+
                 crowd.agentGoto(agentIndex, closestPointRecast);
-        
+
                 pathPoints.push(
                   this.computePath(
                     inverseTransformVector3(crowd.getAgentPosition(agentIndex)),
@@ -433,9 +440,9 @@ export class RecastNavigationJSPlugin {
                   )
                 );
               }
-    
+
               this._scene.getMeshByName('path-line')?.dispose();
-    
+
               CreateGreasedLine(
                 'path-line',
                 {
@@ -452,12 +459,14 @@ export class RecastNavigationJSPlugin {
           break;
       }
     };
-    
+
     const renderCallback = () => {
       const agentCount = this._agents.length;
       for (let i = 0; i < agentCount; i++) {
         const agent = this._agents[i];
-        agent.mesh.position = inverseTransformVector3(crowd.getAgentPosition(agent.idx));
+        agent.mesh.position = inverseTransformVector3(
+          crowd.getAgentPosition(agent.idx)
+        );
         crowd.getAgentNextTargetPathToRef(agent.idx, agent.target.position);
 
         const vel = crowd.getAgentVelocity(agent.idx);
@@ -673,13 +682,13 @@ export class RecastJSCrowd {
   }
 
   getAgentNextTargetPathToRef(index, result) {
-    const pathTargetPos = inverseTransformVector3(this.recastCrowd
-      .getAgent(index)
-      ?.nextTargetInPath() ?? {
-      x: 0,
-      y: 0,
-      z: 0,
-    });
+    const pathTargetPos = inverseTransformVector3(
+      this.recastCrowd.getAgent(index)?.nextTargetInPath() ?? {
+        x: 0,
+        y: 0,
+        z: 0,
+      }
+    );
     result.set(pathTargetPos.x, pathTargetPos.y, pathTargetPos.z);
   }
 
@@ -693,7 +702,7 @@ export class RecastJSCrowd {
 
   agentGoto(index, destination) {
     this.recastCrowd.getAgent(index)?.requestMoveTarget(destination);
-  
+
     const item = this.agents.indexOf(index);
     if (item > -1) {
       this._agentDestinationArmed[item] = true;

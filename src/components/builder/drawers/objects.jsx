@@ -22,12 +22,13 @@ import {
 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import { Tools } from '@babylonjs/core/Misc/tools';
+import BABYLON from '@bjs';
 import { gameController } from '../../../viewer/controllers/GameController';
 import { ObjectDialog } from './object-dialog';
 import { getEQDir, getEQFile } from '../../../lib/util/fileHandler';
 import { useProject } from '../hooks/metadata';
 
+const { Tools } = BABYLON;
 function getRandomNumber(min, max) {
   return Math.random() * (max - min) + min;
 }

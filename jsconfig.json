@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+      "baseUrl": "./", // Base directory for resolving non-relative module names
+      "paths": {
+        "@bjs": ["src/bjs/index.js"], // Alias for the 'src/bjs' folder
+      }
+    },
+    "include": [
+      "src/**/*" // Include all files in the 'src' folder for IntelliSense
+    ],
+    "exclude": [
+      "node_modules", // Exclude dependencies
+      "dist"          // Exclude the build output folder
+    ]
+  }
+  

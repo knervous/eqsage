@@ -42,7 +42,6 @@ import {
 } from '../../lib/util/fileHandler';
 import { Flyout, FlyoutButton } from '../common/flyout';
 import { AboutDialog } from './about-dialog';
-
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
 const MenuProps = {
@@ -53,7 +52,6 @@ const MenuProps = {
     },
   },
 };
-
 export const ZoneChooserDialog = ({ open }) => {
   const [_type, _setType] = useState('unknown');
   const {
@@ -189,17 +187,15 @@ export const ZoneChooserDialog = ({ open }) => {
               z = zones;
               setZoneList(zones);
             })
-            .catch(() => {
-              import('../../data/zoneData.json').then((zl) => {
-                z = Array.from(zl.default);
-                setZoneList(Array.from(zl.default));
-              });
+            .catch(async () => {
+              await fetch('/static/zoneData.json')
+                .then((r) => r.json())
+                .then(setZoneList);
             });
         } else {
-          await import('../../data/zoneData.json').then((zl) => {
-            z = Array.from(zl.default);
-            setZoneList(Array.from(zl.default));
-          });
+          await fetch('/static/zoneData.json')
+            .then((r) => r.json())
+            .then(setZoneList);
         }
         res();
       });
@@ -323,15 +319,14 @@ export const ZoneChooserDialog = ({ open }) => {
               id="combo-box-demo"
               isOptionEqualToValue={(option, value) => option.key === value.key}
               noOptionsText={'Enter Custom File and Press Return'}
-
-              onKeyDown={async e => {
+              onKeyDown={async (e) => {
                 if (e.key === 'Enter') {
                   console.log('ent', e.target.value);
                   console.log('ref', autocompleteRef.current);
                   selectAndExit({
                     short_name: e.target.value,
                     id        : -1,
-                    long_name : e.target.value
+                    long_name : e.target.value,
                   });
                 }
               }}
@@ -404,7 +399,6 @@ export const ZoneChooserDialog = ({ open }) => {
         >
           Enter Zone
         </Button>
-
       </Stack>
     </Dialog>
   );
