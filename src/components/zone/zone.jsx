@@ -8,10 +8,11 @@ import { SpireOverlay } from '../spire/overlay';
 import { OverlayProvider } from '../spire/provider';
 import { useSettingsContext } from '../../context/settings';
 import { ExporterOverlay } from '../exporter/overlay';
+import { GlobalStore } from '../../state';
 
 export const BabylonZone = () => {
   const canvasRef = useRef();
-  const { selectedZone, rootFileSystemHandle, modelExporter, modelExporterLoaded, setModelExporterLoaded } = useMainContext();
+  const { selectedZone, rootFileSystemHandle, modelExporter, modelExporterLoaded, setModelExporterLoaded, canvasState, setCanvasState } = useMainContext();
   const settings = useSettingsContext();
   useEffect(() => {
     (async () => {
@@ -47,24 +48,36 @@ export const BabylonZone = () => {
         if (!current) {
           return;
         }
-        gameController.ZoneController.loadModel(selectedZone.short_name);
+        gameController.ZoneController.loadModel(selectedZone.short_name).catch(e => {
+          gameController.openAlert('Error loading zone. Check console output.', 'warning');
+          console.log('Error loading zone', e);
+          GlobalStore.actions.setLoading(false);
+        });
       }
     })();
     return () => (current = false);
   }, [selectedZone, modelExporter]); // eslint-disable-line
 
+  useEffect(() => {
+    if (!canvasState) {
+      setTimeout(() => {
+        setCanvasState(true);
+      }, 0);
+    }
+  }, [canvasState, setCanvasState]);
   return (
     <OverlayProvider>
       <SpireOverlay inZone={!!selectedZone} />
       {modelExporter && modelExporterLoaded && <ExporterOverlay />}
-      <Box
+      {canvasState && <Box
         as="canvas"
         sx={{ flexGrow: '1', position: 'fixed' }}
         ref={canvasRef}
         id="renderCanvas"
         width="100vw"
         height="100vh"
-      />
+      />}
+      
     </OverlayProvider>
   );
 };

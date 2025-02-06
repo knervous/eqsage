@@ -15,7 +15,6 @@ export const createMaterials = async (
   scene,
   zoneMeshes,
   collisionMeshes,
-  regions = []
 ) => {
   const texturePromises = [];
   const addTexture = async (name, extension, buffer) => {
@@ -39,24 +38,12 @@ export const createMaterials = async (
     m.EQ_COLLISION = true;
   }
   const materialMap = new Map();
-
-  const regionMaterials = [];
-  for (const [idx, region] of Object.entries(regions)) {
-    materialMap.set(region, idx);
-    regionMaterials.push({
-      name        : `REGION_SENTINEL_${idx}`,
-      EQ_COLLISION: true,
-      EQ_REGION   : true,
-    });
-  }
   const materials = [
-    ...regionMaterials,
     ...zoneMaterials,
     ...collisionMaterials,
   ];
   const materialDefs = [];
   const simpleSpriteDefs = [];
-
 
   for (const material of materials) {
     const name = material.name.toLowerCase().replaceAll('_mdf', '');
@@ -139,9 +126,7 @@ export const createMaterials = async (
       },
       SimpleSpriteFrames: spriteFrames,
     });
-    if (!material.EQ_REGION) {
-      materialMap.set(material, simpleSpriteDefs.length - 1);
-    }
+    materialMap.set(material, simpleSpriteDefs.length - 1);
   }
 
   return {

@@ -1,6 +1,7 @@
 import * as Comlink from 'comlink';
 import { gameController } from '../../../viewer/controllers/GameController.js';
 import { GlobalStore } from '../../../state/store.js';
+import { getEQDir, getFiles } from '../fileHandler.js';
 
 function chunkArray(array, numChunks) {
   if (numChunks < 1) {
@@ -89,8 +90,19 @@ class ImageProcessor {
    * @param {[QueueItem]} images
    */
   async parseImages(images) {
-
-    const imageChunks = chunkArray(images, this.#workers.length);
+    // Check if these exist before sending them over the wire.
+    let unionImages = images;
+    const modelDir = await getEQDir('textures');
+    if (modelDir) {
+      const files = await getFiles(modelDir, undefined, true);
+      unionImages = unionImages.filter(i => 
+        !files.some(f => f.split('.')[0] === i.name.split('.')[0])
+      );
+    }
+    if (!unionImages.length) {
+      return;
+    }
+    const imageChunks = chunkArray(unionImages, this.#workers.length);
     GlobalStore.actions.setLoadingTitle('Loading Images');
     let count = 0;
     const workerLength = this.#workers.length;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stack, ThemeProvider, createTheme } from '@mui/material';
+import { Box, Stack, ThemeProvider, createTheme } from '@mui/material';
 import { ConfirmProvider } from 'material-ui-confirm';
 import { StatusDialog } from '../dialogs/status-dialog';
 import { ZoneChooserDialog } from '../dialogs/zone-chooser-dialog';
@@ -32,7 +32,7 @@ export const Main = () => {
   } = useMainContext();
 
   return (
-    <>
+    <Box>
       <LoadingDialog />
       <ThemeProvider
         theme={createTheme({
@@ -100,6 +100,6 @@ export const Main = () => {
           ></Stack>
         </ConfirmProvider>
       </ThemeProvider>
-    </>
+    </Box>
   );
 };

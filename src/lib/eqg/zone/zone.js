@@ -115,6 +115,11 @@ export class Zone {
           x,y,z
         }
       }
+      if (version > 1) {
+        const litCount = reader.readUint32();
+        const lit = reader.readManyUint32(litCount);
+        p.lit = lit;
+      }
       pg.placeables.push(p);
     }
 

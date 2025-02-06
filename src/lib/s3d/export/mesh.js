@@ -112,7 +112,6 @@ export const createMeshes = (
   let idx = 0;
   for (const [_idx, mesh] of Object.entries(meshes)) {
     let vertexOffset = 0;
-    console.log('Hi mehs', mesh);
     const boundary = mesh.isBoundary;
     const template = createMeshTemplate(+idx + 1, materialPalette);
 
@@ -122,7 +121,6 @@ export const createMeshes = (
 
     template.A_originalMesh = mesh.name;
     if (mesh.name.startsWith('M0000')) {
-      idx++;
       continue;
     }
     
@@ -234,10 +232,9 @@ export const createMeshes = (
       });
 
       // Convert finalColor to 0–255
-      // TODO, Do this!
-      const r = 0; // Math.min(255, Math.max(0, Math.round(finalColor.r * 255)));
-      const g = 0; // Math.min(255, Math.max(0, Math.round(finalColor.g * 255)));
-      const b = 0; // Math.min(255, Math.max(0, Math.round(finalColor.b * 255)));
+      const r = Math.min(255, Math.max(0, Math.round(finalColor.r * 255)));
+      const g = Math.min(255, Math.max(0, Math.round(finalColor.g * 255)));
+      const b = Math.min(255, Math.max(0, Math.round(finalColor.b * 255)));
 
       // Push final vertex color
       template.VertexColors.push([r, g, b, 255]);
@@ -277,7 +274,7 @@ export const createMeshes = (
       template.VertexNormals.push([nnx, nny, nnz]);
 
       // Flip V for your engine if necessary
-      template.UVs.push([uvs[uvIndex], uvs[uvIndex + 1]]);
+      template.UVs.push([uvs[uvIndex], -uvs[uvIndex + 1]]);
     }
 
     // ------------------------------------------------------------
@@ -297,7 +294,6 @@ export const createMeshes = (
           meshIndices[i * 3 + 0] + vertexOffset,
           meshIndices[i * 3 + 1] + vertexOffset,
           meshIndices[i * 3 + 2] + vertexOffset,
-
         ],
       });
     }
@@ -310,9 +306,6 @@ export const createMeshes = (
     const matIdx = materialMap.has(mesh.material) ? materialMap.get(mesh.material) :
       materialMap.has(mesh.metadata?.region) ? 
         materialMap.get(mesh.metadata?.region) : 0;
-    if (matIdx > 3) {
-    //  matIdx = 4;
-    }
     template.FaceMaterialGroups.push([
       template.Faces.length,
       +matIdx,
@@ -322,18 +315,14 @@ export const createMeshes = (
       +matIdx,
     ]);
 
-    // ------------------------------------------------------------
-    // 6) Now compute BoundingBoxMin, BoundingBoxMax, CenterOffset
-    //    and BoundingRadius for this mesh, in your new coords.
-    // ------------------------------------------------------------
+
     if (computeBoundingMinMax) {
       template.BoundingBoxMin = [minX, minY, minZ];
       template.BoundingBoxMax = [maxX, maxY, maxZ];
     }
 
-    template.BoundingRadius = 0;// mesh.getBoundingInfo().boundingSphere.radius;
+    template.BoundingRadius = 0;
 
-    
     if (mesh.eqRegion) {
       template.CenterOffset = [mesh.position.x, mesh.position.z, mesh.position.y];
       template.region = mesh.metadata.region;
@@ -349,7 +338,6 @@ export const createMeshes = (
     idx++;
   
   }
-  console.log('RM', regionMeshes);
   regionMeshes.forEach(r => r.dispose());
   return {
     dmSpriteDef2s,

@@ -61,11 +61,7 @@ export class EQFileHandle {
     const eqgExists = this.#fileHandles.some(f => f.name === `${this.name}.eqg`);
     const s3dExists = this.#fileHandles.some(f => f.name === `${this.name}.s3d`);
   
-    if (gameController.settings.preferEqg) {
-      return eqgExists ? FILE_TYPE.EQG : FILE_TYPE.S3D;
-    }
-  
-    return s3dExists ? FILE_TYPE.S3D : FILE_TYPE.EQG;
+    return eqgExists ? FILE_TYPE.EQG : s3dExists ? FILE_TYPE.S3D : FILE_TYPE.NONE;
   }
   
 

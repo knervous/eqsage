@@ -147,7 +147,7 @@ const RGBADepthPacking = 3201;
 const TangentSpaceNormalMap = 0;
 const ObjectSpaceNormalMap = 1;
 
-export function convertDDS2Jimp(buf) {
+export function convertDDS2Jimp(buf, name) {
   const loadMipmaps = false;
   const dds = {
     mipmaps    : [],
@@ -346,8 +346,9 @@ export function convertDDS2Jimp(buf) {
         blockBytes = 64;
         dds.format = RGBAFormat;
       } else {
+        console.log('Error parsing texture', name)
         throw new Error(
-          'DDSLoader.parse: Unsupported FourCC code ',
+          `DDSLoader.parse: Unsupported FourCC code  ${ int32ToFourCC(fourCC)}`,
           int32ToFourCC(fourCC)
         );
       }

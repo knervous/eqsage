@@ -50,7 +50,7 @@ function createRegionData(region) {
     if (zoneLineInfo.type === ZoneLineType.Reference) {
       const reference = '00255';
       return `${prefix}${reference}${createPaddedNumber(
-        zoneLineInfo.index,
+        zoneLineInfo.index * 10,
         6
       )}000000000000000${suffix}`;
     }
@@ -206,7 +206,7 @@ function flattenBSP(root) {
   const Regions = [];
   const Zones = [];
   let regionNumber = 1;
-
+  const trackedOwners = [];
   function recurse(node) {
     if (!node) {
       return 0;
@@ -233,25 +233,34 @@ function flattenBSP(root) {
       !node.left && !node.right && node.polygons && node.polygons.length > 0;
 
     let regionTag = '';
-    const owners = [];
-    for (const p of node.polygons) {
-      if (!owners.includes(p.ownerTag)) {
-        owners.push(p.ownerTag);
-      }
-    }
-    let oTag = '';
-    if (owners.length > 1) {
-      console.log('Multiple owners', node, owners);
-      if (owners.includes('R7_DMSPRITEDEF')) {
-        oTag = 'R7_DMSPRITEDEF';
-      } 
-    }
+
+
     if (isLeaf) {
+      const owners = [];
+      for (const p of node.polygons) {
+        if (!owners.includes(p.ownerTag)) {
+          owners.push(p.ownerTag);
+        }
+      }
+  
+      const ownerTag = owners.find(oTag => !trackedOwners.includes(oTag)) ?? owners[0];
+
       const tag = `${regionNumber}`.padStart(6, '0');
       regionTag = `R${tag}`;
 
       const sphere = computeBoundingSphereFromPolygons(node.polygons);
+      if (!trackedOwners.includes(ownerTag)) {
+        trackedOwners.push(ownerTag);
+      }
+      const associatedRegions = Array.from(
+        new Set(node.polygons.flatMap((p) => p.regions))
+      );
 
+      if (associatedRegions.length) {
+        for (const region of associatedRegions) {
+          addOrCreateRegion(Zones, region, regionNumber - 1);
+        }
+      }
       const regionObj = {
         Tag              : regionTag,
         RegionFog        : 0,
@@ -279,22 +288,12 @@ function flattenBSP(root) {
         ReverbVolume: 0,
         ReverbOffset: 0,
         UserData    : '',
-        SpriteTag   : oTag || node.polygons.at(-1).ownerTag,
+        SpriteTag   : ownerTag,
+        // Debug info
+        polygons    : associatedRegions.length ? node.polygons : null,
+        node,
       };
-      const associatedRegions = Array.from(
-        new Set(node.polygons.flatMap((p) => p.regions))
-      );
-      regionObj.node = node;
 
-      if (associatedRegions.length) {
-        regionObj.polygons = node.polygons;
-        const regPolys = node.polygons.filter(p => p.regions.length);
-        regionObj.Sphere = computeBoundingSphereFromPolygons(regPolys);
-
-        for (const region of associatedRegions) {
-          addOrCreateRegion(Zones, region, regionNumber - 1);
-        }
-      }
       regionNumber++;
       Regions.push(regionObj);
     }

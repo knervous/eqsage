@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Paper from '@mui/material/Paper';
 import Draggable from 'react-draggable';
 import {
@@ -16,6 +16,8 @@ export function PaperComponent(props) {
   return (
     <Draggable
       handle="#draggable-dialog-title"
+      onDrag={props.onDrag}
+      onStop={props.onStop}
       cancel={'[class*="MuiDialogContent-root"]'}
     >
       <Paper sx={{ pointerEvents: 'auto' }} {...props} />
@@ -40,7 +42,10 @@ export const CommonDialog = ({
   additionalButtons = null,
   sx = {},
   noEscClose = false,
+  onDrag = undefined,
+  onStop = undefined
 }) => {
+  const paperComponent = useMemo(() => props => <PaperComponent {...props} onDrag={onDrag} onStop={onStop} />, [onDrag, onStop]);
   return (
     <Dialog
       onKeyDown={(e) => {
@@ -56,7 +61,7 @@ export const CommonDialog = ({
       sx={{ pointerEvents: 'none', ...sx }}
       slotProps={{ backdrop: { sx: { pointerEvents: 'none' } } }}
       hideBackdrop={hideBackdrop}
-      PaperComponent={PaperComponent}
+      PaperComponent={paperComponent}
       aria-labelledby="draggable-dialog-title"
     >
       <DialogTitle

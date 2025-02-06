@@ -207,13 +207,12 @@ class SpawnController extends GameControllerChild {
     const tube = scene.getMeshById('spawn-path');
 
     if (tube) {
-      // Update the existing tube by re-using the same mesh
       MeshBuilder.CreateTube(
         'tube',
         {
           path    : this.tubePath,
           radius  : 0.5,
-          instance: tube, // Reuse the existing tube mesh
+          instance: tube,
         },
         scene
       );
@@ -558,8 +557,8 @@ class SpawnController extends GameControllerChild {
     clone.dispose();
   }
 
-  async exportFBX() {
-    const glb = await this.exportModel(false, false);
+  async exportFBX(imgCompression) {
+    const glb = await this.exportModel(false, false, imgCompression);
     assimpjs({
       locateFile: (file) => {
         return `/static/${file}`;
@@ -583,7 +582,7 @@ class SpawnController extends GameControllerChild {
     });
   }
 
-  async exportModel(withAnimations = true, download = true) {
+  async exportModel(withAnimations = true, download = true, imgCompression = 'png') {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(
       `Exporting model ${this.modelExport?.modelName} with animations ${withAnimations}`
@@ -640,7 +639,7 @@ class SpawnController extends GameControllerChild {
           dedup(),
           prune(),
           textureCompress({
-            targetFormat: this.gc.settings.imgCompression,
+            targetFormat: imgCompression,
           })
         );
         const bin = await io.writeBinary(doc);
@@ -658,27 +657,28 @@ class SpawnController extends GameControllerChild {
         GlobalStore.actions.setLoading(false);
       });
   }
+  backgroundContainer = null;
+  async addBackgroundMesh(blobUrl, { x, y, z }) {
+    this.currentScene.getMeshByName('__root__')?.dispose();
+    const container = await SceneLoader.LoadAssetContainerAsync(
+      '',
+      blobUrl,
+      this.gc.currentScene,
+      undefined,
+      '.glb'
+    );
+    container.addAllToScene();
+    const node = this.currentScene.getMeshByName('__root__');
+    if (node) {
+      node.position.set(x, y, z);
+    }
+  }
 
   async addObject(modelName, path) {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(`Loading ${modelName}`);
     GlobalStore.actions.setLoadingText('Loading, please wait...');
-    if (this.modelExport) {
-      this.modelExport.rootNode.dispose();
-      this.modelExport.animationGroups.forEach((a) => a.dispose());
-      this.modelExport.skeleton?.dispose?.();
-    }
-    this.currentScene.meshes.forEach((m) => {
-      if (m.id === 'model_export') {
-        m.dispose();
-      }
-    });
-    this.currentScene.animationGroups.forEach((ag) => {
-      ag.dispose();
-    });
-    this.currentScene.skeletons.forEach((s) => {
-      s.dispose();
-    });
+    this.disposeModel();
 
     const assetContainer = await this.getObjectAssetContainer(modelName, path);
     if (!assetContainer) {
@@ -727,8 +727,14 @@ class SpawnController extends GameControllerChild {
       rootNode.skeleton = skeletonRoot.skeleton;
       rootNode.id = 'model_export';
       rootNode.name = modelName;
+      rootNode.computeWorldMatrix(true);
+      rootNode.refreshBoundingInfo();
     }
+    rootNode.position.y = 5;
     this.CameraController.camera.setTarget(rootNode.position);
+    setTimeout(() => {
+      this.CameraController.camera.setTarget(null);
+    }, 0);
     rootNode.scaling.z = -1;
 
     this.modelExport = {
@@ -775,19 +781,7 @@ class SpawnController extends GameControllerChild {
     }
   }
 
-  async addExportModel(
-    modelName,
-    headIdx = 0,
-    texture = -1,
-    primary = null,
-    secondary = null,
-    secondaryPoint = false
-  ) {
-    const wearsRobe = this.wearsRobe(modelName);
-    GlobalStore.actions.setLoading(true);
-    GlobalStore.actions.setLoadingTitle(`Loading ${modelName}`);
-    GlobalStore.actions.setLoadingText('Loading, please wait...');
-    this.modelName = modelName;
+  disposeModel () {
     if (this.modelExport) {
       this.modelExport.rootNode.dispose();
       this.modelExport.animationGroups.forEach((a) => a.dispose());
@@ -804,6 +798,22 @@ class SpawnController extends GameControllerChild {
     this.currentScene.skeletons.forEach((s) => {
       s.dispose();
     });
+  }
+
+  async addExportModel(
+    modelName,
+    headIdx = 0,
+    texture = -1,
+    primary = null,
+    secondary = null,
+    secondaryPoint = false
+  ) {
+    const wearsRobe = this.wearsRobe(modelName);
+    GlobalStore.actions.setLoading(true);
+    GlobalStore.actions.setLoadingTitle(`Loading ${modelName}`);
+    GlobalStore.actions.setLoadingText('Loading, please wait...');
+    this.modelName = modelName;
+    this.disposeModel();
 
     const assetContainer =
       await window.gameController.SpawnController.getAssetContainer(modelName);
@@ -821,6 +831,9 @@ class SpawnController extends GameControllerChild {
       GlobalStore.actions.setLoading(false);
       return;
     }
+    rootNode.refreshBoundingInfo();
+    const boundingBox = rootNode.getHierarchyBoundingVectors();
+    const initialHeight = boundingBox.max.y - boundingBox.min.y;
     rootNode.id = 'model_export';
     rootNode.name = modelName;
     rootNode.position.setAll(0);
@@ -852,7 +865,6 @@ class SpawnController extends GameControllerChild {
         console.warn('Err', e);
       }
     }
-
     const merged = Mesh.MergeMeshes(
       rootNode.getChildMeshes(false),
       true,
@@ -874,6 +886,7 @@ class SpawnController extends GameControllerChild {
       rootNode.id = 'model_export';
       rootNode.name = modelName;
     }
+    rootNode.position.y = (initialHeight / 2);
 
     /**
      * @type {MultiMaterial}
@@ -932,7 +945,7 @@ class SpawnController extends GameControllerChild {
       }
     }
 
-    this.CameraController.camera.setTarget(rootNode.position);
+
     rootNode.scaling.z = -1;
 
     if (primary) {
@@ -981,6 +994,8 @@ class SpawnController extends GameControllerChild {
         }
       }
     }
+
+    this.CameraController.camera.setTarget(rootNode.position.clone());
 
     this.modelExport = {
       modelName,

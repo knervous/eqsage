@@ -315,30 +315,29 @@ export const ZoneChooserDialog = ({ open }) => {
             <Autocomplete
               ref={autocompleteRef}
               size="small"
+              freeSolo
               sx={{ margin: '15px 0' }}
               id="combo-box-demo"
               isOptionEqualToValue={(option, value) => option.key === value.key}
               noOptionsText={'Enter Custom File and Press Return'}
-              onKeyDown={async (e) => {
-                if (e.key === 'Enter') {
-                  console.log('ent', e.target.value);
-                  console.log('ref', autocompleteRef.current);
-                  selectAndExit({
-                    short_name: e.target.value,
-                    id        : -1,
-                    long_name : e.target.value,
-                  });
-                }
-              }}
               onChange={async (e, values) => {
                 if (!values) {
                   return;
                 }
-                if (e.key === 'Enter') {
-                  const selected = filteredZoneList[values.id];
-                  selectAndExit(selected, false);
+                if (typeof values === 'string') {
+                  selectAndExit({
+                    short_name: e.target.value,
+                    id        : -1,
+                    long_name : e.target.value,
+                  }, false);
+                } else {
+                  if (e.key === 'Enter') {
+                    const selected = filteredZoneList[values.id];
+                    selectAndExit(selected, true);
+                  }
+                  setZone(filteredZoneList[values.id]);
                 }
-                setZone(filteredZoneList[values.id]);
+
               }}
               renderOption={(props, option) => {
                 return (

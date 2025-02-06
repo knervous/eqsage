@@ -23,15 +23,10 @@ export const SettingsDialog = ({ onClose }) => {
     glow,
     webgpu = false,
     forceReload = false,
-    singleWorker = false,
-    imgCompression = 'png',
     clipPlane = 10000,
     spawnLOD = 500,
     remoteUrl = '',
-    showCompass = true,
-    preferEqg = true,
     importBoundary = false,
-    parseImages = true,
   } = useSettingsContext();
   const [testState, setTestState] = useState('Ready');
   const [user, setUser] = useState('');
@@ -148,18 +143,6 @@ export const SettingsDialog = ({ onClose }) => {
       <FormControlLabel
         control={
           <Checkbox
-            checked={singleWorker}
-            onChange={({ target: { checked } }) =>
-              setOption('singleWorker', checked)
-            }
-          />
-        }
-        label="Single Worker Thread"
-      />
-      <br />
-      <FormControlLabel
-        control={
-          <Checkbox
             checked={forceReload}
             onChange={({ target: { checked } }) =>
               setOption('forceReload', checked)
@@ -167,18 +150,6 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Force zone reload"
-      />
-      <br />
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={showCompass}
-            onChange={({ target: { checked } }) =>
-              setOption('showCompass', checked)
-            }
-          />
-        }
-        label="Show Compass"
       />
       <br />
       <FormControlLabel
@@ -192,43 +163,7 @@ export const SettingsDialog = ({ onClose }) => {
         }
         label="Import Boundary (collision)"
       />
-      <br />
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={preferEqg}
-            onChange={({ target: { checked } }) =>
-              setOption('preferEqg', checked)
-            }
-          />
-        }
-        label="Prefer EQG when parsing zones"
-      />
-      <br />
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={parseImages}
-            onChange={({ target: { checked } }) =>
-              setOption('parseImages', checked)
-            }
-          />
-        }
-        label="Parse Images"
-      />
-      <br />
-      <FormControl size={'small'}>
-        <Typography sx={{ margin: '3px 0' }}>Export Image Compression</Typography>
-        <Select
-          onChange={(e) => setOption('imgCompression', e.target.value)}
-          value={imgCompression}
-        >
-          <MenuItem value={'webp'}>webp</MenuItem>
-          <MenuItem value={'png'}>png</MenuItem>
-          <MenuItem value={'jpeg'}>jpeg</MenuItem>
-          <MenuItem value={'avif'}>avif</MenuItem>
-        </Select>
-      </FormControl>
+
       {!window.Spire && (
         <>
           <FormControl sx={{ margin: '15px 0px' }} fullWidth>

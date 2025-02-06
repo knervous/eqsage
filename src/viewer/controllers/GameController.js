@@ -32,7 +32,7 @@ const params = new Proxy(new URLSearchParams(window.location.search), {
 
 class EQDatabase extends Database {
   async loadImage(url, image, ..._rest) {
-    if (url.startsWith('http')) {
+    if (url.startsWith('http') || url.startsWith('/static')) {
       const res = await fetch(url).then((a) => a.arrayBuffer());
       image.src = URL.createObjectURL(
         new Blob([res], { type: 'image/png' } /* (1) */)
@@ -235,9 +235,14 @@ export class GameController {
         if (data) {
           image._data = data; // entry.data.buffer;
         } else {
-          console.warn(`Unhandled image ${image.name}`);
           try {
+            const res = await originalLoadImageAsync.call(this, context, image);
+            if (res) {
+              return res;
+            }
           } catch {}
+          console.warn(`Unhandled image ${image.name}`);
+
           // Solid gray 1px png until this is solved
           const pngData = new Uint8Array([
             0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00,
@@ -363,6 +368,7 @@ export class GameController {
   dispose() {
     if (this.currentScene) {
       this.currentScene.dispose();
+      this.engine.dispose();
     }
     this.ZoneController.dispose();
     this.aabbTree = null;

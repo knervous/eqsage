@@ -140,7 +140,7 @@ export const ZoneBuilderDialog = ({ open }) => {
         modelFiles[key] = new Uint8Array(modelFile);
       } else {
         openAlert(`Model not found - try rerunning Model Import for ${key}`);
-        return;
+        // return;
       }
     }
 
