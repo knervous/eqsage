@@ -357,7 +357,7 @@ export class Model {
         vert.nor = vec3.fromValues(-i, -j, k);
         // vert.tex = vec2.fromValues(-u, -v);
         //if (magic === 'EQGT') {
-          vert.tex = vec2.fromValues(-uv1, -uv2);
+          vert.tex = vec2.fromValues(uv1, uv2);
         //}
         vert.col = color;
       }
