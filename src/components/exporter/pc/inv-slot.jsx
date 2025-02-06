@@ -72,7 +72,7 @@ export const InventorySlot = ({ piece, props, atlas, side, setLocalConfig, local
         transform         : 'scale(1.2)',
         backgroundPosition: `-${wornAtlasPiece.x}px -${wornAtlasPiece.y}px`,
         zIndex            : 10000,
-        backgroundImage   : `url('/static/eq/images/${wornAtlasPiece?.texture}')`,
+        backgroundImage   : `url('/static/eqassets/images/${wornAtlasPiece?.texture}')`,
       }} />
     <Select
       autoWidth={false}
@@ -99,7 +99,7 @@ export const InventorySlot = ({ piece, props, atlas, side, setLocalConfig, local
         padding                             : 0,
         width                               : '40px',
         boxShadow                           : '2px 2px 2px 2px rgba(0,0,0,0.1)',
-        backgroundImage                     : `url('/static/eq/images/${atlasPiece?.texture}')`,
+        backgroundImage                     : `url('/static/eqassets/images/${atlasPiece?.texture}')`,
         backgroundPosition                  : `-${atlasPiece.left}px -${atlasPiece.top}px`,
         transform                           : 'scale(1.5)',
         backgroundRepeat                    : 'no-repeat',
@@ -136,7 +136,7 @@ export const InventorySlot = ({ piece, props, atlas, side, setLocalConfig, local
             margin            : '5px',
             zoom              : 1.2,
             background        : 'transparent',
-            backgroundImage   : `url('/static/eq/images/${atlasPiece?.texture}')`,
+            backgroundImage   : `url('/static/eqassets/images/${atlasPiece?.texture}')`,
             backgroundPosition: `-${atlasPiece.x}px -${atlasPiece.y}px`,
           }}
           value={idx} label={idx}>

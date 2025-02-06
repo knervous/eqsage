@@ -74,7 +74,7 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
   const [atlas, setAtlas] = useState(null);
   const filesCache = useRef(null);
   useEffect(() => {
-    fetch('/static/eq/atlas.json')
+    fetch('/static/eqassets/atlas.json')
       .then((r) => r.json())
       .then(setAtlas);
       
