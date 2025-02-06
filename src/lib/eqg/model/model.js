@@ -352,10 +352,13 @@ export class Model {
       } else {
         const [x, y, z, i, j, k] = reader.readManyFloat32(6);
         const color = reader.readUint32();
-        const [_unk1, _unk2, u, v] = reader.readManyFloat32(4);
+        const [uv1, uv2, u, v] = reader.readManyFloat32(4);
         vert.pos = vec3.fromValues(-x, -y, z);
         vert.nor = vec3.fromValues(-i, -j, k);
-        vert.tex = vec2.fromValues(-u, -v);
+        // vert.tex = vec2.fromValues(-u, -v);
+        //if (magic === 'EQGT') {
+          vert.tex = vec2.fromValues(-uv1, -uv2);
+        //}
         vert.col = color;
       }
 

@@ -50,7 +50,7 @@ export const createS3DZone = async (
     simpleSpriteDefs,
     materialPalette,
     materialMap,
-  } = await createMaterials(name, scene, zoneMeshes, collisionMeshes, regions);
+  } = await createMaterials(name, scene, zoneMeshes, collisionMeshes);
   zoneTemplate.MaterialPalettes.push(materialPalette);
   zoneTemplate.MaterialDefs = materialDefs;
   zoneTemplate.SimpleSpriteDefs = simpleSpriteDefs;

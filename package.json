@@ -33,6 +33,7 @@
     "gl-matrix": "^3.4.3",
     "idb-keyval": "^6.2.1",
     "jimp": "^0.22.12",
+    "jsdom": "^26.0.0",
     "material-ui-confirm": "^3.0.11",
     "midievents": "^2.0.0",
     "midifile": "^2.0.0",

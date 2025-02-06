@@ -52,7 +52,7 @@ export function buildBSPFromDmSpriteDef2s(dmSpriteDef2s, regions) {
   const polys = buildMeshFromSpriteDefs(dmSpriteDef2s, regions);
   const bsp = new TTree(polys, regions);
 
-  bsp.splitAlongGrid(64);
+  bsp.splitAlongGrid(128);
   bsp.clipLeafNodesByRegions();
 
   console.log('BSP', bsp);

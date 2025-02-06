@@ -215,17 +215,24 @@ export const RegionDrawer = () => {
       return;
     }
     const region = selectedMesh.metadata.region;
+    // Calculate the dimensions of the box
+    const width = region.maxVertex[0] - region.minVertex[0];
+    const height = region.maxVertex[1] - region.minVertex[1];
+    const depth = region.maxVertex[2] - region.minVertex[2];
     zb.make3DMover(selectedMesh, (position) => {
       const reg = selectedMesh.metadata.region;
       reg.center[0] = position.x;
       reg.center[1] = position.y;
       reg.center[2] = position.z;
+      region.maxVertex[0] = reg.center[0] + width / 2;
+      region.minVertex[0] = reg.center[0] - width / 2;
+      region.maxVertex[1] = reg.center[1] + height / 2;
+      region.minVertex[1] = reg.center[1] - height / 2;
+      region.maxVertex[2] = reg.center[2] + depth / 2;
+      region.minVertex[2] = reg.center[2] - depth / 2;
     });
     zb.overlayWireframe(selectedMesh, false, true);
-    // Calculate the dimensions of the box
-    const width = region.maxVertex[0] - region.minVertex[0];
-    const height = region.maxVertex[1] - region.minVertex[1];
-    const depth = region.maxVertex[2] - region.minVertex[2];
+
     setWidth(width);
     setHeight(height);
     setDepth(depth);
@@ -257,12 +264,12 @@ export const RegionDrawer = () => {
     const region = selectedMesh.metadata.region;
     const [centerX, centerY, centerZ] = region.center;
 
-    region.maxVertex[0] = centerX - width / 2;
-    region.minVertex[0] = centerX + width / 2;
-    region.maxVertex[1] = centerY - height / 2;
-    region.minVertex[1] = centerY + height / 2;
-    region.maxVertex[2] = centerZ - depth / 2;
-    region.minVertex[2] = centerZ + depth / 2;
+    region.maxVertex[0] = centerX + width / 2;
+    region.minVertex[0] = centerX - width / 2;
+    region.maxVertex[1] = centerY + height / 2;
+    region.minVertex[1] = centerY - height / 2;
+    region.maxVertex[2] = centerZ + depth / 2;
+    region.minVertex[2] = centerZ - depth / 2;
 
     zb.updateRegionBounds(selectedMesh, width, height, depth);
     zb.make3DMover(selectedMesh, (position) => {
@@ -270,6 +277,13 @@ export const RegionDrawer = () => {
       reg.center[0] = position.x;
       reg.center[1] = position.y;
       reg.center[2] = position.z;
+      region.maxVertex[0] = reg.center[0] + width / 2;
+      region.minVertex[0] = reg.center[0] - width / 2;
+      region.maxVertex[1] = reg.center[1] + height / 2;
+      region.minVertex[1] = reg.center[1] - height / 2;
+      region.maxVertex[2] = reg.center[2] + depth / 2;
+      region.minVertex[2] = reg.center[2] - depth / 2;
+  
     });
     zb.overlayWireframe(selectedMesh, false, true);
   }, [zb, selectedMesh, width, height, depth, region?.regionType]); // eslint-disable-line

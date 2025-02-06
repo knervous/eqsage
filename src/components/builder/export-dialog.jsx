@@ -29,7 +29,7 @@ import { usePermissions } from '../../hooks/permissions';
 import { useProject } from './hooks/metadata';
 import { imageProcessor } from '../../lib/util/image/image-processor';
 
-const { SubMesh, Vector3, Color3, VertexBuffer } = BABYLON;
+const { SubMesh, Vector3, Color3, VertexBuffer, PBRMaterial } = BABYLON;
 
 const version = 2;
 const shadersUsed = [

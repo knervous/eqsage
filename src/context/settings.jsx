@@ -3,36 +3,36 @@ import React, { createContext, useState, useCallback, useContext } from 'react';
 export const SettingsContext = createContext({});
 export const useSettingsContext = () => useContext(SettingsContext);
 
-const defaultOptions = {
+export const globalSettings = {
   flySpeed      : 2,
   showRegions   : true,
   glow          : true,
   webgpu        : false,
   forceReload   : false,
-  singleWorker  : false,
-  imgCompression: 'png',
   clipPlane     : 10000,
   spawnLOD      : 500,
   remoteUrl     : '',
-  showCompass   : true,
-  preferEqg     : false,
   soundAutoPlay : false,
   soundRepeat   : false,
   soundShuffle  : false,
   importBoundary: false,
-  parseImages   : true,
 };
-export const SettingsProvider = ({ children }) => {
+
+export const SettingsProvider = ({
+  children,
+  defaultOptions = globalSettings,
+  storageKey = 'options',
+}) => {
   const [options, setOptions] = useState(
-    JSON.parse(localStorage.getItem('options') ?? '{}'),
+    JSON.parse(localStorage.getItem(storageKey) ?? '{}')
   );
-  const setOption = useCallback((key, value) => {
+  const setOption = useCallback((itemKey, value) => {
     setOptions((options) => {
-      const newOptions = { ...options, [key]: value };
-      localStorage.setItem('options', JSON.stringify(newOptions));
+      const newOptions = { ...options, [itemKey]: value };
+      localStorage.setItem(storageKey, JSON.stringify(newOptions));
       return newOptions;
     });
-  }, []);
+  }, [storageKey]);
 
   return (
     <SettingsContext.Provider

@@ -68,7 +68,9 @@ async function parseTextures(entries, eqFileHandle, workerNum) {
       return;
     }
     const imgData = await parseTexture(name, shaderType, data);
-    await writable.write(imgData);
+    if (imgData) {
+      await writable.write(imgData);
+    }
     cleanupFuncs.push(async () => {
       await writable.close();
     });
@@ -141,7 +143,13 @@ async function parseTexture(name, shaderType, data) {
     }
   } else {
     // otherwise DDS
-    const [decompressed, dds] = convertDDS2Jimp(new Uint8Array(data));
+    let decompressed, dds;
+    try {
+      ([decompressed, dds] = convertDDS2Jimp(new Uint8Array(data), name));
+    } catch (e) {
+      console.log('Error decompressing DDS', e);
+      return null;
+    }
     const w = dds.mipmaps[0].width;
     const h = dds.mipmaps[0].height;
     const bmp = new Jimp(w, h);

@@ -137,16 +137,21 @@ export async function writeModels(modelFile, mod) {
         gltfMaterial.setBaseColorTexture(texture);
       }
     }
-    switch (mat.shader) {
-      case 'Alpha_MaxCBSG1.fx':
-      case 'Chroma_MaxC1.fx':
-        gltfMaterial.setAlpha(0.5).setAlphaMode('MASK');
-        break;
-      default:
-        gltfMaterial.setAlphaMode('OPAQUE');
-
-        break;
+    if (mat.shader.startsWith('Alpha') || mat.shader.startsWith('Chroma')) {
+      gltfMaterial.setAlphaMode('BLEND');
+    } else {
+      gltfMaterial.setAlphaMode('OPAQUE');
     }
+    // switch (mat.shader) {
+    //   case 'Alpha_MaxCBSG1.fx':
+    //   case 'Chroma_MaxC1.fx':
+    //     gltfMaterial.setAlpha(0.5).setAlphaMode('MASK');
+    //     break;
+    //   default:
+    //     gltfMaterial.setAlphaMode('OPAQUE');
+
+    //     break;
+    // }
 
     // Check shaders
     materials[mat.name] = gltfMaterial;

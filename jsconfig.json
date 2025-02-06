@@ -3,6 +3,7 @@
       "baseUrl": "./", // Base directory for resolving non-relative module names
       "paths": {
         "@bjs": ["src/bjs/index.js"], // Alias for the 'src/bjs' folder
+        "@": ["src"], // Alias for the 'src/bjs' folder
       }
     },
     "include": [

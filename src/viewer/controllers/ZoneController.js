@@ -1,10 +1,7 @@
 import BABYLON from '@bjs';
 import { GameControllerChild } from './GameControllerChild';
 import {
-  AABBNode,
-  buildAABBTree,
   optimizeBoundingBoxes,
-  recurseTreeFromKnownNode,
 } from '../../lib/s3d/bsp/region-utils';
 import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
@@ -33,7 +30,7 @@ const {
   SubMesh,
   MultiMaterial,
   GLTF2Export,
-  STLExport
+  STLExport,
 } = BABYLON;
 class ZoneController extends GameControllerChild {
   /**
@@ -50,7 +47,6 @@ class ZoneController extends GameControllerChild {
   collideCounter = 0;
   objectAnimationPlaying = [];
   lastPosition = new Vector3(0, 0, 0);
-  lastAabbNode = null;
   animationRange = 200;
   objectCullRange = 2000;
   /** @type {RecastJSPlugin} */
@@ -95,7 +91,6 @@ class ZoneController extends GameControllerChild {
     this.collideCounter = 0;
     this.objectAnimationPlaying = [];
     this.lastPosition = new Vector3(0, 0, 0);
-    this.lastAabbNode = null;
 
     this.zoneLoaded = false;
   }
@@ -125,7 +120,12 @@ class ZoneController extends GameControllerChild {
         while (node.parent) {
           node = node.parent;
         }
-        return node.name === 'zone' || staticObjects.includes(node);
+        return (
+          node.name === '__root__' ||
+          node.name.startsWith('zone-') // ||
+          // staticObjects.includes(node) ||
+          // node.name === 'static-objects'
+        );
       },
       shouldExportAnimation() {
         return false;
@@ -143,7 +143,7 @@ class ZoneController extends GameControllerChild {
             dedup(),
             prune(),
             textureCompress({
-              targetFormat: this.gc.settings.imgCompression,
+              targetFormat: 'png',
             })
           );
           const bin = await io.writeBinary(doc);
@@ -272,29 +272,6 @@ class ZoneController extends GameControllerChild {
       window.aabbs = [];
     }
     this.skybox.position = this.CameraController.camera.position;
-
-    const aabbPerf = performance.now();
-    const aabbRegion = recurseTreeFromKnownNode(
-      this.lastAabbNode || this.aabbTree,
-      this.CameraController.camera.globalPosition
-    );
-
-    if (aabbRegion) {
-      this.lastAabbNode = aabbRegion;
-      if (aabbRegion?.data) {
-        // console.log(
-        //   `Hit region: ${JSON.stringify(aabbRegion.data ?? {}, null, 4)}`
-        // );
-      }
-    }
-    const timeTaken = performance.now() - aabbPerf;
-    window.aabbs.push(timeTaken);
-    if (window.aabbs.length > 100) {
-      window.aabbs.shift();
-    }
-    window.aabbAvg =
-      window.aabbs.reduce((acc, val) => acc + val, 0) / window.aabbs.length;
-    window.aabbPerf += timeTaken;
   }
 
   showRegions(value) {
@@ -516,6 +493,8 @@ class ZoneController extends GameControllerChild {
     GlobalStore.actions.setLoadingTitle(`Loading ${name}`);
     GlobalStore.actions.setLoadingText(`Loading ${name} zone`);
     if (!(await this.loadViewerScene())) {
+      this.gc.openAlert('Error loading zone', 'warning');
+      GlobalStore.actions.setLoading(false);
       return;
     }
     if (this.cameraFlySpeed !== undefined && this.CameraController?.camera) {
@@ -561,7 +540,9 @@ class ZoneController extends GameControllerChild {
       this.scene,
       undefined,
       '.glb'
-    );
+    ).catch((e) => {
+      console.log('Error while loading zone', e);
+    });
     console.log('settings', this.gc.settings);
     if (!this.gc.settings.importBoundary) {
       console.log('Disposing');
@@ -616,11 +597,7 @@ class ZoneController extends GameControllerChild {
       }
       console.log('Regions', metadata.regions);
       let idx = 0;
-      this.aabbTree = buildAABBTree(
-        metadata.regions.map(
-          (r) => new AABBNode(r.minVertex, r.maxVertex, r.region)
-        )
-      );
+
       // Build out geometry, will have an option to toggle this on or off in the gui
       for (const region of metadata.regions) {
         const minVertex = new Vector3(
@@ -684,7 +661,6 @@ class ZoneController extends GameControllerChild {
     }
     const mergedMeshes = [];
 
-    const rn = [];
     for (const [idx, v] of Object.entries(model)) {
       const meshes = [];
 
@@ -699,7 +675,6 @@ class ZoneController extends GameControllerChild {
       );
 
       const hasAnimations = instanceContainer.animationGroups.length > 0;
-      rn.push(instanceContainer);
       for (const mesh of instanceContainer.rootNodes[0].getChildMeshes()) {
         if (mesh.getTotalVertices() > 0) {
           // mesh.rotation = new Vector3(

@@ -49,7 +49,6 @@ class ZoneBuilderController extends GameControllerChild {
   objectAnimationPlaying = [];
   lights = [];
   lastPosition = new Vector3(0, 0, 0);
-  lastAabbNode = null;
   animationRange = 200;
   objectCullRange = 2000;
   /** @type {RecastJSPlugin} */
@@ -106,7 +105,6 @@ class ZoneBuilderController extends GameControllerChild {
     this.collideCounter = 0;
     this.objectAnimationPlaying = [];
     this.lastPosition = new Vector3(0, 0, 0);
-    this.lastAabbNode = null;
 
     this.zoneLoaded = false;
   }

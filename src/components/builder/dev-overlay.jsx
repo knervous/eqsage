@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, Chip, FormControl, Stack } from '@mui/material';
-import './overlay.scss';
 import { useMainContext } from '../main/context';
 
 export const DevOverlay = ({ doProcessZone }) => {

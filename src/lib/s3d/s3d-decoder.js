@@ -93,24 +93,20 @@ export class S3DDecoder {
       }
     }
 
-
     for (const image of images) {
       image.shaderType = this.shaderMap[image.name];
     }
-    if (gameController.settings.parseImages) {
-      console.log(`Processed - ${file.name}`);
-      await imageProcessor.parseImages(images);
-      console.log(`Done processing images ${file.name} - ${images.length}`);
-    } else {
-      console.log('Skipped parsing images')
-    }
+
+    console.log(`Processed - ${file.name}`);
+    await imageProcessor.parseImages(images);
+    console.log(`Done processing images ${file.name} - ${images.length}`);
   }
 
   /**
    *
    * @param {Wld} wld
    */
-  async exportModels(wld, doExport = true, path = "models") {
+  async exportModels(wld, doExport = true, path = "models", itemExport = false) {
     for (const track of wld.tracks.filter(
       (t) => !t.isPoseAnimation && !t.isNameParsed
     )) {
@@ -190,7 +186,10 @@ export class S3DDecoder {
       }
       for (const mesh of skeleton.meshes.concat(skeleton.secondaryMeshes)) {
         const material = mesh.materialList;
-        const baseName = mesh.name.split("_")[0].toLowerCase();
+        let baseName = mesh.name.split("_")[0].toLowerCase()
+        if (itemExport && !baseName.startsWith('it')) {
+          baseName = 'it' + baseName
+        }
         const scrubbedName = material.name.split("_")[0].toLowerCase();
         const document = new Document(scrubbedName);
         const buffer = document.createBuffer();
@@ -452,26 +451,27 @@ export class S3DDecoder {
    *
    * @param {Wld} wld
    */
-  async exportObjects(wld, path = "objects") {
+  async exportObjects(wld, path = "objects", itemExport = false) {
     for (let i = 0; i < wld.meshes.length; i++) {
       const mesh = wld.meshes[i];
       const material = mesh.materialList;
       const scrubbedName = material.name.split("_")[0].toLowerCase();
-      const diskFileName =
-        this.#fileHandle.name.includes("gequip") || true
-          ? `${scrubbedName}.glb`
+      let diskFileName =
+        itemExport || true
+          ? `${mesh.name.split('_')[0].toLowerCase()}.glb`
           : `[${this.#fileHandle.name}] ${scrubbedName}.glb`;
+      if (itemExport && !diskFileName.startsWith('it')) {
+        diskFileName = 'it' + diskFileName;
+      }
       await appendObjectMetadata(scrubbedName, wld.name.replace(".wld", ""));
-      if (false && await getEQFileExists(path, diskFileName)) {
+      if (false && (await getEQFileExists(path, diskFileName))) {
         continue;
       }
       const document = new Document(scrubbedName);
       const buffer = document.createBuffer();
       const scene = document.createScene(scrubbedName);
       document.createPrimitive().setAttribute();
-      const node = document
-        .createNode(scrubbedName)
-        .setTranslation([0, 0, 0])
+      const node = document.createNode(scrubbedName).setTranslation([0, 0, 0]);
       scene.addChild(node);
 
       const materials = await this.getMaterials(
@@ -542,7 +542,7 @@ export class S3DDecoder {
 
           vecs.push(
             ...[v1, v2, v3].flatMap((v) => [
-              (v[0] + mesh.center[0]),
+              v[0] + mesh.center[0],
               v[2] + mesh.center[2],
               v[1] + mesh.center[1],
             ])
@@ -945,8 +945,8 @@ export class S3DDecoder {
           await this.exportModels(wld);
           break;
         case WldType.Equipment:
-          await this.exportModels(wld, true, "items");
-          await this.exportObjects(wld, "items");
+          await this.exportModels(wld, true, "items", true);
+          await this.exportObjects(wld, "items", true);
 
           break;
         case WldType.Lights:
@@ -967,7 +967,9 @@ export class S3DDecoder {
       this.gequip = true;
     }
     // guarantee the main zone s3d will be parsed last
-    this.#fileHandle.fileHandles.sort((a,_b) => a.name === `${this.#fileHandle.name}.s3d` ? 1 : -1)
+    this.#fileHandle.fileHandles.sort((a, _b) =>
+      a.name === `${this.#fileHandle.name}.s3d` ? 1 : -1
+    );
     for (const file of this.#fileHandle.fileHandles) {
       const extension = file.name.split(".").pop();
       switch (extension) {

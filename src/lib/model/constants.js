@@ -1,6 +1,7 @@
 export const FILE_TYPE = {
-  S3D: 0,
-  EQG: 1,
+  NONE: -1,
+  S3D : 0,
+  EQG : 1,
 };
 
 export const WLD_TYPE = {

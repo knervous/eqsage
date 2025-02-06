@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { PermissionStatusTypes, usePermissions } from '../../hooks/permissions';
 import { SpireApi, SpireQueryBuilder } from 'spire-api';
 import { Spawn2Api } from 'spire-api/api/spawn2-api';
@@ -76,11 +76,23 @@ export const MainProvider = ({ children }) => {
   const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
   const [zones, setZones] = useState([]);
   const [spire, setSpire] = useState(null);
+  const [canvasState, setCanvasState] = useState(false);
   const [recentList, setRecentList] = useState(() =>
     localStorage.getItem('recent-zones')
       ? JSON.parse(localStorage.getItem('recent-zones'))
       : []
   );
+  const reset = useCallback(() => {
+    setSelectedZone(null);
+    setZoneDialogOpen(true);
+    setStatusDialogOpen(false);
+    setZoneBuilderDialogOpen(false);
+    setAudioDialogOpen(false);
+    setModelExporter(false);
+    setZoneBuilder(false);
+    setModelExporterLoaded(false);
+    setCanvasState(false);
+  }, []);
 
   useEffect(() => {
     setStatusDialogOpen(permissionStatus !== PermissionStatusTypes.Ready);
@@ -114,28 +126,26 @@ export const MainProvider = ({ children }) => {
     () =>
       spire ??
       (() => {
-        return !!remoteUrl
-          ? {
-            SpireApi,
-            SpireQueryBuilder,
-            SpireApiTypes: {
-              Spawn2Api,
-              SpawnentryApi,
-              SpawngroupApi,
-            },
-            Zones,
-            Spawn,
-            Grid,
-            Npcs,
-          }
-          : null;
+        return {
+          SpireApi,
+          SpireQueryBuilder,
+          SpireApiTypes: {
+            Spawn2Api,
+            SpawnentryApi,
+            SpawngroupApi,
+          },
+          Zones,
+          Spawn,
+          Grid,
+          Npcs,
+        };
       })() ??
       null,
-    [remoteUrl, spire]
+    [spire]
   );
 
   useEffect(() => {
-    SpireApi.remoteUrl = remoteUrl;
+    SpireApi.remoteUrl = remoteUrl || 'http://spire.akkadius.com';
   }, [remoteUrl]);
 
   useEffect(() => {
@@ -149,6 +159,8 @@ export const MainProvider = ({ children }) => {
   return (
     <MainContext.Provider
       value={{
+        canvasState,
+        setCanvasState,
         selectedZone,
         setSelectedZone,
         zoneDialogOpen,
@@ -174,6 +186,8 @@ export const MainProvider = ({ children }) => {
         permissionStatus,
         recentList,
         setRecentList,
+        reset,
+        gameController
       }}
     >
       {children}

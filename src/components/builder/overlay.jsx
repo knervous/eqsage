@@ -1,8 +1,6 @@
-import { useCallback, useEffect } from 'react';
-import classNames from 'classnames';
-import { Box, Stack, Typography } from '@mui/material';
+import { useEffect } from 'react';
+import { Box, Stack } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
-import IconButton from '@mui/material/IconButton';
 import NotificationImportantIcon from '@mui/icons-material/NotificationImportant';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
@@ -19,73 +17,14 @@ import { BuilderHeader } from './overlay-header';
 import { useRegionContext } from './providers/region-provider';
 import { UpgradeState } from './constants';
 import { gameController } from '../../viewer/controllers/GameController';
-
-import './overlay.scss';
-
-const DrawerButton = ({
-  text,
-  Icon,
-  toggleDrawer,
-  drawer,
-  drawerState,
-  NotificationIcon,
-}) => {
-  const doToggleDrawer = useCallback(() => {
-    toggleDrawer(drawer, !drawerState[drawer]);
-  }, [toggleDrawer, drawer, drawerState]);
-  return (
-    <IconButton
-      className={classNames('builder-left-nav-button', {
-        'builder-left-nav-button-open': drawerState?.[drawer],
-      })}
-      onClick={doToggleDrawer}
-    >
-      <Stack
-        direction={'column'}
-        justifyContent={'center'}
-        alignItems={'center'}
-      >
-        <Icon
-          fill={'#ddd'}
-          color="#000 !important"
-          fillColor="#000"
-          width={30}
-          height={30}
-          style={{
-            fill : '#ddd !important',
-            color: '#ddd !important'
-          }}
-        />
-        <Typography
-          className="text-outline"
-          sx={{ textAlign: 'center', fontSize: 13 }}
-        >
-          {text}
-        </Typography>
-      </Stack>
-      {NotificationIcon && (
-        <NotificationIcon
-          sx={{
-            width   : '20px',
-            height  : '20px',
-            position: 'absolute',
-            right   : '0px',
-            top     : '0px',
-            color   : 'gold !important',
-            fill    : 'gold !important',
-          }}
-        />
-      )}
-    </IconButton>
-  );
-};
+import { NavLeft } from '../common/nav/nav-left';
+import { DrawerButton } from '../common/nav/drawer-button';
 
 export const BuilderOverlay = () => {
   const { regionUpgradeState } = useRegionContext();
   const { toggleDrawer, drawerState, closeDrawers, openDrawer } =
     useOverlayContext();
   useSettingsHook();
-  const { showCompass } = useSettingsContext();
   useEffect(() => {
     const keyHandler = (e) => {
       if (e.key === 'Escape' && !gameController.ZoneBuilderController.pickingRaycast) {
@@ -97,81 +36,83 @@ export const BuilderOverlay = () => {
   }, [closeDrawers]);
   return (
     <>
-      {showCompass && !openDrawer && <Compass />}
+      <img
+        alt="ModelViewer"
+        src="/static/zone-builder.png"
+        width="155"
+        height="155"
+        style={{
+          // filter      : 'brightness(1) invert(0)',
+          // mixBlendMode: 'multiply',
+          left    : '3vw',
+          top     : '-25px',
+          position: 'fixed',
+          zIndex  : 10,
+        }}
+      />
+      {!openDrawer && <Compass />}
       <OverlayDrawers />
       <BuilderHeader />
-
-      {/**
-       * Left Nav Bar
-       */}
-      <Box className="builder-left-nav-bg" />
-      <Box className="builder-left-nav">
-        {/** Compass */}
-        <Stack
-          sx={{ height: '70%', marginTop: '100%' }}
-          direction={'column'}
-          justifyContent={'space-evenly'}
-          alignItems={'center'}
-        >
+      <NavLeft>
+        <DrawerButton
+          drawerState={drawerState}
+          drawer="settings"
+          text={'Settings'}
+          Icon={SettingsIcon}
+          toggleDrawer={toggleDrawer}
+        />
+        <>
           <DrawerButton
             drawerState={drawerState}
-            drawer="settings"
-            text={'Settings'}
-            Icon={SettingsIcon}
+            drawer="zone"
+            text={'Zone'}
+            Icon={ZoneIcon}
             toggleDrawer={toggleDrawer}
           />
-          <>
-            <DrawerButton
-              drawerState={drawerState}
-              drawer="zone"
-              text={'Zone'}
-              Icon={ZoneIcon}
-              toggleDrawer={toggleDrawer}
-            />
-            <DrawerButton
-              drawerState={drawerState}
-              drawer="objects"
-              text={'Objects'}
-              Icon={ForestIcon}
-              toggleDrawer={toggleDrawer}
-            />
+          <DrawerButton
+            drawerState={drawerState}
+            drawer="objects"
+            text={'Objects'}
+            Icon={ForestIcon}
+            toggleDrawer={toggleDrawer}
+          />
 
-            <DrawerButton
-              drawerState={drawerState}
-              drawer="regions"
-              text={'Regions'}
-              NotificationIcon={
-                regionUpgradeState === UpgradeState.NEED_UPGRADE
-                  ? NotificationImportantIcon
-                  : null
-              }
-              Icon={RegionIcon}
-              toggleDrawer={toggleDrawer}
-            />
-            <DrawerButton
-              drawerState={drawerState}
-              drawer="lights"
-              text={'Lights'}
-              Icon={LightbulbIcon}
-              toggleDrawer={toggleDrawer}
-            />
-            <DrawerButton
-              drawerState={drawerState}
-              drawer="sounds"
-              text={'Sounds'}
-              Icon={AudiotrackIcon}
-              toggleDrawer={toggleDrawer}
-            />
-            <DrawerButton
-              drawerState={drawerState}
-              drawer="navigation"
-              text={'Navigation'}
-              Icon={DirectionsRunIcon}
-              toggleDrawer={toggleDrawer}
-            />
-          </>
-        </Stack>
-      </Box>
+          <DrawerButton
+            drawerState={drawerState}
+            drawer="regions"
+            text={'Regions'}
+            NotificationIcon={
+              regionUpgradeState === UpgradeState.NEED_UPGRADE
+                ? NotificationImportantIcon
+                : null
+            }
+            Icon={RegionIcon}
+            toggleDrawer={toggleDrawer}
+          />
+          <DrawerButton
+            drawerState={drawerState}
+            drawer="lights"
+            text={'Lights'}
+            Icon={LightbulbIcon}
+            toggleDrawer={toggleDrawer}
+          />
+          <DrawerButton
+            drawerState={drawerState}
+            drawer="sounds"
+            text={'Sounds'}
+            Icon={AudiotrackIcon}
+            toggleDrawer={toggleDrawer}
+          />
+          <DrawerButton
+            drawerState={drawerState}
+            drawer="navigation"
+            text={'Navigation'}
+            Icon={DirectionsRunIcon}
+            toggleDrawer={toggleDrawer}
+          />
+        </>
+        
+      </NavLeft>
     </>
   );
 };

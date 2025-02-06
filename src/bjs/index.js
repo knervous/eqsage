@@ -1,4 +1,3 @@
-
 /**
  * @type {import ('@babylonjs/core')}
  */
@@ -59,9 +58,12 @@ const exportObject = {
     addImport(import('@babylonjs/core/Lights/light'));
     addImport(import('@babylonjs/serializers'));
     addImport(import('@babylonjs/core/Particles/particleSystem'));
+    addImport(import('@babylonjs/core/Materials/effect'));
+    addImport(import('@babylonjs/core/PostProcesses/postProcess'));
+    addImport(import('@babylonjs/core/Animations/animation'));
+    addImport(import('@babylonjs/core/Particles/particleSystem'));
 
     await Promise.all(importPromises);
-    console.log('EO', exportObject);
   }
 };
 

@@ -113,6 +113,7 @@ export class EQGDecoder {
       }
 
       if (fileName.endsWith(".bmp") || fileName.endsWith(".dds")) {
+        // await writeEQFile('output', `${fileName}`, this.files[fileName].buffer )
         images.push({ name: fileName, data: this.files[fileName].buffer });
         continue;
       }
@@ -163,33 +164,6 @@ export class EQGDecoder {
 
     const arrayBuffer = await file.arrayBuffer();
     await this.processBuffer(file.name, arrayBuffer);
-  //  console.log('pfs', this.pfsArchive)
-    // Entrypoint for testing
-    if (import.meta.env.VITE_LOCAL_DEV === "true") {
-      // const serZone = Zone.write(this.zone.terrain);
-      // this.pfsArchive.setFile('broodlands.zon', serZone)
-      // const eqgFile = await this.pfsArchive.saveToFile()
-      // this.pfsArchive.deleteFile('ter_broodlands.lit');
-      // await this.processBuffer(file.name, eqgFile);
-      // await writeEQFile('zones_out', file.name, eqgFile);
-      // console.log('Test wld in eqg');
-      // const dir = getEQRootDir();
-      // const fh = await dir.getFileHandle('qeynos2_obj.s3d').then(f => f.getFile());
-      // const decoder = new S3DDecoder(fh);
-      // await decoder.processS3D(fh);
-      // const newOne = new PFSArchive();
-      // console.log('dec', decoder)
-      // for (const [fileName, _data] of decoder.pfsArchive.files.entries()) {
-      //   if (!['.bmp', '.dds', '.wld'].some(ext => fileName.endsWith(ext))) {
-      //     continue;
-      //   }
-      //   newOne.setFile(fileName.endsWith('wld') ? 'stillmoon_eqs1.wld' : fileName, decoder.pfsArchive.getFile(fileName));
-      // }
-      // const newEqg = await newOne.saveToFile();
-      // await writeEQFile('zones_out', 'stillmoon_eqs1.s3d', newEqg);
-      //this.pfsArchive.setFile('qeynos2_obj.wld', decoder.files)
-
-    }
   }
 
   /**

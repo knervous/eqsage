@@ -59,7 +59,6 @@ export const SpireOverlay = ({ inZone }) => {
   const { toggleDialog, dialogState, closeDialogs } = useOverlayContext();
   const { modelExporter } = useMainContext();
   useSettingsHook();
-  const { showCompass } = useSettingsContext();
   useEffect(() => {
     const keyHandler = (e) => {
       if (e.key === 'Escape') {
@@ -86,7 +85,7 @@ export const SpireOverlay = ({ inZone }) => {
         }}
       >
         {/** Compass */}
-        {showCompass && <Compass />}
+        <Compass />
         <Stack
           sx={{ height: inZone ? 'calc(65%)' : '100px' }}
           direction={'column'}

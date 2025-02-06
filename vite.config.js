@@ -9,7 +9,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 const proxy = httpProxy.createProxyServer({});
 
 function customProxyMiddleware(context, options) {
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const target = req.headers['x-remote-api'];
 
     if (!target) {
@@ -17,11 +17,25 @@ function customProxyMiddleware(context, options) {
       return res.end('Error: Missing X-Remote-Api header');
     }
 
+
+    
     delete req.headers.host;
-    const httpTarget = target.startsWith('http://')
+    const httpTarget = target.startsWith('http://') || target.startsWith('https://')
       ? target
       : `http://${target}`;
 
+    const path = req.headers['x-remote-path'];
+    if (path) {
+      const r = await fetch(`${httpTarget}${path}`).catch(() => null);
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+
+      if (!r?.ok) {
+        res.end(`Proxy error: ${r?.statusText}, ${target}`);
+      }
+      res.end(await r.text());
+      return;
+    }
+  
     proxy.web(
       req,
       res,
@@ -50,6 +64,14 @@ function proxyPlugin() {
       server.middlewares.use(
         '/api/v1',
         customProxyMiddleware('/api/v1', {
+          changeOrigin: true,
+          secure      : false,
+        })
+      );
+
+      server.middlewares.use(
+        '/static/magelo',
+        customProxyMiddleware('/static/magelo', {
           changeOrigin: true,
           secure      : false,
         })
@@ -112,7 +134,7 @@ export default defineConfig({
 
   server: {
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': 'https://eq.magelo.com',
     },
     client: {
       overlay: {
@@ -193,6 +215,7 @@ export default defineConfig({
       buffer: 'buffer/',
       util  : 'util/',
       '@bjs': path.resolve(__dirname, 'src/bjs'),
+      '@'   : path.resolve(__dirname, 'src'),
     },
   },
   css: {
