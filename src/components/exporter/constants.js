@@ -3,20 +3,20 @@ import itemMap from './items.json';
 import { modelDefinitions } from '../../lib/model/constants';
 
 export const locations = [
-  { name: 'Open', file: '/static/clz.glb.gz', x: 0, y: -1, z: 0 },
-  { name: 'Area 1', file: '/static/load2.glb.gz', x: 47, y: -506.5, z: 1123 },
-  { name: 'Area 2', file: '/static/load2.glb.gz', x: 846, y: 184.5, z: 275 },
-  { name: 'Area 3', file: '/static/load2.glb.gz', x: 834, y: -126.5, z: -682 },
-  { name: 'Area 4', file: '/static/load2.glb.gz', x: 688, y: 51, z: -644 },
-  { name: 'Area 5', file: '/static/load2.glb.gz', x: 3, y: -382, z: 1114 },
-  { name: 'Area 6', file: '/static/load2.glb.gz', x: -598, y: 31.5, z: -679 },
-  { name: 'Area 7', file: '/static/load2.glb.gz', x: -601, y: 184, z: -1402 },
-  { name: 'Area 8', file: '/static/load2.glb.gz', x: 22, y: 5.5, z: -1396 },
-  { name: 'Area 9', file: '/static/load2.glb.gz', x: -2, y: 985, z: -490 },
-  { name: 'Area 10', file: '/static/load2.glb.gz', x: 0, y: -129.5, z: -680 },
-  { name: 'Area 11', file: '/static/load2.glb.gz', x: -2, y: 728, z: 258 },
-  { name: 'Area 12', file: '/static/load2.glb.gz', x: 839, y: 209.5, z: 1274 },
-  { name: 'Area 13', file: '/static/load2.glb.gz', x: 840, y: 336, z: 1284 },
+  { name: 'Open', file: '/static/clz.glb', x: 0, y: -1, z: 0 },
+  { name: 'Area 1', file: '/static/load2.glb', x: 47, y: -506.5, z: 1123 },
+  { name: 'Area 2', file: '/static/load2.glb', x: 846, y: 184.5, z: 275 },
+  { name: 'Area 3', file: '/static/load2.glb', x: 834, y: -126.5, z: -682 },
+  { name: 'Area 4', file: '/static/load2.glb', x: 688, y: 51, z: -644 },
+  { name: 'Area 5', file: '/static/load2.glb', x: 3, y: -382, z: 1114 },
+  { name: 'Area 6', file: '/static/load2.glb', x: -598, y: 31.5, z: -679 },
+  { name: 'Area 7', file: '/static/load2.glb', x: -601, y: 184, z: -1402 },
+  { name: 'Area 8', file: '/static/load2.glb', x: 22, y: 5.5, z: -1396 },
+  { name: 'Area 9', file: '/static/load2.glb', x: -2, y: 985, z: -490 },
+  { name: 'Area 10', file: '/static/load2.glb', x: 0, y: -129.5, z: -680 },
+  { name: 'Area 11', file: '/static/load2.glb', x: -2, y: 728, z: 258 },
+  { name: 'Area 12', file: '/static/load2.glb', x: 839, y: 209.5, z: 1274 },
+  { name: 'Area 13', file: '/static/load2.glb', x: 840, y: 336, z: 1284 },
 ];
 
 export const models = new Proxy(modelDefinitions, {

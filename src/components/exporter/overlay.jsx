@@ -28,7 +28,7 @@ const ExporterOverlayComponent = () => {
   const { reset } = useMainContext();
   const { toggleDialog, dialogState } = useOverlayContext();
   const { location, selectedType, selectedModel } = useSettingsContext();
-  const { openAlert } = useAlertContext();
+  const { openAlert } = useAlertContext();  
   const confirm = useConfirm();
   const {
     pcModelOptions,
