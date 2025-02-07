@@ -48,6 +48,9 @@ export const useEqOptions = () => {
           const entry = data[io.model.toUpperCase()];
           if (entry) {
             for (const [icon, names] of Object.entries(entry)) {
+              if (io.model === 'it63') {
+                continue;
+              }
               for (const name of names) {
                 options.push({
                   model: io.model,
