@@ -71,7 +71,7 @@ export const ExporterNavHeader = ({
       alignItems={'center'}
     >
       <Grid
-        sx={{ width: '200px', height: '68px', paddingTop: '5px' }}
+        sx={{ width: '200px', height: '68px', paddingTop: '5px', minWidth: '170px' }}
         container
         spacing={2}
       >
@@ -126,7 +126,7 @@ export const ExporterNavHeader = ({
             options={selectedOptions}
             isOptionEqualToValue={(option, value) => option.key === value.key}
             size="small"
-            sx={{ margin: '5px 0', width: '250px !important' }}
+            sx={{ margin: '5px 0', minWidth: '250px !important' }}
           />
         </FormControl>
 
