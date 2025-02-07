@@ -28,15 +28,6 @@ export const models = new Proxy(modelDefinitions, {
   },
 });
   
-export const items = new Proxy(itemMap, {
-  get(target, prop, _receiver) {
-    const t = target[prop.slice(2, prop.length)];
-    if (t) {
-      return `[${prop}] ${t}`;
-    }
-    return !prop || prop === 'null' ? '' : `[${prop}] unknown`;
-  },
-});
 
 
 export const animationDefinitions = {

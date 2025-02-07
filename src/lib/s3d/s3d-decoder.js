@@ -113,6 +113,19 @@ export class S3DDecoder {
       track.parseTrackData();
     }
     GlobalStore.actions.setLoadingTitle("Exporting models");
+    // Sort these to export animation suppliers first
+    wld.skeletons = wld.skeletons.sort((a,b) => {
+      let aIsSupplier = false;
+      for (const mesh of a.meshes.concat(a.secondaryMeshes)) { 
+        let baseName = mesh.name.split("_")[0].toLowerCase()
+        if (Object.values(animationMap).includes(baseName)) {
+          aIsSupplier = true;
+          break;
+        }
+      }
+      return aIsSupplier ? -1 : 1;
+    });
+    console.log('WLD Skellies', wld.skeletons)
 
     const AnimationSources = {};
     let newModel = false;
@@ -210,7 +223,7 @@ export class S3DDecoder {
           }
         }
         if (await getEQFileExists(path, `${baseName}.glb`)) {
-          continue;
+          //continue;
         }
 
         // We need to map this to another skeleton supplied from those other models
@@ -241,7 +254,7 @@ export class S3DDecoder {
               }
             }
           } else {
-            console.warn(
+            console.log(
               `Unmet dependency for animations for ${baseName}. Wanted {{ ${animationMap[baseName]} }}`
             );
           }

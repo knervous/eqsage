@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getEQDir, getFiles } from '../../lib/util/fileHandler';
-import { items, models, pcModels } from './constants';
+import { models, pcModels } from './constants';
 
 export const useEqOptions = () => {
+  const [filledItemOptions, setFilledItemOptions] = useState([]);
   const [modelOptions, refreshModelOptions] = useOptions('models', models);
   const [objectOptions, refreshObjectOptions] = useOptions('objects');
-  const [itemOptions, refreshItemOptions] = useOptions('items', items);
+  const [itemOptions, refreshItemOptions] = useOptions('items');
   const [pcModelOptions, npcModelOptions] = useMemo(
     () =>
       modelOptions.reduce(
@@ -37,12 +38,43 @@ export const useEqOptions = () => {
       0,
     [pcModelOptions, npcModelOptions, objectOptions, itemOptions]
   );
+
+  useEffect(() => {
+    fetch('/static/items.json.gz')
+      .then(r => r.json())
+      .then(data => {
+        const options = [];
+        for (const io of itemOptions) {
+          const entry = data[io.model.toUpperCase()];
+          if (entry) {
+            for (const [icon, names] of Object.entries(entry)) {
+              for (const name of names) {
+                options.push({
+                  model: io.model,
+                  label: name,
+                  icon,
+                  key  : `${io.model }-${ icon}`
+                });
+              }
+            }
+
+          } else {
+            options.push(io);
+          }
+        }  
+        setFilledItemOptions(options);
+      })
+      .catch(err => {
+        console.log('Err', err);
+        console.error('Error:', err);
+      });
+  }, [itemOptions]);
   return {
     empty,
     pcModelOptions,
     npcModelOptions,
     objectOptions,
-    itemOptions,
+    itemOptions: filledItemOptions,
     refresh,
   };
 };

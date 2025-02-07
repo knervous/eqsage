@@ -126,7 +126,7 @@ export const MainProvider = ({ children }) => {
     () =>
       spire ??
       (() => {
-        return {
+        window.Spire = {
           SpireApi,
           SpireQueryBuilder,
           SpireApiTypes: {
@@ -139,6 +139,7 @@ export const MainProvider = ({ children }) => {
           Grid,
           Npcs,
         };
+        return window.Spire;
       })() ??
       null,
     [spire]
