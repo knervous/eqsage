@@ -3,7 +3,6 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 import {
-  Autocomplete,
   Box,
   Checkbox,
   FormControl,
@@ -18,6 +17,7 @@ import {
 } from '@mui/material';
 import { useSettingsContext } from '@/context/settings';
 import { locations, models, optionType } from './constants';
+import AsyncAutocomplete from '../common/autocomplete';
 
 export const ExporterNavHeader = ({
   pcModelOptions,
@@ -25,39 +25,44 @@ export const ExporterNavHeader = ({
   objectOptions,
   itemOptions,
 }) => {
-  const { selectedType, selectedModel, location, setOption } = useSettingsContext();
+  const { selectedType, selectedModel, selectedName, location, setOption } =
+    useSettingsContext();
+  const getSelectedOptions = useCallback(
+    (type) => {
+      switch (type) {
+        default:
+        case optionType.pc:
+          return pcModelOptions;
+        case optionType.npc:
+          return npcModelOptions;
+        case optionType.item:
+          return itemOptions;
+        case optionType.object:
+          return objectOptions;
+      }
+    },
+    [pcModelOptions, npcModelOptions, objectOptions, itemOptions]
+  );
   const selectedOptions = useMemo(() => {
-    switch (selectedType) {
-      default:
-      case optionType.pc:
-        return pcModelOptions;
-      case optionType.npc:
-        return npcModelOptions;
-      case optionType.item:
-        return itemOptions;
-      case optionType.object:
-        return objectOptions;
-    }
-  }, [
-    selectedType,
-    pcModelOptions,
-    npcModelOptions,
-    objectOptions,
-    itemOptions,
-  ]);
+    return getSelectedOptions(selectedType);
+  }, [selectedType, getSelectedOptions]);
 
   const doSetModel = useCallback(
-    (model) => {
+    ({ model, label }) => {
       setOption('selectedModel', model);
+      setOption('selectedName', label);
     },
     [setOption]
   );
 
   useEffect(() => {
     if (!selectedModel && selectedOptions.length) {
-      doSetModel(selectedOptions[0].model);
+      doSetModel(selectedOptions[0]);
     }
   }, [setOption, selectedModel, selectedOptions, doSetModel]);
+
+  useEffect(() => {}, []);
+
   return (
     <Stack
       direction="row"
@@ -88,6 +93,14 @@ export const ExporterNavHeader = ({
                   checked={selectedType === name}
                   onChange={(_e) => {
                     setOption('selectedType', name);
+                    setOption(
+                      'selectedModel',
+                      getSelectedOptions(name)?.[0]?.model ?? ''
+                    );
+                    setOption(
+                      'selectedName',
+                      getSelectedOptions(name)?.[0]?.label ?? ''
+                    );
                   }}
                 />
               }
@@ -96,34 +109,27 @@ export const ExporterNavHeader = ({
           </Grid>
         ))}
       </Grid>
-  
+
       <Stack sx={{ margin: '0 15px' }} direction="row">
-        <FormControl size="small" sx={{ m: 1, margin: '0', marginRight: '10px' }}>
-          <Autocomplete
-            className="area-selection"
-            value={models[selectedModel]}
-            size="small"
-            sx={{ margin: '5px 0', width: '250px !important' }}
-            isOptionEqualToValue={(option, value) => option.key === value.key}
-            onChange={async (e, values) => {
-              if (!values) {
-                return;
+        <FormControl
+          size="small"
+          sx={{ m: 1, margin: '0', marginTop: '-5px', marginRight: '10px' }}
+        >
+          <AsyncAutocomplete
+            label={selectedName || 'Select Model'}
+            value={null}
+            onChange={(_e, option) => {
+              if (option) {
+                doSetModel(option);
               }
-              doSetModel(values.model);
-            }}
-            renderOption={(props, option) => {
-              return (
-                <li {...props} key={option.key}>
-                  {option.label}
-                </li>
-              );
             }}
             options={selectedOptions}
-            renderInput={(params) => (
-              <TextField {...params} model="Select Model" />
-            )}
+            isOptionEqualToValue={(option, value) => option.key === value.key}
+            size="small"
+            sx={{ margin: '5px 0', width: '250px !important' }}
           />
         </FormControl>
+
         <Stack direction="row" alignItems={'center'}>
           <IconButton
             sx={{ width: '40px', height: '40px' }}
@@ -133,7 +139,7 @@ export const ExporterNavHeader = ({
               );
 
               const option = selectedOptions.at(optionIdx - 1);
-              doSetModel(option.model);
+              doSetModel(option);
             }}
           >
             <ArrowBackIcon />
@@ -149,7 +155,7 @@ export const ExporterNavHeader = ({
               const option = selectedOptions.at(
                 nextOption === selectedOptions.length ? 0 : nextOption
               );
-              doSetModel(option.model);
+              doSetModel(option);
             }}
           >
             <ArrowForwardIcon />
@@ -159,8 +165,6 @@ export const ExporterNavHeader = ({
       <Box className="area-selection">
         <Select
           fullWidth
-          //   IconComponent={() => <div>hi</div>}
-            
           onChange={(e) => setOption('location', e.target.value)}
           value={location}
         >

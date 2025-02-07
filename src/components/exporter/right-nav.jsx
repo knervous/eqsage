@@ -56,13 +56,38 @@ const animationNames = new Proxy(animationDefinitions, {
  * @param {{animation: import('@babylonjs/core').AnimationGroup }} param0
  * @returns
  */
-const AnimationBar = ({ animation, name, animations = [], setAnimation }) => {
+const AnimationBar = ({ animation, babylonModel, animations = [], setAnimation }) => {
   const [playMs, setPlayMs] = useState(0);
-  const [playing, setPlaying] = useState(false);
   useEffect(() => {
+    if (babylonModel?.rootNode) {
+      const { rootNode } = babylonModel;
+
+      // Ensure the world matrix is up-to-date with any animations
+      rootNode.computeWorldMatrix(true);
+  
+      // Refresh the bounding info to recalc from current vertex positions
+      rootNode.refreshBoundingInfo();
+  
+      // Retrieve the updated bounding box
+      const boundingBox = rootNode.getBoundingInfo().boundingBox;
+  
+      // Compute the height using the Y-axis (assuming Y is up)
+      const currentHeight = boundingBox.maximumWorld.y - boundingBox.minimumWorld.y;
+  
+      console.log('Current Mesh Height:', currentHeight);
+      // rootNode.computeWorldMatrix(true);
+      // rootNode.refreshBoundingInfo();
+      // rootNode.showBoundingBox = true;
+      // const boundingBox = rootNode.getHierarchyBoundingVectors();
+      // const initialHeight = boundingBox.max.y - boundingBox.min.y;
+      rootNode.position.y = currentHeight;
+    }
+
+
+    // console.log('Set rootnode y to ', rootNode.position.y);
+
     if (!animation || animation.to === 0) {
       setPlayMs(0);
-      setPlaying(false);
       return;
     }
     const cb = () => {
@@ -70,13 +95,14 @@ const AnimationBar = ({ animation, name, animations = [], setAnimation }) => {
       if (currentFrame !== 0) {
         setPlayMs(Math.round(currentFrame));
       }
+
     };
     gameController.currentScene.onAfterAnimationsObservable.add(cb);
 
     return () => {
       gameController.currentScene.onAfterAnimationsObservable.remove(cb);
     };
-  }, [animation]);
+  }, [animation, babylonModel]);
 
   return animation ? (
     <Box className="animation-playback">
@@ -129,8 +155,6 @@ const AnimationBar = ({ animation, name, animations = [], setAnimation }) => {
         />
         <Button
           onClick={() => {
-            setPlaying(!animation.isPlaying);
-
             if (animation.isPlaying) {
               animation.pause();
             } else {
@@ -160,9 +184,6 @@ export const ExporterOverlayRightNav = ({
   const [headCount, setHeadCount] = useState(0);
   const [texture, setTexture] = useState(-1);
   const [textures, setTextures] = useState([]);
-  const [primary, setPrimary] = useState(null);
-  const [secondary, setSecondary] = useState(null);
-  const [asShield, setAsShield] = useState(false);
   const [currentAnimation, setCurrentAnimation] = useState(null);
   const [config, setConfig] = useState(null);
   const [babylonModel, setBabylonModel] = useState(null);
@@ -173,9 +194,6 @@ export const ExporterOverlayRightNav = ({
       setTexture(-1);
       setHead(0);
       setAnimation('pos');
-      setPrimary(null);
-      setSecondary(null);
-      setAsShield(false);
       const count = 0;
       const doesWearRobe = wearsRobe(selectedModel);
 
@@ -203,6 +221,7 @@ export const ExporterOverlayRightNav = ({
       }
     })();
   }, [selectedModel]);
+
 
   useEffect(() => {
     if (!babylonModel) {
@@ -240,6 +259,7 @@ export const ExporterOverlayRightNav = ({
             !config?.shieldPoint
           );
           if (selectedType === optionType.npc) {
+            setBabylonModel(model);
             return;
           }
           for (const [idx, mat] of Object.entries(
@@ -288,7 +308,7 @@ export const ExporterOverlayRightNav = ({
                   const g = parseInt(hexColor.substring(3, 5), 16) / 255;
                   const b = parseInt(hexColor.substring(5, 7), 16) / 255;
                   const a = parseInt(hexColor.substring(7, 9), 16) / 255;
-  
+
                   material.albedoColor = new Color3(r, g, b);
                   material.alpha = a;
                 }
@@ -302,7 +322,7 @@ export const ExporterOverlayRightNav = ({
               )}`;
               doSwap(fullString);
             }
-  
+
             ['Chest', 'Arms', 'Wrists', 'Legs', 'Hands', 'Feet'].forEach(
               (key) => {
                 if (mat.name.startsWith(prefixes[key])) {
@@ -317,7 +337,7 @@ export const ExporterOverlayRightNav = ({
                 }
               }
             );
-  
+
             if (wearsRobe(selectedModel)) {
               if (mat.name.startsWith('clk')) {
                 const val = config.robe.toString().padStart(2, '0');
@@ -342,16 +362,12 @@ export const ExporterOverlayRightNav = ({
           setBabylonModel(model);
         }
       })();
-     
     })();
   }, [
     head,
     selectedModel,
     texture,
     selectedType,
-    primary,
-    secondary,
-    asShield,
     config,
   ]);
 
@@ -374,13 +390,14 @@ export const ExporterOverlayRightNav = ({
     [selectedModel]
   );
 
-  return pcModel ? (
+  return !selectedModel ? null : pcModel ? (
     <>
       <AnimationBar
         animations={animations}
         animation={currentAnimation}
         name={animation}
         setAnimation={setAnimation}
+        babylonModel={babylonModel}
       />
 
       <PCConfig
@@ -404,6 +421,7 @@ export const ExporterOverlayRightNav = ({
           animation={currentAnimation}
           name={animation}
           setAnimation={setAnimation}
+          babylonModel={babylonModel}
         />
         <Divider sx={{ margin: '5px' }} />
         <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>

@@ -40,7 +40,7 @@ const ExporterOverlayComponent = () => {
   } = useEqOptions();
   const fileRef = useRef();
   const area = useMemo(() => locations[location], [location]);
-
+  
   useEffect(() => {
     if (!area?.file) {
       return;
@@ -175,7 +175,8 @@ const ExporterOverlayComponent = () => {
 const defaultOptions = {
   location     : locations[0],
   selectedType : optionType.pc,
-  selectedModel: ''
+  selectedModel: '',
+  selectedName : '',
 };
 
 export const ExporterOverlay = () => (

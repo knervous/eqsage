@@ -731,10 +731,9 @@ class SpawnController extends GameControllerChild {
       rootNode.refreshBoundingInfo();
     }
     rootNode.position.y = 5;
-    this.CameraController.camera.setTarget(rootNode.position);
-    setTimeout(() => {
-      this.CameraController.camera.setTarget(null);
-    }, 0);
+    if (this.modelExport?.modelName !== modelName) {
+      this.CameraController.camera.setTarget(rootNode.position.clone());
+    }
     rootNode.scaling.z = -1;
 
     this.modelExport = {
@@ -886,7 +885,7 @@ class SpawnController extends GameControllerChild {
       rootNode.id = 'model_export';
       rootNode.name = modelName;
     }
-    rootNode.position.y = (initialHeight / 2);
+    // rootNode.position.y = (initialHeight / 2);
 
     /**
      * @type {MultiMaterial}
@@ -945,7 +944,6 @@ class SpawnController extends GameControllerChild {
       }
     }
 
-
     rootNode.scaling.z = -1;
 
     if (primary) {
@@ -994,8 +992,9 @@ class SpawnController extends GameControllerChild {
         }
       }
     }
-
-    this.CameraController.camera.setTarget(rootNode.position.clone());
+    if (this.modelExport?.modelName !== modelName) {
+      this.CameraController.camera.setTarget(rootNode.position.clone());
+    }
 
     this.modelExport = {
       modelName,

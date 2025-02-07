@@ -16,6 +16,7 @@ import { getEQDir, getFiles } from '../../../lib/util/fileHandler';
 import { useDebouncedCallback } from 'use-debounce';
 import { InventorySlot } from './inv-slot';
 import { MageloDialog } from '../dialogs/magelo-dialog';
+import AsyncAutocomplete from '@/components/common/autocomplete';
 const version = 0.2;
 
 const defaultPiece = {
@@ -24,12 +25,14 @@ const defaultPiece = {
 };
 const defaultModel = {
   version,
-  face       : 1,
-  robe       : 4,
-  primary    : '',
-  secondary  : '',
-  shieldPoint: false,
-  pieces     : {
+  face         : 1,
+  robe         : 4,
+  primary      : '',
+  primaryName  : '',
+  secondary    : '',
+  secondaryName: '',
+  shieldPoint  : false,
+  pieces       : {
     Helm  : defaultPiece,
     Chest : defaultPiece,
     Arms  : defaultPiece,
@@ -319,61 +322,47 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
 
       <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
         <FormLabel id="primary-group">Primary</FormLabel>
-        <Autocomplete
-          value={localConfig.primary}
-          size="small"
-          sx={{ margin: '5px 0', maxWidth: '270px' }}
-          isOptionEqualToValue={(option, value) => option.key === value.key}
+        <AsyncAutocomplete
+          label={localConfig.primaryName || 'Select Item'}
+          value={null}
           onChange={async (e, values) => {
             if (!values) {
               return;
             }
             setLocalConfig({
               ...localConfig,
-              primary: values.model,
+              primary    : values.model,
+              primaryName: values.label,
             });
           }}
-          renderOption={(props, option) => {
-            return (
-              <li {...props} key={option.key}>
-                {option.label}
-              </li>
-            );
-          }}
           options={itemOptions}
-          renderInput={(params) => (
-            <TextField {...params} model="Select Primary" />
-          )}
+          isOptionEqualToValue={(option, value) => option.key === value.key}
+          size="small"
+          sx={{ margin: '5px 0', width: '200px !important' }}
         />
+        
       </FormControl>
       <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
         <FormLabel id="secondary-group">Secondary</FormLabel>
-        <Autocomplete
-          value={localConfig.secondary}
-          size="small"
-          sx={{ margin: '5px 0', maxWidth: '270px' }}
-          isOptionEqualToValue={(option, value) => option.key === value.key}
+        <AsyncAutocomplete
+          label={localConfig.secondaryName || 'Select Item'}
+          value={null}
           onChange={async (e, values) => {
             if (!values) {
               return;
             }
             setLocalConfig({
               ...localConfig,
-              secondary: values.model,
+              secondary    : values.model,
+              secondaryName: values.label,
             });
           }}
-          renderOption={(props, option) => {
-            return (
-              <li {...props} key={option.key}>
-                {option.label}
-              </li>
-            );
-          }}
           options={itemOptions}
-          renderInput={(params) => (
-            <TextField {...params} model="Select Secondary" />
-          )}
+          isOptionEqualToValue={(option, value) => option.key === value.key}
+          size="small"
+          sx={{ margin: '5px 0', width: '200px !important' }}
         />
+        
         <FormControlLabel
           control={
             <Checkbox
