@@ -40,7 +40,7 @@ export const useEqOptions = () => {
   );
 
   useEffect(() => {
-    fetch('/static/items.json.gz')
+    fetch('/static/items.json')
       .then(r => r.json())
       .then(data => {
         const options = [];
