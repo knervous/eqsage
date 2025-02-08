@@ -378,32 +378,55 @@ export const ExporterOverlayRightNav = ({
     [selectedModel]
   );
 
-  return !selectedModel ? null : pcModel ? (
-    <>
-      <AnimationBar
-        animations={animations}
-        animation={currentAnimation}
-        name={animation}
-        setAnimation={setAnimation}
-        babylonModel={babylonModel}
-      />
-
-      <PCConfig
-        itemOptions={itemOptions}
-        textures={textures}
-        setConfig={setConfig}
-        model={selectedModel}
-      />
-    </>
-  ) : (
+  return !selectedModel ? null : 
     <>
       <Box
         onKeyDown={(e) => e.stopPropagation()}
         className="exporter-right-nav"
       >
-        <Typography variant="h6" sx={{ textAlign: 'center' }}>
-          Model
-        </Typography>
+        {pcModel ? <PCConfig
+          itemOptions={itemOptions}
+          textures={textures}
+          setConfig={setConfig}
+          model={selectedModel}
+        /> : <>
+      
+          <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
+            <FormLabel id="head-group">Head</FormLabel>
+            <Select
+              aria-labelledby="head-group"
+              name="head-group"
+              value={head}
+              onChange={(e) => setHead(e.target.value)}
+            >
+              {Array.from({ length: headCount }).map((_, idx) => (
+                <MenuItem value={idx} label={idx}>
+                Head {idx + 1}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
+            <FormLabel id="head-group">Texture</FormLabel>
+            <Select
+              aria-labelledby="head-group"
+              name="head-group"
+              value={texture}
+              onChange={(e) => setTexture(e.target.value)}
+            >
+              <MenuItem value={-1} label={-1}>
+              Default
+              </MenuItem>
+              {textures.map((idx) => (
+                <MenuItem value={idx} label={idx}>
+                Texture {idx + 1}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </>}
+
         <AnimationBar
           animations={animations}
           animation={currentAnimation}
@@ -411,43 +434,8 @@ export const ExporterOverlayRightNav = ({
           setAnimation={setAnimation}
           babylonModel={babylonModel}
         />
-        <Divider sx={{ margin: '5px' }} />
-        <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
-          <FormLabel id="head-group">Head</FormLabel>
-          <Select
-            aria-labelledby="head-group"
-            name="head-group"
-            value={head}
-            onChange={(e) => setHead(e.target.value)}
-          >
-            {Array.from({ length: headCount }).map((_, idx) => (
-              <MenuItem value={idx} label={idx}>
-                Head {idx + 1}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
-          <FormLabel id="head-group">Texture</FormLabel>
-          <Select
-            aria-labelledby="head-group"
-            name="head-group"
-            value={texture}
-            onChange={(e) => setTexture(e.target.value)}
-          >
-            <MenuItem value={-1} label={-1}>
-              Default
-            </MenuItem>
-            {textures.map((idx) => (
-              <MenuItem value={idx} label={idx}>
-                Texture {idx + 1}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      
       </Box>
       <OverlayDialogs />
-    </>
-  );
+    </>;
 };
