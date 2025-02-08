@@ -337,6 +337,9 @@ export class GameController {
         if (!this.currentScene) {
           break;
         }
+        if (e?.target?.tagName === 'INPUT') {
+          return;
+        }
         let inspector; 
         await import('@babylonjs/inspector').then((i) => {
           inspector = i.Inspector;

@@ -51,6 +51,7 @@ const animationNames = new Proxy(animationDefinitions, {
   },
 });
 
+
 /**
  *
  * @param {{animation: import('@babylonjs/core').AnimationGroup }} param0
@@ -60,31 +61,18 @@ const AnimationBar = ({ animation, babylonModel, animations = [], setAnimation }
   const [playMs, setPlayMs] = useState(0);
   useEffect(() => {
     if (babylonModel?.rootNode) {
-      const { rootNode } = babylonModel;
-
-      // Ensure the world matrix is up-to-date with any animations
+      const rootNode = babylonModel?.rootNode;
       rootNode.computeWorldMatrix(true);
-  
-      // Refresh the bounding info to recalc from current vertex positions
       rootNode.refreshBoundingInfo();
-  
-      // Retrieve the updated bounding box
       const boundingBox = rootNode.getBoundingInfo().boundingBox;
-  
-      // Compute the height using the Y-axis (assuming Y is up)
       const currentHeight = boundingBox.maximumWorld.y - boundingBox.minimumWorld.y;
-  
-      console.log('Current Mesh Height:', currentHeight);
-      // rootNode.computeWorldMatrix(true);
-      // rootNode.refreshBoundingInfo();
-      // rootNode.showBoundingBox = true;
-      // const boundingBox = rootNode.getHierarchyBoundingVectors();
-      // const initialHeight = boundingBox.max.y - boundingBox.min.y;
       rootNode.position.y = currentHeight;
+      if (gameController.SpawnController.doResetCamera) {
+        gameController.SpawnController.doResetCamera = false;
+        gameController.CameraController.camera.setTarget(rootNode.position.clone());
+      }
+
     }
-
-
-    // console.log('Set rootnode y to ', rootNode.position.y);
 
     if (!animation || animation.to === 0) {
       setPlayMs(0);
@@ -102,7 +90,7 @@ const AnimationBar = ({ animation, babylonModel, animations = [], setAnimation }
     return () => {
       gameController.currentScene.onAfterAnimationsObservable.remove(cb);
     };
-  }, [animation, babylonModel]);
+  }, [animation, babylonModel?.rootNode]);
 
   return animation ? (
     <Box className="animation-playback">

@@ -116,6 +116,7 @@ export const ExporterNavHeader = ({
           sx={{ m: 1, margin: '0', marginTop: '-5px', marginRight: '10px' }}
         >
           <AsyncAutocomplete
+            className="gold-border"
             label={selectedName || 'Select Model'}
             value={null}
             onChange={(_e, option) => {
@@ -162,16 +163,18 @@ export const ExporterNavHeader = ({
           </IconButton>
         </Stack>
       </Stack>
-      <Box className="area-selection">
-        <Select
+      <Box sx={{ marginTop: '-5px' }}className="area-selection">
+        <TextField
           fullWidth
+          select
+          label="Class Area"
           onChange={(e) => setOption('location', e.target.value)}
           value={location}
         >
           {locations.map((l, i) => (
             <MenuItem value={i}>{l.name}</MenuItem>
           ))}
-        </Select>
+        </TextField>
       </Box>
     </Stack>
   );

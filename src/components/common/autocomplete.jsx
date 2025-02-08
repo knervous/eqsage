@@ -68,12 +68,22 @@ const AsyncAutocomplete = ({
     <Autocomplete
       value={value}
       onChange={onChange}
-      size='small'
+      size="small"
+      sx={{ '*': { color: 'white' } }}
       inputValue={inputValue}
       onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
       options={displayedOptions}
       ListboxComponent={ListboxComponent}
-      renderInput={(params) => <TextField {...params} label={label} />}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          InputLabelProps={{
+            ...params.InputLabelProps,
+            sx: { ...(params.InputLabelProps.sx ?? {}), color: 'white' },
+          }}
+          label={label}
+        />
+      )}
       {...props}
     />
   );

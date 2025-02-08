@@ -582,7 +582,11 @@ class SpawnController extends GameControllerChild {
     });
   }
 
-  async exportModel(withAnimations = true, download = true, imgCompression = 'png') {
+  async exportModel(
+    withAnimations = true,
+    download = true,
+    imgCompression = 'png'
+  ) {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle(
       `Exporting model ${this.modelExport?.modelName} with animations ${withAnimations}`
@@ -669,8 +673,20 @@ class SpawnController extends GameControllerChild {
     );
     container.addAllToScene();
     const node = this.currentScene.getMeshByName('__root__');
+
     if (node) {
       node.position.set(x, y, z);
+      node.getChildMeshes().forEach((mesh) => {
+        if (!mesh.name.includes('MDF')) {
+          setTimeout(() => {
+            if (mesh.material && mesh.material instanceof BABYLON.PBRMaterial) {
+              if (mesh.material.albedoTexture) {
+                mesh.material.albedoTexture.uScale = -1;
+              }
+            }
+          }, 1000);
+        }
+      });
     }
   }
 
@@ -780,7 +796,7 @@ class SpawnController extends GameControllerChild {
     }
   }
 
-  disposeModel () {
+  disposeModel() {
     if (this.modelExport) {
       this.modelExport.rootNode.dispose();
       this.modelExport.animationGroups.forEach((a) => a.dispose());
@@ -831,8 +847,6 @@ class SpawnController extends GameControllerChild {
       return;
     }
     rootNode.refreshBoundingInfo();
-    const boundingBox = rootNode.getHierarchyBoundingVectors();
-    const initialHeight = boundingBox.max.y - boundingBox.min.y;
     rootNode.id = 'model_export';
     rootNode.name = modelName;
     rootNode.position.setAll(0);
@@ -993,7 +1007,7 @@ class SpawnController extends GameControllerChild {
       }
     }
     if (this.modelExport?.modelName !== modelName) {
-      this.CameraController.camera.setTarget(rootNode.position.clone());
+      this.doResetCamera = true;
     }
 
     this.modelExport = {

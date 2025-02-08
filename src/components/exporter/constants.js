@@ -1,22 +1,24 @@
 
-import itemMap from './items.json';
 import { modelDefinitions } from '../../lib/model/constants';
 
+
 export const locations = [
-  { name: 'Open', file: '/static/clz.glb', x: 0, y: -1, z: 0 },
-  { name: 'Area 1', file: '/static/load2.glb', x: 47, y: -506.5, z: 1123 },
-  { name: 'Area 2', file: '/static/load2.glb', x: 846, y: 184.5, z: 275 },
-  { name: 'Area 3', file: '/static/load2.glb', x: 834, y: -126.5, z: -682 },
-  { name: 'Area 4', file: '/static/load2.glb', x: 688, y: 51, z: -644 },
-  { name: 'Area 5', file: '/static/load2.glb', x: 3, y: -382, z: 1114 },
-  { name: 'Area 6', file: '/static/load2.glb', x: -598, y: 31.5, z: -679 },
-  { name: 'Area 7', file: '/static/load2.glb', x: -601, y: 184, z: -1402 },
-  { name: 'Area 8', file: '/static/load2.glb', x: 22, y: 5.5, z: -1396 },
-  { name: 'Area 9', file: '/static/load2.glb', x: -2, y: 985, z: -490 },
-  { name: 'Area 10', file: '/static/load2.glb', x: 0, y: -129.5, z: -680 },
-  { name: 'Area 11', file: '/static/load2.glb', x: -2, y: 728, z: 258 },
-  { name: 'Area 12', file: '/static/load2.glb', x: 839, y: 209.5, z: 1274 },
-  { name: 'Area 13', file: '/static/load2.glb', x: 840, y: 336, z: 1284 },
+  { name: 'Default', file: '/static/clz.glb', x: 0, y: -0.75, z: 0 },
+  { name: 'Warrior', file: '/static/load2.glb', x: -600, y: 184, z: -1475 },
+  { name: 'Cleric', file: '/static/load2.glb', x: -603.5, y: 92.5, z: 328 },
+  { name: 'Paladin', file: '/static/load2.glb', x: 847, y: 184.5, z: 250 },
+  { name: 'Ranger', file: '/static/load2.glb', x: 45, y: 5.5, z: -1415 },
+  { name: 'Shadowknight', file: '/static/load2.glb', x: 0, y: -129.5, z: -680 },
+  { name: 'Druid', file: '/static/load2.glb', x: -60, y: -507.5, z: 950 },
+  { name: 'Monk', file: '/static/load2.glb', x: 0, y: -382, z: 1120 },
+  { name: 'Bard', file: '/static/load2.glb', x: -60, y: 876, z: 230 },
+  { name: 'Rogue', file: '/static/load2.glb', x: 790, y: 27, z: -640 },
+  { name: 'Shaman', file: '/static/load2.glb', x: -2, y: 985, z: -490 },
+  { name: 'Necromancer', file: '/static/load2.glb', x: 850, y: 336, z: 1275 },
+  { name: 'Wizard', file: '/static/load2.glb', x: -600, y: 31.5, z: -680 },
+  { name: 'Mage', file: '/static/load2.glb', x: 840, y: 209.5, z: 1274 },
+  { name: 'Enchanter', file: '/static/load2.glb', x: 885, y: -156.5, z: -685 },
+  { name: 'Beastlord', file: '/static/load2.glb', x: 0, y: 728, z: 260 },
 ];
 
 export const models = new Proxy(modelDefinitions, {
