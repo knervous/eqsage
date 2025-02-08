@@ -3,7 +3,7 @@ import { Box, Stack } from '@mui/material';
 
 export const NavHeader = ({ children, offset = false, minWidth = '400px' }) => {
   const bgOptions = {
-    minWidth: `calc(${minWidth} + 2px)`,
+    minWidth: `calc(${minWidth} + 4px)`,
   };
   const options = { minWidth };
   if (offset) {

@@ -5,23 +5,27 @@ import { MuiColorInput } from 'mui-color-input';
 import { loadItemIcon } from '../asset-loader/util';
 
 const invSlotMap = {
-  Helm  : 'A_InvHead',
-  Chest : 'A_InvChest',
-  Arms  : 'A_InvArms',
-  Wrists: 'A_InvWrist',
-  Hands : 'A_InvHands',
-  Legs  : 'A_InvLegs',
-  Feet  : 'A_InvFeet',
+  Helm     : 'A_InvHead',
+  Chest    : 'A_InvChest',
+  Arms     : 'A_InvArms',
+  Wrists   : 'A_InvWrist',
+  Hands    : 'A_InvHands',
+  Legs     : 'A_InvLegs',
+  Feet     : 'A_InvFeet',
+  Primary  : 'A_InvPrimary',
+  Secondary: 'A_InvSecondary',
 };
   
 const itemIdMap = {
-  Helm  : [639, 640, 550, 628],
-  Chest : [678, 632, 538, 624],
-  Arms  : [670, 634, 543, 546],
-  Wrists: [638, 637, 620, 516],
-  Hands : [517, 636, 526, 531],
-  Legs  : [631, 635, 540],
-  Feet  : [666, 633, 545, 524],
+  Helm     : [639, 640, 550, 628],
+  Chest    : [678, 632, 538, 624],
+  Arms     : [670, 634, 543, 546],
+  Wrists   : [638, 637, 620, 516],
+  Hands    : [517, 636, 526, 531],
+  Legs     : [631, 635, 540],
+  Feet     : [666, 633, 545, 524],
+  Primary  : [],
+  Secondary: [],
 };
   
 
@@ -58,7 +62,7 @@ export const InventorySlot = ({ piece, props, atlas, side, setLocalConfig, local
   // console.log('Piece', piece, props);
   const itemId = itemIdMap[piece][props?.texture] ?? itemIdMap[piece].at(-1);
   const wornAtlasPiece = loadItemIcon(itemId);
-  return <Box sx={{ width: '75px' }}>
+  return <Box sx={{ width: '65px' }}>
     <Box
       id={`${piece}-bg`}
       sx={{

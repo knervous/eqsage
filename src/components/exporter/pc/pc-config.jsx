@@ -171,13 +171,8 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
   return !atlas ? null : (
     <Stack
       sx={{
-        margin  : '5px',
+        margin: '5px',
         // height  : '60vh',
-        position: 'fixed',
-        width   : '300px',
-        top     : '80px',
-        right   : 0,
-        zIndex  : 1000,
         // backgroundColor: 'rgba(127,0,0,0.5)',
       }}
       direction={'column'}
@@ -187,14 +182,13 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
         open={mageloDialogOpen}
         onClose={() => setMageloDialogOpen(false)}
       />
-      <Button onClick={() => setMageloDialogOpen(true)}>
-        Import Magelo Profile
+      <Button sx={{ width: '120px', margin: '0 auto' }} onClick={() => setMageloDialogOpen(true)}>
+        Import Magelo
       </Button>
       <FormControl
         size="small"
         sx={{ m: 1, width: '120px', margin: '5px auto', textAlign: 'center' }}
       >
-        <FormLabel sx={{ color: 'white', fontSize: '20px' }}>Face</FormLabel>
         <Select
           autoWidth={false}
           IconComponent={null}
@@ -302,11 +296,30 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
       ) : (
         getPieceConfig()
       )}
-
+      <Stack justifyContent={'center'} direction="row">
+        <InventorySlot
+          textures={textures}
+          localConfig={localConfig}
+          setLocalConfig={setLocalConfig}
+          piece={'Primary'}
+          props={{ }}
+          side="left"
+          atlas={atlas}
+        />
+        <InventorySlot
+          textures={textures}
+          localConfig={localConfig}
+          setLocalConfig={setLocalConfig}
+          piece={'Secondary'}
+          props={{ }}
+          side="right"
+          atlas={atlas}
+        />
+      </Stack>
+    
       <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
-        <FormLabel id="primary-group">Primary</FormLabel>
         <AsyncAutocomplete
-          label={localConfig.primaryName || 'Select Item'}
+          label={localConfig.primaryName ?? 'Primary'}
           value={null}
           onChange={async (e, values) => {
             if (!values) {
@@ -321,11 +334,10 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
           options={itemOptions}
           isOptionEqualToValue={(option, value) => option.key === value.key}
           size="small"
-          sx={{ margin: '5px 0', width: '200px !important' }}
+          sx={{ margin: '5px 0', width: '130px !important' }}
         />
       </FormControl>
       <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
-        <FormLabel id="secondary-group">Secondary</FormLabel>
         <AsyncAutocomplete
           label={localConfig.secondaryName || 'Select Item'}
           value={null}
@@ -342,7 +354,7 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
           options={itemOptions}
           isOptionEqualToValue={(option, value) => option.key === value.key}
           size="small"
-          sx={{ margin: '5px 0', width: '200px !important' }}
+          sx={{ margin: '5px 0', width: '130px !important' }}
         />
 
         <FormControlLabel
