@@ -9,7 +9,7 @@ import {
   Select,
   Stack,
   TextField,
-  Button
+  Button,
 } from '@mui/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getEQDir, getFiles } from '../../../lib/util/fileHandler';
@@ -68,9 +68,6 @@ const getStoredModel = (name) => {
 })
  */
 
-
-
-
 export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
   const [localConfig, setLocalConfig] = useState(defaultModel);
   const [faces, setFaces] = useState([]);
@@ -80,7 +77,6 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
     fetch('/static/eqassets/atlas.json')
       .then((r) => r.json())
       .then(setAtlas);
-      
   }, []);
 
   const [mageloDialogOpen, setMageloDialogOpen] = useState(false);
@@ -172,24 +168,6 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
     );
   };
 
-  const faceWidth = {
-    bam  : '126px',
-    dam  : '128px',
-    dam01: '128px',
-    elm  : '128px',
-    ham  : '128px',
-    hif01: '128px',
-    hif  : '128px',
-    him01: '128px',
-    him  : '128px',
-    hom  : '128px',
-    hum01: '128px',
-    hum  : '128px',
-    ogm  : '128px',
-    trf  : '128px',
-    trm  : '128px',
-    // ikf01: '128px'
-  };
   return !atlas ? null : (
     <Stack
       sx={{
@@ -205,8 +183,13 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
       direction={'column'}
       justifyContent={'center'}
     >
-      <MageloDialog open={mageloDialogOpen} onClose={() => setMageloDialogOpen(false)} />
-      <Button onClick={() => setMageloDialogOpen(true)}>Import Magelo Profile</Button>
+      <MageloDialog
+        open={mageloDialogOpen}
+        onClose={() => setMageloDialogOpen(false)}
+      />
+      <Button onClick={() => setMageloDialogOpen(true)}>
+        Import Magelo Profile
+      </Button>
       <FormControl
         size="small"
         sx={{ m: 1, width: '120px', margin: '5px auto', textAlign: 'center' }}
@@ -268,13 +251,13 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
               <Box
                 sx={{
                   padding           : 0,
-                  width             : faceWidth[model] ?? '64px',
+                  width             : '64px', // faceWidth[model] ?? '64px',
                   height            : '64px',
                   backgroundColor   : 'black',
                   backgroundImage   : `url(${ab})`,
                   backgroundPosition: 'center',
                   backgroundRepeat  : 'no-repeat',
-                  backgroundSize    : 'contain',
+                  backgroundSize    : 'undefined 64px',
                   margin            : '0 auto',
                   maskImage         : `
                     radial-gradient(
@@ -340,7 +323,6 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
           size="small"
           sx={{ margin: '5px 0', width: '200px !important' }}
         />
-        
       </FormControl>
       <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
         <FormLabel id="secondary-group">Secondary</FormLabel>
@@ -362,7 +344,7 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
           size="small"
           sx={{ margin: '5px 0', width: '200px !important' }}
         />
-        
+
         <FormControlLabel
           control={
             <Checkbox

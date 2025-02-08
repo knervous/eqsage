@@ -55,12 +55,18 @@
    border: 0px !important;
   }
 }
+.gold-border {
+  * {
+    border-color: white;
+    border-radius: 5px !important;
+  }
+}
 .area-selection {
   width: 110px;
   text-align: center;
   * {
-    border-color: rgba(180, 173, 134, 0.7) !important;
-    border-radius: 10px !important;
+    border-color: white;
+    border-radius: 5px !important;
   }
 .MuiSelect-select {
   padding-top: 5px;

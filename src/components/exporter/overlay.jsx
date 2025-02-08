@@ -79,17 +79,6 @@ const ExporterOverlayComponent = () => {
     });
   }, [area]);
 
-  /**
-   *       console.log('Selected type', selectedType);
-      if ([optionType.pc, optionType.npc].includes(selectedType)) {
-        gameController.SpawnController.addExportModel(model).then(
-          setBabylonModel
-        );
-      } else {
-        gameController.SpawnController.addObject(model).then(setBabylonModel);
-      }
-   */
-
   return (
     <>
       <img
@@ -112,7 +101,7 @@ const ExporterOverlayComponent = () => {
         />
       ) : null}
 
-      <NavHeader minWidth={'700px'}>
+      <NavHeader minWidth={'850px'}>
         <ExporterNavHeader
           gameController={gameController}
           pcModelOptions={pcModelOptions}
