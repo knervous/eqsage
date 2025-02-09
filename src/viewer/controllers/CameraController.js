@@ -12,19 +12,11 @@ class CameraController extends GameControllerChild {
   camera = null;
   isLocked = false;
   speedModified = false;
-  VIEWS = {
-    GOOD: {
-      position: new Vector3(90, 20, 1),
-      rotation: new Vector3(0.024, -1.5754, 0),
-    },
-    EVIL: {
-      position: new Vector3(-90.024, 30.407, -313.65),
-      rotation: new Vector3(0.15828, 7.87398, 0),
-    },
-  };
+
 
   dispose() {
     if (this.camera) {
+      this.camera?.removeBehavior(this.#autoRotationBehavior);
       this.camera.dispose();
     }
     document.removeEventListener(
@@ -84,6 +76,22 @@ class CameraController extends GameControllerChild {
     // Prevent the page from scrolling
     event.preventDefault();
   }
+  #autoRotationBehavior = new BABYLON.AutoRotationBehavior();
+  #rotating = false;
+  rotate(rotate) {
+    this.#rotating = rotate;
+    this.#autoRotationBehavior.idleRotationSpeed = 0.5;
+    this.#autoRotationBehavior.zoomStopsAnimation = false;
+    this.#autoRotationBehavior.idleRotationSpinupTime = 1;
+    this.#autoRotationBehavior.idleRotationWaitTime = 1;
+    if (rotate) {
+      console.log('Attach');
+      this.#autoRotationBehavior.attach(this.camera);
+    } else {
+      console.log('Detach');
+      this.#autoRotationBehavior.detach();
+    }
+  }
 
   swapCharacterSelectView(view) {
     this.camera.position.set(view.position.x, view.position.y, view.position.z);
@@ -138,9 +146,11 @@ class CameraController extends GameControllerChild {
   }
 
   sceneMouseUp(e) {
+    console.log('mouse up??');
     if (e.button === 2) {
       document.exitPointerLock();
     }
+    this.rotate(this.#rotating);
   }
 
   createModelCamera = () => {
@@ -156,6 +166,16 @@ class CameraController extends GameControllerChild {
     this.camera.attachControl(this.canvas);
     this.camera.panningSensibility = 1000;
     this.camera.wheelPrecision = 25;
+    // Assume camera is your ArcRotateCamera instance.
+
+    // Set the idle rotation speed (in radians per millisecond).
+    this.#autoRotationBehavior.idleRotationSpeed = 0.001; // Adjust as needed
+
+    // Optionally, adjust other properties:
+    this.#autoRotationBehavior.zoomStopsAnimation = false; // Example setting
+
+    // Attach the behavior to the camera.
+    this.camera.addBehavior(this.#autoRotationBehavior);
   };
 
   /**

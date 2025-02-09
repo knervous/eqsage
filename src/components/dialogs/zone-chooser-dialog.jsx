@@ -260,7 +260,7 @@ export const ZoneChooserDialog = ({ open }) => {
           Icon={AccessibilityIcon}
           isNew
           newText="New! (3D Printing)"
-          title="Model Exporter"
+          title="Model Viewer"
         />
         <FlyoutButton
           onClick={enterAudio}
