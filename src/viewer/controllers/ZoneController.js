@@ -172,6 +172,7 @@ class ZoneController extends GameControllerChild {
     this.scene = new Scene(this.engine);
     this.scene.onPointerDown = this.sceneMouseDown;
     this.scene.onPointerUp = this.sceneMouseUp;
+
     this.CameraController.createCamera(new Vector3(0, 250, 0));
     this.CameraController.camera.rotation = new Vector3(1.57, 1.548, 0);
     const glowLayer = new GlowLayer('glow', this.scene, {

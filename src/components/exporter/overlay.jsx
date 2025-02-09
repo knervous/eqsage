@@ -11,7 +11,7 @@ import { OverlayDialogs } from './dialogs/dialogs';
 import { SettingsProvider, useSettingsContext } from '../../context/settings';
 import { useMainContext } from '../main/context';
 import { gameController } from '../../viewer/controllers/GameController';
-import { ExporterOverlayRightNav } from './right-nav';
+import { ModelOverlay } from './model-overlay';
 import { locations, optionType } from './constants';
 import { NavLeft } from '../common/nav/nav-left';
 import { DrawerButton } from '../common/nav/drawer-button';
@@ -94,14 +94,14 @@ const ExporterOverlayComponent = () => {
       />
       <OverlayDialogs empty={empty} refresh={refresh} confirm={confirm} openAlert={openAlert} />
       {selectedModel ? (
-        <ExporterOverlayRightNav
+        <ModelOverlay
           selectedType={selectedType}
           selectedModel={selectedModel}
           itemOptions={itemOptions}
         />
       ) : null}
 
-      <NavHeader minWidth={'850px'}>
+      <NavHeader minWidth={'800px'}>
         <ExporterNavHeader
           gameController={gameController}
           pcModelOptions={pcModelOptions}
@@ -151,6 +151,7 @@ const ExporterOverlayComponent = () => {
                 await deleteEqFolder('models');
                 await deleteEqFolder('objects');
                 await deleteEqFolder('zones');
+                await deleteEqFolder('presets');
                 openAlert('Successfully purged EQ Sage folder', 'success');
               })
               .catch(() => {});
@@ -162,10 +163,12 @@ const ExporterOverlayComponent = () => {
 };
 
 const defaultOptions = {
-  location     : locations[0],
-  selectedType : optionType.pc,
-  selectedModel: '',
-  selectedName : '',
+  location       : locations[0],
+  selectedType   : optionType.pc,
+  selectedModel  : '',
+  selectedName   : '',
+  cycleAnimations: true,
+  rotate         : true
 };
 
 export const ExporterOverlay = () => (

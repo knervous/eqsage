@@ -365,6 +365,7 @@ export class GameController {
   }
 
   sceneMouseUp(e) {
+    console.log('hello');
     this.CameraController.sceneMouseUp(e);
   }
 

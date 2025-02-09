@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Stack } from '@mui/material';
+import './nav.scss';
 
 export const NavHeader = ({ children, offset = false, minWidth = '400px' }) => {
   const bgOptions = {

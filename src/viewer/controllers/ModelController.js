@@ -61,7 +61,7 @@ class ModelController extends GameControllerChild {
     }
     this.scene = new Scene(this.engine);
     this.scene.onPointerDown = this.sceneMouseDown;
-    this.scene.onPointerUp = this.sceneMouseUp;
+    this.scene.onPointerUp = this.CameraController.sceneMouseUp;
     this.CameraController.createModelCamera();
     const glowLayer = new GlowLayer('glow', this.scene, {
       blurKernelSize: 10,

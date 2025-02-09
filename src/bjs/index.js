@@ -55,6 +55,7 @@ const exportObject = {
     addImport(import('@babylonjs/core/Meshes/abstractMesh'));
     addImport(import('@babylonjs/core/Lights/pointLight'));
     addImport(import('@babylonjs/core/Behaviors/Meshes/pointerDragBehavior'));
+    addImport(import('@babylonjs/core/Behaviors/Cameras/autoRotationBehavior'));
     addImport(import('@babylonjs/core/Lights/light'));
     addImport(import('@babylonjs/serializers'));
     addImport(import('@babylonjs/core/Particles/particleSystem'));
@@ -62,6 +63,7 @@ const exportObject = {
     addImport(import('@babylonjs/core/PostProcesses/postProcess'));
     addImport(import('@babylonjs/core/Animations/animation'));
     addImport(import('@babylonjs/core/Particles/particleSystem'));
+    addImport(import('@babylonjs/core/Cameras/'));
 
     await Promise.all(importPromises);
   }
