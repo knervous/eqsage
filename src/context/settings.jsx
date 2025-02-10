@@ -22,18 +22,25 @@ export const SettingsProvider = ({
   children,
   defaultOptions = globalSettings,
   storageKey = 'options',
+  stateCallback = undefined,
 }) => {
   const [options, setOptions] = useState(
     JSON.parse(localStorage.getItem(storageKey) ?? '{}')
   );
   const setOption = useCallback((itemKey, value) => {
     setOptions((options) => {
-      const newOptions = { ...options, [itemKey]: value };
-      localStorage.setItem(storageKey, JSON.stringify(newOptions));
+      let newOptions = { ...options, [itemKey]: value };
+      if (stateCallback) {
+        newOptions = stateCallback(itemKey, options, newOptions);
+      }
+      const serializedOptions = { ...newOptions };
+      if (serializedOptions?.config) {
+        delete serializedOptions.config.needsRender;
+      }
+      localStorage.setItem(storageKey, JSON.stringify(serializedOptions));
       return newOptions;
     });
-  }, [storageKey]);
-
+  }, [storageKey, stateCallback]);
   return (
     <SettingsContext.Provider
       value={{

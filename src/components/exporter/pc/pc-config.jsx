@@ -1,5 +1,4 @@
 import {
-  Autocomplete,
   Box,
   Checkbox,
   FormControl,
@@ -8,50 +7,14 @@ import {
   MenuItem,
   Select,
   Stack,
-  TextField,
   Button,
 } from '@mui/material';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { getEQDir, getFiles } from '../../../lib/util/fileHandler';
-import { useDebouncedCallback } from 'use-debounce';
 import { InventorySlot } from './inv-slot';
 import { MageloDialog } from '../dialogs/magelo-dialog';
 import AsyncAutocomplete from '@/components/common/autocomplete';
-const version = 0.2;
 
-const defaultPiece = {
-  texture: 0,
-  color  : -1,
-};
-const defaultModel = {
-  version,
-  face         : 1,
-  robe         : 4,
-  primary      : '',
-  primaryName  : '',
-  secondary    : '',
-  secondaryName: '',
-  shieldPoint  : false,
-  pieces       : {
-    Helm  : defaultPiece,
-    Chest : defaultPiece,
-    Arms  : defaultPiece,
-    Wrists: defaultPiece,
-    Hands : defaultPiece,
-    Legs  : defaultPiece,
-    Feet  : defaultPiece,
-  },
-};
-
-const getStoredModel = (name) => {
-  if (localStorage.getItem(name)) {
-    const deser = JSON.parse(localStorage.getItem(name));
-    if (deser.version === version) {
-      return deser;
-    }
-  }
-  return defaultModel;
-};
 
 /**
  * 
@@ -68,8 +31,7 @@ const getStoredModel = (name) => {
 })
  */
 
-export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
-  const [localConfig, setLocalConfig] = useState(defaultModel);
+export const PCConfig = ({ model, textures, itemOptions, config, setOption }) => {
   const [faces, setFaces] = useState([]);
   const [atlas, setAtlas] = useState(null);
   const filesCache = useRef(null);
@@ -81,7 +43,6 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
 
   const [mageloDialogOpen, setMageloDialogOpen] = useState(false);
   useEffect(() => {
-    setLocalConfig(getStoredModel(model));
     (async () => {
       const scrubbedModel = model.slice(0, 3);
       const textureDir = await getEQDir('textures');
@@ -112,19 +73,15 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
       }
     })();
   }, [model]);
-  const debouncedSet = useDebouncedCallback(() => {
-    // serialize local config and call main update
-    localStorage.setItem(model, JSON.stringify(localConfig));
-    setConfig(localConfig);
-  }, 200);
 
-  useEffect(debouncedSet, [model, localConfig, setConfig, debouncedSet]);
   const robedModel = useMemo(() => model.endsWith('01'), [model]);
-
+  const setConfig = newConfig => {
+    setOption('config', newConfig);
+  };
   const getPieceConfig = (filter = () => true) => {
     const left = [];
     const right = [];
-    Object.entries(localConfig.pieces)
+    Object.entries(config.pieces)
       .filter(filter)
       .forEach((entry, idx) => {
         if (idx % 2 === 0) {
@@ -133,15 +90,15 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
           right.push(entry);
         }
       });
-
+  
     return (
       <Stack direction="row" justifyContent={'center'} alignContent={'center'}>
         <Stack direction="column">
           {left.map(([piece, props]) => (
             <InventorySlot
               textures={textures}
-              localConfig={localConfig}
-              setLocalConfig={setLocalConfig}
+              localConfig={config}
+              setLocalConfig={setConfig}
               key={piece}
               piece={piece}
               props={props}
@@ -154,8 +111,8 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
           {right.map(([piece, props]) => (
             <InventorySlot
               textures={textures}
-              localConfig={localConfig}
-              setLocalConfig={setLocalConfig}
+              localConfig={config}
+              setLocalConfig={setConfig}
               key={piece}
               piece={piece}
               props={props}
@@ -223,10 +180,10 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
               },
             },
           }}
-          value={localConfig.face}
+          value={config.face}
           onChange={(e) => {
-            setLocalConfig({
-              ...localConfig,
+            setConfig({
+              ...config,
               face: +e.target.value,
             });
           }}
@@ -276,10 +233,10 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
           >
             <FormLabel>Robe</FormLabel>
             <Select
-              value={localConfig.robe}
+              value={config.robe}
               onChange={(e) => {
-                setLocalConfig({
-                  ...localConfig,
+                setConfig({
+                  ...config,
                   robe: +e.target.value,
                 });
               }}
@@ -299,8 +256,8 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
       <Stack justifyContent={'center'} direction="row">
         <InventorySlot
           textures={textures}
-          localConfig={localConfig}
-          setLocalConfig={setLocalConfig}
+          localConfig={config}
+          setLocalConfig={setConfig}
           piece={'Primary'}
           props={{ }}
           side="left"
@@ -308,8 +265,8 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
         />
         <InventorySlot
           textures={textures}
-          localConfig={localConfig}
-          setLocalConfig={setLocalConfig}
+          localConfig={config}
+          setLocalConfig={setConfig}
           piece={'Secondary'}
           props={{ }}
           side="right"
@@ -319,14 +276,14 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
     
       <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
         <AsyncAutocomplete
-          label={localConfig.primaryName ?? 'Primary'}
+          label={config.primaryName ?? 'Primary'}
           value={null}
           onChange={async (e, values) => {
             if (!values) {
               return;
             }
-            setLocalConfig({
-              ...localConfig,
+            setConfig({
+              ...config,
               primary    : values.model,
               primaryName: values.label,
             });
@@ -339,14 +296,14 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
       </FormControl>
       <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
         <AsyncAutocomplete
-          label={localConfig.secondaryName || 'Select Item'}
+          label={config.secondaryName || 'Select Item'}
           value={null}
           onChange={async (e, values) => {
             if (!values) {
               return;
             }
-            setLocalConfig({
-              ...localConfig,
+            setConfig({
+              ...config,
               secondary    : values.model,
               secondaryName: values.label,
             });
@@ -360,11 +317,11 @@ export const PCConfig = ({ model, setConfig, textures, itemOptions }) => {
         <FormControlLabel
           control={
             <Checkbox
-              value={localConfig.shieldPoint}
+              value={config.shieldPoint}
               onChange={() => {
-                setLocalConfig({
-                  ...localConfig,
-                  shieldPoint: !localConfig.shieldPoint,
+                setConfig({
+                  ...config,
+                  shieldPoint: !config.shieldPoint,
                 });
               }}
             >

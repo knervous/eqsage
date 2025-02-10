@@ -77,6 +77,18 @@
   background-image: url("../images/super_fancy_bg.png");
 }
 
+
+.MuiPopper-root ul, .MuiList-root {
+  background-image: url("../../components/images/super_fancy_bg.png") !important;
+  box-shadow: 0px 0px 1px 1px rgb(180, 173, 134) inset !important;
+  .Mui-selected {
+    background-color: rgba(0, 0, 0, 0.48) !important;
+    margin: 0px 0px;
+    box-shadow: 0px 0px 1px 1px rgba(180, 173, 134, 0.5) inset !important;
+
+  }
+}
+
 .model-overlay {
   max-width: 100vh;
   overflow-y: scroll;

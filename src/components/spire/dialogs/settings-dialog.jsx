@@ -164,7 +164,7 @@ export const SettingsDialog = ({ onClose }) => {
         label="Import Boundary (collision)"
       />
 
-      {!window.Spire && (
+      {window === window.top && (
         <>
           <FormControl sx={{ margin: '15px 0px' }} fullWidth>
             <Stack

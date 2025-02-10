@@ -1,27 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Box,
-  FormControl,
-  MenuItem,
-  Select,
-  FormLabel,
-} from '@mui/material';
-
+import { Box, FormControl, MenuItem, Select, FormLabel } from '@mui/material';
 import BABYLON from '@bjs';
-
 import { OverlayDialogs } from './dialogs/dialogs';
 import { gameController } from '../../viewer/controllers/GameController';
 import { getEQDir, getFiles } from '../../lib/util/fileHandler';
 import { PCConfig } from './pc/pc-config';
+import { useSettingsContext } from '@/context/settings';
+import { optionType, pcModels, wearsRobe } from './constants';
+import { AnimationBar } from './animation-bar';
 
 import './overlay.scss';
-import {
-  animationDefinitions,
-  optionType,
-  pcModels,
-  wearsRobe,
-} from './constants';
-import { AnimationBar } from './animation-bar';
 
 const { PBRMaterial, Texture, Color3 } = BABYLON;
 
@@ -37,24 +25,16 @@ function rgbaNumberToHex(rgbaNumber) {
       .slice(1)}`;
 }
 
-
-
-
-export const ModelOverlay = ({
-  selectedModel,
-  selectedType,
-  itemOptions,
-}) => {
+export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
   const [animation, setAnimation] = useState('');
   const [head, setHead] = useState(0);
   const [headCount, setHeadCount] = useState(0);
   const [texture, setTexture] = useState(-1);
   const [textures, setTextures] = useState([]);
   const [currentAnimation, setCurrentAnimation] = useState(null);
-  const [config, setConfig] = useState(null);
   const [babylonModel, setBabylonModel] = useState(null);
   const exportPromise = useRef(Promise.resolve());
-
+  const { config, setOption } = useSettingsContext();
   useEffect(() => {
     (async () => {
       setTexture(-1);
@@ -88,7 +68,6 @@ export const ModelOverlay = ({
     })();
   }, [selectedModel]);
 
-
   useEffect(() => {
     if (!babylonModel) {
       return;
@@ -114,6 +93,7 @@ export const ModelOverlay = ({
   useEffect(() => {
     (async () => {
       await exportPromise.current;
+      console.log('Config', config);
       exportPromise.current = (async () => {
         if (selectedType === optionType.pc || selectedType === optionType.npc) {
           const model = await gameController.SpawnController.addExportModel(
@@ -229,13 +209,7 @@ export const ModelOverlay = ({
         }
       })();
     })();
-  }, [
-    head,
-    selectedModel,
-    texture,
-    selectedType,
-    config,
-  ]);
+  }, [head, selectedModel, texture, selectedType, config]);
 
   const animations = useMemo(() => {
     if (!babylonModel?.animationGroups?.length) {
@@ -256,54 +230,61 @@ export const ModelOverlay = ({
     [selectedModel]
   );
 
-  return !selectedModel ? null : 
+  return !selectedModel ? null : (
     <>
-      <Box
-        onKeyDown={(e) => e.stopPropagation()}
-        className="model-overlay"
-      >
-        {pcModel ? <PCConfig
-          itemOptions={itemOptions}
-          textures={textures}
-          setConfig={setConfig}
-          model={selectedModel}
-        /> : <>
-      
-          <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
-            <FormLabel id="head-group">Head</FormLabel>
-            <Select
-              aria-labelledby="head-group"
-              name="head-group"
-              value={head}
-              onChange={(e) => setHead(e.target.value)}
+      <Box onKeyDown={(e) => e.stopPropagation()} className="model-overlay">
+        {pcModel ? (
+          <PCConfig
+            itemOptions={itemOptions}
+            textures={textures}
+            model={selectedModel}
+            config={config}
+            setOption={setOption}
+          />
+        ) : (
+          <>
+            <FormControl
+              size="small"
+              sx={{ m: 1, width: 250, margin: '5px auto' }}
             >
-              {Array.from({ length: headCount }).map((_, idx) => (
-                <MenuItem value={idx} label={idx}>
-                Head {idx + 1}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              <FormLabel id="head-group">Head</FormLabel>
+              <Select
+                aria-labelledby="head-group"
+                name="head-group"
+                value={head}
+                onChange={(e) => setHead(e.target.value)}
+              >
+                {Array.from({ length: headCount }).map((_, idx) => (
+                  <MenuItem value={idx} label={idx}>
+                    Head {idx + 1}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-          <FormControl size="small" sx={{ m: 1, width: 250, margin: '5px auto' }}>
-            <FormLabel id="head-group">Texture</FormLabel>
-            <Select
-              aria-labelledby="head-group"
-              name="head-group"
-              value={texture}
-              onChange={(e) => setTexture(e.target.value)}
+            <FormControl
+              size="small"
+              sx={{ m: 1, width: 250, margin: '5px auto' }}
             >
-              <MenuItem value={-1} label={-1}>
-              Default
-              </MenuItem>
-              {textures.map((idx) => (
-                <MenuItem value={idx} label={idx}>
-                Texture {idx + 1}
+              <FormLabel id="head-group">Texture</FormLabel>
+              <Select
+                aria-labelledby="head-group"
+                name="head-group"
+                value={texture}
+                onChange={(e) => setTexture(e.target.value)}
+              >
+                <MenuItem value={-1} label={-1}>
+                  Default
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </>}
+                {textures.map((idx) => (
+                  <MenuItem value={idx} label={idx}>
+                    Texture {idx + 1}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </>
+        )}
 
         <AnimationBar
           animations={animations}
@@ -312,8 +293,8 @@ export const ModelOverlay = ({
           setAnimation={setAnimation}
           babylonModel={babylonModel}
         />
-      
       </Box>
       <OverlayDialogs />
-    </>;
+    </>
+  );
 };

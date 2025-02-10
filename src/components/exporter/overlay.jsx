@@ -28,7 +28,7 @@ const ExporterOverlayComponent = () => {
   const { reset } = useMainContext();
   const { toggleDialog, dialogState } = useOverlayContext();
   const { location, selectedType, selectedModel } = useSettingsContext();
-  const { openAlert } = useAlertContext();  
+  const { openAlert } = useAlertContext();
   const confirm = useConfirm();
   const {
     pcModelOptions,
@@ -40,7 +40,7 @@ const ExporterOverlayComponent = () => {
   } = useEqOptions();
   const fileRef = useRef();
   const area = useMemo(() => locations[location], [location]);
-  
+
   useEffect(() => {
     if (!area?.file) {
       return;
@@ -92,7 +92,12 @@ const ExporterOverlayComponent = () => {
           zIndex  : 10,
         }}
       />
-      <OverlayDialogs empty={empty} refresh={refresh} confirm={confirm} openAlert={openAlert} />
+      <OverlayDialogs
+        empty={empty}
+        refresh={refresh}
+        confirm={confirm}
+        openAlert={openAlert}
+      />
       {selectedModel ? (
         <ModelOverlay
           selectedType={selectedType}
@@ -162,17 +167,73 @@ const ExporterOverlayComponent = () => {
   );
 };
 
+const version = 0.2;
+
+const defaultPiece = {
+  texture: 0,
+  color  : -1,
+};
+const defaultModel = {
+  version,
+  face         : 1,
+  robe         : 4,
+  primary      : '',
+  primaryName  : '',
+  secondary    : '',
+  secondaryName: '',
+  shieldPoint  : false,
+  pieces       : {
+    Helm  : defaultPiece,
+    Chest : defaultPiece,
+    Arms  : defaultPiece,
+    Wrists: defaultPiece,
+    Hands : defaultPiece,
+    Legs  : defaultPiece,
+    Feet  : defaultPiece,
+  },
+};
+
 const defaultOptions = {
   location       : locations[0],
   selectedType   : optionType.pc,
   selectedModel  : '',
   selectedName   : '',
   cycleAnimations: true,
-  rotate         : true
+  rotate         : true,
+  config         : defaultModel,
 };
 
 export const ExporterOverlay = () => (
-  <SettingsProvider storageKey={'exporter'} defaultOptions={defaultOptions}>
+  <SettingsProvider
+    stateCallback={(key, prevOptions, newOptions) => {
+      let needsRender = false;
+      if (['selectedType', 'selectedModel'].includes(key)) {
+        needsRender = true;
+        newOptions.config = localStorage.getItem(newOptions.selectedModel)
+          ? JSON.parse(localStorage.getItem(newOptions.selectedModel))
+          : defaultModel;
+      } else if (key === 'config') {
+        needsRender = true;
+        if (
+          prevOptions.primary === newOptions.primary &&
+          prevOptions.secondary === newOptions.secondary &&
+          prevOptions.shieldPoint === newOptions.shieldPoint &&
+          JSON.stringify(prevOptions.pieces.Helm) ===
+            JSON.stringify(newOptions.pieces.Helm)
+        ) {
+          needsRender = false;
+        }
+        localStorage.setItem(
+          newOptions.selectedModel,
+          JSON.stringify(newOptions.config)
+        );
+      }
+      newOptions.config.needsRender = needsRender;
+      return newOptions;
+    }}
+    storageKey={'exporter'}
+    defaultOptions={defaultOptions}
+  >
     <ExporterOverlayComponent />
   </SettingsProvider>
 );

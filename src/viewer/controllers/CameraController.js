@@ -88,7 +88,6 @@ class CameraController extends GameControllerChild {
       console.log('Attach');
       this.#autoRotationBehavior.attach(this.camera);
     } else {
-      console.log('Detach');
       this.#autoRotationBehavior.detach();
     }
   }
@@ -146,7 +145,6 @@ class CameraController extends GameControllerChild {
   }
 
   sceneMouseUp(e) {
-    console.log('mouse up??');
     if (e.button === 2) {
       document.exitPointerLock();
     }
