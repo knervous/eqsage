@@ -39,7 +39,6 @@ export const AnimationBar = ({
   const { cycleAnimations, rotate, setOption } = useSettingsContext();
   const currentAnimation = useRef(animation);
   useEffect(() => {
-    console.log('Running this effect');
     if (babylonModel?.rootNode) {
       const rootNode = babylonModel?.rootNode;
       rootNode.computeWorldMatrix(true);
