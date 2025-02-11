@@ -45,7 +45,7 @@ function rgbaNumberToHex(rgbaNumber) {
     .slice(1)}${((1 << 8) + b).toString(16).slice(1)}`;
 }
 
-export const InventorySlot = ({ piece, atlas, noTint = false }) => {
+export const InventorySlot = ({ piece, atlas, noTint = false, options }) => {
   const { config, selectedModel, setOption } = useSettingsContext();
   const popupRef = useRef(null);
   const [popupOpen, setPopupOpen] = useState(false);
@@ -64,6 +64,7 @@ export const InventorySlot = ({ piece, atlas, noTint = false }) => {
             icon   : item.icon,
             idfile : item.idfile,
             texture: item.material ?? 0,
+            model  : item.model,
             color  : item.color === 4278190080 ? hexToRgbaNumber('#FFFFFF') : item.color,
           },
         },
@@ -215,6 +216,7 @@ export const InventorySlot = ({ piece, atlas, noTint = false }) => {
               setPopupOpen(false);
             }}
             onSelect={onSelect}
+            baseOptions={options}
             piece={piece}
             label={props?.name ?? `Search ${piece}`}
           />

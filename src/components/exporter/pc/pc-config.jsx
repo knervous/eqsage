@@ -230,26 +230,23 @@ export const PCConfig = ({
         </Stack>
       </Stack>
 
-      <Stack justifyContent={'center'} direction="row">
+      <Stack
+        className="inventory-stack"
+        justifyContent={'center'}
+        direction="row"
+      >
         <InventorySlot
           noTint
-          textures={textures}
-          localConfig={config}
-          setLocalConfig={setConfig}
           piece={'Primary'}
-          props={{}}
-          side="left"
           atlas={atlas}
+          options={itemOptions}
         />
         <InventorySlot
           noTint
           textures={textures}
-          localConfig={config}
-          setLocalConfig={setConfig}
           piece={'Secondary'}
-          props={{}}
-          side="right"
           atlas={atlas}
+          options={itemOptions}
         />
       </Stack>
 

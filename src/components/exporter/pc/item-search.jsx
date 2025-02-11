@@ -19,7 +19,7 @@ const StyledPopper = (props) => {
   );
 };
 
-export const ItemSearch = ({ label, piece, onSelect, onClose }) => {
+export const ItemSearch = ({ label, piece, onSelect, onClose, baseOptions }) => {
   const [options, setOptions] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,36 +28,58 @@ export const ItemSearch = ({ label, piece, onSelect, onClose }) => {
   const fetchOptions = async (query) => {
     setLoading(true);
     try {
-      const Spire = window.Spire;
-      const itemApi = new ItemApi(...Spire.SpireApi.cfg());
-      const queryBuilder = new Spire.SpireQueryBuilder();
-      queryBuilder.where('name', 'like', query);
-      queryBuilder.where('slots', '!=', 65535);
-      const bitwiseMap = {
-        Helm     : 4,
-        Arms     : 128,
-        Wrists   : 1536,
-        Hands    : 4096,
-        Primary  : 8192,
-        Secondary: 16384,
-        Legs     : 262144,
-        Chest    : 131072,
-        Feet     : 524288,
-
-      };
-      queryBuilder.where('slots', '&', bitwiseMap[piece]);
-      queryBuilder.limit(10);
-
-      const options = [];
-      const result = await itemApi.listItems(queryBuilder.get());
-      for (const r of result.data) {
-        options.push({
-          id   : r.id,
-          label: r.name,
-          item : r
-        });
+      if (baseOptions) {
+        const options = [];
+        for (const o of baseOptions) {
+          if (o.label.toLowerCase().includes(query)) {
+            options.push({
+              id   : o.label,
+              label: o.label,
+              item : {
+                name : o.label,
+                icon : o.icon,
+                model: o.model
+              }
+            });
+          }
+          if (options.length > 19) {
+            break;
+          }
+        }
+        setOptions(options);
+      } else {
+        const Spire = window.Spire;
+        const itemApi = new ItemApi(...Spire.SpireApi.cfg());
+        const queryBuilder = new Spire.SpireQueryBuilder();
+        queryBuilder.where('name', 'like', query);
+        queryBuilder.where('slots', '!=', 65535);
+        const bitwiseMap = {
+          Helm     : 4,
+          Arms     : 128,
+          Wrists   : 1536,
+          Hands    : 4096,
+          Primary  : 8192,
+          Secondary: 16384,
+          Legs     : 262144,
+          Chest    : 131072,
+          Feet     : 524288,
+  
+        };
+        queryBuilder.where('slots', '&', bitwiseMap[piece]);
+        queryBuilder.limit(20);
+  
+        const options = [];
+        const result = await itemApi.listItems(queryBuilder.get());
+        for (const r of result.data) {
+          options.push({
+            id   : r.id,
+            label: r.name,
+            item : r
+          });
+        }
+        setOptions(options);
       }
-      setOptions(options);
+    
     } catch (error) {
       console.log('Error fetching options:', error);
       setOptions([]);
@@ -91,11 +113,10 @@ export const ItemSearch = ({ label, piece, onSelect, onClose }) => {
         }
       
       }}
-      onChange={(e, v) => {
-        console.log('Val', v);
+      onChange={(_e, v) => {
         onSelect(v.item);
       }}
-      onInputChange={(event, newInputValue) => {
+      onInputChange={(_e, newInputValue) => {
         setInputValue(newInputValue);
       }}
       PopperComponent={StyledPopper}

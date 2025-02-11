@@ -206,8 +206,8 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
             selectedModel,
             head,
             texture,
-            config?.primary,
-            config?.secondary,
+            config?.pieces?.Primary?.model,
+            config?.pieces?.Secondary?.model,
             !config?.shieldPoint
           );
           if (selectedType === optionType.npc) {
