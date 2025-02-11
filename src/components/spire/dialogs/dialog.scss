@@ -1,31 +1,29 @@
-
 /* For Chrome, Safari, and Edge */
 ::-webkit-scrollbar {
-    width: 8px; /* Adjust scrollbar thickness */
-    height: 8px; /* Horizontal scrollbar height */
-  }
-  
-  ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1); /* Track color */
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2); /* Handle color */
-    border-radius: 4px; /* Handle roundness */
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.4); /* Handle color on hover */
-  }
-  
-  /* For Firefox */
-  * {
-    scrollbar-width: thin; /* "auto" or "thin" */
-    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1); /* Handle and track color */
-  }
-.ui-dialog {
-    .ui-dialog-title {
+  width: 8px; /* Adjust scrollbar thickness */
+  height: 8px; /* Horizontal scrollbar height */
+}
 
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1); /* Track color */
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2); /* Handle color */
+  border-radius: 4px; /* Handle roundness */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4); /* Handle color on hover */
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin; /* "auto" or "thin" */
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1); /* Handle and track color */
+}
+.ui-dialog {
+  .ui-dialog-title {
     z-index: 99999;
     position: absolute;
     overflow: hidden;
@@ -37,65 +35,65 @@
     font-size: 9pt;
     line-height: 21px;
     text-align: center;
-    color: #FFFFFF;
+    color: #ffffff;
     padding: 0px 13px;
-    background-image: url(data:image/gif;base64,R0lGODlhDgAVAOedAAAAAAMAAAEBAQQEBAYGBggICAkJCQoKCgsLCwwMDA0NDRANCw4ODg8PDQ8PDxAQEBISDxMSDxISEhMTExUVFRYWFhUWGxQXGhcXFxcXGhsZFRoaGhwaFhsbGRsbGxgcHxwcHB0dHR0dHx4eHiMdHSEeGh0fIiEfHCMfGyMfHSAgICEhISMhHCIiIiMiIiUjHSMjIyUjIicjHScjIiQkJCUlJSgnIScnJyonJSgoKCsqIioqKi4rIiwsLC0tLTAuJS4uLi8vLzAwMDQwKDExMTMzMzg1LTk1Kzo2LDo2Ljs2MDc3Nz06Lj47MDw8PEQ7MkI8Lz4+Pkc+NUBAQEFBQURCMENDQ0hDNUREREhFN0lGMEZGRkdHR0hISEtJO0tLS0xMTFBNPVBOPk5OTlNPP1hVQ1pVQVxWSFxYRl5ZSF5aR2BcP2BcSWhhTGhiTWhjUGxmUm5nRG1nVHBpUm9pVW9qU29qVHFsVXNtSnJuV3RvV3hyUnpzXHx2WH94YH95X4F8YYJ8Y4Z/ZoqCVYuFapOLb5aPcpmRdJWVeKKZfKKafaWbe6Ocfqiff7Sribivi72zj8C1fL+1kL+2k8G5isi+mM7Egs3Dm9nOpOTZq+zfse7hsv/5wP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAP8ALAAAAAAOABUAAAj+ADVlwjTJ0ZV/CBMiLDGEzBtFkMQoTFjAAAABPxI9SjPx34MDCS7qYCTJzsQoORxYBMChUaVCCsFwcYJhgAAAEAxdOpTwy5cuU0AcuNkg0KY/CKN08WllBQMBAhbQ4WRpzY0cRah0wbLiAQEBAeRQiiSkrJAlW8YEWTFBAZQzeYjIJVIkiI8iLTZUYCBjDxAgQYL0qLEChIcWE5rgGeQjCJAdNVSAACGBgZE+cbQICQJZhYcJCAwgEWSmSgcgN2iMAAFDwQEmi/jYiPEPhooRGygkiMAD0J0kOBAa9qACgYYsiPQcQZHQQ4gHCF54IdRGRgqFT6QoKYPGjxoWJCYWuqkzhw2cMCdmdMxg4cIHEyJcdPwXEAA7), url(data:image/gif;base64,R0lGODlhDgAVAOedAAAAAAMAAAEBAQQEBAYGBggICAkJCQoKCgsLCwwMDA0NDRANCw4ODg8PDQ8PDxAQEBISDxMSDxISEhMTExUVFRYWFhUWGxQXGhcXFxcXGhsZFRoaGhwaFhsbGRsbGxgcHxwcHB0dHR0dHx4eHiMdHSEeGh0fIiEfHCMfGyMfHSAgICEhISMhHCIiIiMiIiUjHSMjIyUjIicjHScjIiQkJCUlJSgnIScnJyonJSgoKCsqIioqKi4rIiwsLC0tLTAuJS4uLi8vLzAwMDQwKDExMTMzMzg1LTk1Kzo2LDo2Ljs2MDc3Nz06Lj47MDw8PEQ7MkI8Lz4+Pkc+NUBAQEFBQURCMENDQ0hDNUREREhFN0lGMEZGRkdHR0hISEtJO0tLS0xMTFBNPVBOPk5OTlNPP1hVQ1pVQVxWSFxYRl5ZSF5aR2BcP2BcSWhhTGhiTWhjUGxmUm5nRG1nVHBpUm9pVW9qU29qVHFsVXNtSnJuV3RvV3hyUnpzXHx2WH94YH95X4F8YYJ8Y4Z/ZoqCVYuFapOLb5aPcpmRdJWVeKKZfKKafaWbe6Ocfqiff7Sribivi72zj8C1fL+1kL+2k8G5isi+mM7Egs3Dm9nOpOTZq+zfse7hsv/5wP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAP8ALAAAAAAOABUAAAj+AP8JHCjwiqNJmDJpIjhQDCRFb8gMKcHwX5pHiX4IAGCgAEM7khjp2JjgwAOChSo14gCAo4McUQYeumQIAgABAzA44QJG4J9NgRrcPABiSpcvX9ZY4kRngQABDFZYQdolSiRKcgIIIPBgBZYuVIrkuJHnDBQFE1YEGbNliZC3QvbIYFBhQ4siPoIUIcKXyCA8TSa08ABiRY0eQYIAAaIlTh8jDCSAAKGixg4gQXx0qGJGEBIDCCZ4qLwjiJB/MWzwWcTkgAIYIEbQuAFEII4kdwDxiJCAwoYRKmAMRHFED6IsGhCo8ECYYAoZbQh5eYHgQQgPDEmwUOMHTRklUp4WVJxxIgwcNnPquKn4z4UIEx8uWMgQEAA7), url(data:image/gif;base64,R0lGODlhAQAVAOMQAA8QGBwcHB4eHiUlJSoqKi4rIi8vLzAwMDExMT40Ljo6OkBAQEhISE1NTWtkUN/TpyH+EUNyZWF0ZWQgd2l0aCBHSU1QACwAAAAAAQAVAAAED/AVolZjYxiEziZCkDhABAA7);
+    background-image: url(data:image/gif;base64,R0lGODlhDgAVAOedAAAAAAMAAAEBAQQEBAYGBggICAkJCQoKCgsLCwwMDA0NDRANCw4ODg8PDQ8PDxAQEBISDxMSDxISEhMTExUVFRYWFhUWGxQXGhcXFxcXGhsZFRoaGhwaFhsbGRsbGxgcHxwcHB0dHR0dHx4eHiMdHSEeGh0fIiEfHCMfGyMfHSAgICEhISMhHCIiIiMiIiUjHSMjIyUjIicjHScjIiQkJCUlJSgnIScnJyonJSgoKCsqIioqKi4rIiwsLC0tLTAuJS4uLi8vLzAwMDQwKDExMTMzMzg1LTk1Kzo2LDo2Ljs2MDc3Nz06Lj47MDw8PEQ7MkI8Lz4+Pkc+NUBAQEFBQURCMENDQ0hDNUREREhFN0lGMEZGRkdHR0hISEtJO0tLS0xMTFBNPVBOPk5OTlNPP1hVQ1pVQVxWSFxYRl5ZSF5aR2BcP2BcSWhhTGhiTWhjUGxmUm5nRG1nVHBpUm9pVW9qU29qVHFsVXNtSnJuV3RvV3hyUnpzXHx2WH94YH95X4F8YYJ8Y4Z/ZoqCVYuFapOLb5aPcpmRdJWVeKKZfKKafaWbe6Ocfqiff7Sribivi72zj8C1fL+1kL+2k8G5isi+mM7Egs3Dm9nOpOTZq+zfse7hsv/5wP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAP8ALAAAAAAOABUAAAj+ADVlwjTJ0ZV/CBMiLDGEzBtFkMQoTFjAAAABPxI9SjPx34MDCS7qYCTJzsQoORxYBMChUaVCCsFwcYJhgAAAEAxdOpTwy5cuU0AcuNkg0KY/CKN08WllBQMBAhbQ4WRpzY0cRah0wbLiAQEBAeRQiiSkrJAlW8YEWTFBAZQzeYjIJVIkiI8iLTZUYCBjDxAgQYL0qLEChIcWE5rgGeQjCJAdNVSAACGBgZE+cbQICQJZhYcJCAwgEWSmSgcgN2iMAAFDwQEmi/jYiPEPhooRGygkiMAD0J0kOBAa9qACgYYsiPQcQZHQQ4gHCF54IdRGRgqFT6QoKYPGjxoWJCYWuqkzhw2cMCdmdMxg4cIHEyJcdPwXEAA7),
+      url(data:image/gif;base64,R0lGODlhDgAVAOedAAAAAAMAAAEBAQQEBAYGBggICAkJCQoKCgsLCwwMDA0NDRANCw4ODg8PDQ8PDxAQEBISDxMSDxISEhMTExUVFRYWFhUWGxQXGhcXFxcXGhsZFRoaGhwaFhsbGRsbGxgcHxwcHB0dHR0dHx4eHiMdHSEeGh0fIiEfHCMfGyMfHSAgICEhISMhHCIiIiMiIiUjHSMjIyUjIicjHScjIiQkJCUlJSgnIScnJyonJSgoKCsqIioqKi4rIiwsLC0tLTAuJS4uLi8vLzAwMDQwKDExMTMzMzg1LTk1Kzo2LDo2Ljs2MDc3Nz06Lj47MDw8PEQ7MkI8Lz4+Pkc+NUBAQEFBQURCMENDQ0hDNUREREhFN0lGMEZGRkdHR0hISEtJO0tLS0xMTFBNPVBOPk5OTlNPP1hVQ1pVQVxWSFxYRl5ZSF5aR2BcP2BcSWhhTGhiTWhjUGxmUm5nRG1nVHBpUm9pVW9qU29qVHFsVXNtSnJuV3RvV3hyUnpzXHx2WH94YH95X4F8YYJ8Y4Z/ZoqCVYuFapOLb5aPcpmRdJWVeKKZfKKafaWbe6Ocfqiff7Sribivi72zj8C1fL+1kL+2k8G5isi+mM7Egs3Dm9nOpOTZq+zfse7hsv/5wP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAP8ALAAAAAAOABUAAAj+AP8JHCjwiqNJmDJpIjhQDCRFb8gMKcHwX5pHiX4IAGCgAEM7khjp2JjgwAOChSo14gCAo4McUQYeumQIAgABAzA44QJG4J9NgRrcPABiSpcvX9ZY4kRngQABDFZYQdolSiRKcgIIIPBgBZYuVIrkuJHnDBQFE1YEGbNliZC3QvbIYFBhQ4siPoIUIcKXyCA8TSa08ABiRY0eQYIAAaIlTh8jDCSAAKGixg4gQXx0qGJGEBIDCCZ4qLwjiJB/MWzwWcTkgAIYIEbQuAFEII4kdwDxiJCAwoYRKmAMRHFED6IsGhCo8ECYYAoZbQh5eYHgQQgPDEmwUOMHTRklUp4WVJxxIgwcNnPquKn4z4UIEx8uWMgQEAA7),
+      url(data:image/gif;base64,R0lGODlhAQAVAOMQAA8QGBwcHB4eHiUlJSoqKi4rIi8vLzAwMDExMT40Ljo6OkBAQEhISE1NTWtkUN/TpyH+EUNyZWF0ZWQgd2l0aCBHSU1QACwAAAAAAQAVAAAED/AVolZjYxiEziZCkDhABAA7);
     background-repeat: no-repeat, no-repeat, repeat-x;
     background-clip: padding-box, padding-box, content-box;
     background-position-x: right, left, left;
     display: block;
     margin: 0px 0px;
-    }
-    .ui-dialog-title2 {
-        width: 100%;
-        text-align: center;
-        position: relative;
-        padding: 0px;
-        padding-bottom: 10px;
-        font-size: 23px !important;
-        color: rgb(255, 251, 230);
-        text-shadow:
-        -1.5px -1.5px 0 rgba(0,0,0,0.7),  
-        1.5px -1.5px 0 rgba(0,0,0,0.7),  
-        -1.5px  1.5px 0 rgba(0,0,0,0.7), 
-        1.5px  1.5px 0 rgba(0,0,0,0.7),   /* Outline effect */
-    }
-    .MuiDialogContent-root {
-        margin: 10px 10px !important;
-        padding-bottom: 0px;
-    }
-    .ui-dialog-title-bg {
-        position: absolute;
-        width: 165px;
-        height: 45px;
-        top: -0px;
-        left: calc(50% - 80px);
-        z-index: -1;
-        background-repeat: no-repeat;
-        background-position: center;
-        background-size: 256px 256px;
-        background-position: -5px -162px;
-    }
+  }
+  .ui-dialog-title2 {
+    width: 100%;
+    text-align: center;
+    position: relative;
+    padding: 0px;
+    padding-bottom: 10px;
+    font-size: 23px !important;
+    color: rgb(255, 251, 230);
+    text-shadow: -1.5px -1.5px 0 rgba(0, 0, 0, 0.7),
+      1.5px -1.5px 0 rgba(0, 0, 0, 0.7), -1.5px 1.5px 0 rgba(0, 0, 0, 0.7),
+      1.5px 1.5px 0 rgba(0, 0, 0, 0.7); /* Outline effect */
+  }
+  .MuiDialogContent-root {
+    margin: 10px 10px !important;
+    padding-bottom: 0px;
+  }
+  .ui-dialog-title-bg {
+    position: absolute;
+    width: 165px;
+    height: 45px;
+    top: -0px;
+    left: calc(50% - 80px);
+    z-index: -1;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 256px 256px;
+    background-position: -5px -162px;
+  }
 
-    .ui-dialog-btn {
-        // width: 100px;
-        // height: 45px;
-        // color: rgb(255, 251, 230);
-        // &:hover {
-        //     background-position: -0px 0px;
-        // }
-        // &:active {
-        //     background-position: -0px -94px;
-        // }
-        // background-image: url('../../../../public/ui/window_pieces03.png');
-        // background-repeat: no-repeat;
-        // background-position: center;
-        // background-size: 256px 512px;
-        // background-position: -0px -47px;
-    }
+  .ui-dialog-btn {
+    // width: 100px;
+    // height: 45px;
+    // color: rgb(255, 251, 230);
+    // &:hover {
+    //     background-position: -0px 0px;
+    // }
+    // &:active {
+    //     background-position: -0px -94px;
+    // }
+    // background-image: url('../../../../public/ui/window_pieces03.png');
+    // background-repeat: no-repeat;
+    // background-position: center;
+    // background-size: 256px 512px;
+    // background-position: -0px -47px;
+  }
 
-    .ui-dialog-btn-disabled {
-        background: transparent;
-        color: gray;
-    }
+  .ui-dialog-btn-disabled {
+    background: transparent;
+    color: gray;
+  }
 }

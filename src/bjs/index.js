@@ -59,10 +59,10 @@ const exportObject = {
     addImport(import('@babylonjs/core/Lights/light'));
     addImport(import('@babylonjs/serializers'));
     addImport(import('@babylonjs/core/Particles/particleSystem'));
+    addImport(import('@babylonjs/core/Particles/particleHelper'));
     addImport(import('@babylonjs/core/Materials/effect'));
     addImport(import('@babylonjs/core/PostProcesses/postProcess'));
     addImport(import('@babylonjs/core/Animations/animation'));
-    addImport(import('@babylonjs/core/Particles/particleSystem'));
     addImport(import('@babylonjs/core/Cameras/'));
 
     await Promise.all(importPromises);

@@ -237,8 +237,9 @@ export class Lit {
     const reader = this.reader;
     const magic = reader.readString(4);
     if (magic.slice(0, 3) !== "EQG") {
+      console.error("Model does not contain EQG header", magic);
       return;
-      throw new Error("Model does not contain EQG header", magic);
+
     }
     const count = reader.readUint32();
     try {
@@ -248,8 +249,6 @@ export class Lit {
     } catch(e) {
       console.warn(`May have exceeded bounds for lights`)
     }
-
-    const stop = 123;
   }
 }
 
@@ -298,6 +297,8 @@ export class Model {
     const reader = this.reader;
     const magic = reader.readString(4);
     if (magic.slice(0, 3) !== "EQG") {
+      console.error(`File ${this.name} does not contain EQG header: ${magic}`)
+      return;
       throw new Error("Model does not contain EQG header", magic);
     }
     let boneCount = 0;

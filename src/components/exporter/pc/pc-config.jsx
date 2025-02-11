@@ -15,6 +15,7 @@ import { InventorySlot } from './inv-slot';
 import { MageloDialog } from '../dialogs/magelo-dialog';
 import AsyncAutocomplete from '@/components/common/autocomplete';
 
+import './inventory.scss';
 
 /**
  * 
@@ -31,7 +32,13 @@ import AsyncAutocomplete from '@/components/common/autocomplete';
 })
  */
 
-export const PCConfig = ({ model, textures, itemOptions, config, setOption }) => {
+export const PCConfig = ({
+  model,
+  textures,
+  itemOptions,
+  config,
+  setOption,
+}) => {
   const [faces, setFaces] = useState([]);
   const [atlas, setAtlas] = useState(null);
   const filesCache = useRef(null);
@@ -74,63 +81,14 @@ export const PCConfig = ({ model, textures, itemOptions, config, setOption }) =>
     })();
   }, [model]);
 
-  const robedModel = useMemo(() => model.endsWith('01'), [model]);
-  const setConfig = newConfig => {
+  const setConfig = (newConfig) => {
     setOption('config', newConfig);
-  };
-  const getPieceConfig = (filter = () => true) => {
-    const left = [];
-    const right = [];
-    Object.entries(config.pieces)
-      .filter(filter)
-      .forEach((entry, idx) => {
-        if (idx % 2 === 0) {
-          left.push(entry);
-        } else {
-          right.push(entry);
-        }
-      });
-  
-    return (
-      <Stack direction="row" justifyContent={'center'} alignContent={'center'}>
-        <Stack direction="column">
-          {left.map(([piece, props]) => (
-            <InventorySlot
-              textures={textures}
-              localConfig={config}
-              setLocalConfig={setConfig}
-              key={piece}
-              piece={piece}
-              props={props}
-              side="left"
-              atlas={atlas}
-            />
-          ))}
-        </Stack>
-        <Stack direction="column">
-          {right.map(([piece, props]) => (
-            <InventorySlot
-              textures={textures}
-              localConfig={config}
-              setLocalConfig={setConfig}
-              key={piece}
-              piece={piece}
-              props={props}
-              side="right"
-              atlas={atlas}
-            />
-          ))}
-        </Stack>
-      </Stack>
-    );
   };
 
   return !atlas ? null : (
     <Stack
       sx={{
         margin: '5px',
-        // height  : '60vh',
-        // backgroundColor: 'rgba(127,0,0,0.5)',
       }}
       direction={'column'}
       justifyContent={'center'}
@@ -139,12 +97,35 @@ export const PCConfig = ({ model, textures, itemOptions, config, setOption }) =>
         open={mageloDialogOpen}
         onClose={() => setMageloDialogOpen(false)}
       />
-      <Button sx={{ width: '120px', margin: '0 auto' }} onClick={() => setMageloDialogOpen(true)}>
+      <Button
+        variant="outlined"
+        size="small"
+        sx={{
+          width    : '120px',
+          margin   : '5px auto',
+          marginTop: '15px !important',
+        }}
+        onClick={() => setMageloDialogOpen(true)}
+      >
         Import Magelo
+      </Button>
+      <Button
+        variant="outlined"
+        size="small"
+        sx={{ width: '100px', margin: '5px auto' }}
+        onClick={() => setMageloDialogOpen(true)}
+      >
+        Profile
       </Button>
       <FormControl
         size="small"
-        sx={{ m: 1, width: '120px', margin: '5px auto', textAlign: 'center' }}
+        sx={{
+          m           : 1,
+          margin      : '15px auto',
+          textAlign   : 'center',
+          border      : '1px solid rgb(180, 173, 134)',
+          borderRadius: '50px',
+        }}
       >
         <Select
           autoWidth={false}
@@ -225,56 +206,54 @@ export const PCConfig = ({ model, textures, itemOptions, config, setOption }) =>
           ))}
         </Select>
       </FormControl>
-      {robedModel ? (
-        <>
-          <FormControl
-            size="small"
-            sx={{ m: 1, width: 250, margin: '5px auto' }}
-          >
-            <FormLabel>Robe</FormLabel>
-            <Select
-              value={config.robe}
-              onChange={(e) => {
-                setConfig({
-                  ...config,
-                  robe: +e.target.value,
-                });
-              }}
-            >
-              {[4, 5, 6, 7, 8, 9, 10].map((idx) => (
-                <MenuItem value={idx} label={idx}>
-                  {`Robe ${idx - 3}`}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          {getPieceConfig(([key]) => ['Hands', 'Feet'].includes(key))}
-        </>
-      ) : (
-        getPieceConfig()
-      )}
+
+      <Stack
+        className="inventory-stack"
+        direction="column"
+        justifyContent={'center'}
+        alignContent={'center'}
+      >
+        <Stack direction="row">
+          <InventorySlot textures={textures} piece={'Helm'} atlas={atlas} />
+          <InventorySlot textures={textures} piece={'Chest'} atlas={atlas} />
+        </Stack>
+        <Stack direction="row">
+          <InventorySlot textures={textures} piece={'Arms'} atlas={atlas} />
+          <InventorySlot textures={textures} piece={'Wrists'} atlas={atlas} />
+        </Stack>
+        <Stack direction="row">
+          <InventorySlot textures={textures} piece={'Hands'} atlas={atlas} />
+          <InventorySlot textures={textures} piece={'Legs'} atlas={atlas} />
+        </Stack>
+        <Stack direction="row">
+          <InventorySlot textures={textures} piece={'Feet'} atlas={atlas} />
+        </Stack>
+      </Stack>
+
       <Stack justifyContent={'center'} direction="row">
         <InventorySlot
+          noTint
           textures={textures}
           localConfig={config}
           setLocalConfig={setConfig}
           piece={'Primary'}
-          props={{ }}
+          props={{}}
           side="left"
           atlas={atlas}
         />
         <InventorySlot
+          noTint
           textures={textures}
           localConfig={config}
           setLocalConfig={setConfig}
           piece={'Secondary'}
-          props={{ }}
+          props={{}}
           side="right"
           atlas={atlas}
         />
       </Stack>
-    
-      <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
+
+      {/* <FormControl size="small" sx={{ m: 1, width: 300, margin: '0' }}>
         <AsyncAutocomplete
           label={config.primaryName ?? 'Primary'}
           value={null}
@@ -330,7 +309,7 @@ export const PCConfig = ({ model, textures, itemOptions, config, setOption }) =>
           }
           label="Shield Point"
         />
-      </FormControl>
+      </FormControl> */}
     </Stack>
   );
 };

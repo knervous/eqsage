@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import HomeIcon from '@mui/icons-material/Home';
@@ -22,6 +22,7 @@ import { ExporterNavHeader } from './header';
 import { useAlertContext } from '@/context/alerts';
 import { useConfirm } from 'material-ui-confirm';
 import { deleteEqFolder } from '@/lib/util/fileHandler';
+import BABYLON from '@bjs';
 
 const cachedBlobUrls = {};
 const ExporterOverlayComponent = () => {
@@ -39,12 +40,19 @@ const ExporterOverlayComponent = () => {
     empty,
   } = useEqOptions();
   const fileRef = useRef();
+  console.log('loc', location);
   const area = useMemo(() => locations[location], [location]);
 
   useEffect(() => {
     if (!area?.file) {
+      const node = gameController.currentScene.getMeshByName('__root__');
+      if (node) { 
+        fileRef.current = null;
+        node.dispose();
+      }
       return;
     }
+
     (async () => {
       const node = gameController.currentScene.getMeshByName('__root__');
       if (node && fileRef.current === area.file) {
@@ -163,38 +171,31 @@ const ExporterOverlayComponent = () => {
           }}
         />
       </NavLeft>
+
     </>
   );
 };
 
 const version = 0.2;
 
-const defaultPiece = {
-  texture: 0,
-  color  : -1,
-};
 const defaultModel = {
   version,
-  face         : 1,
-  robe         : 4,
-  primary      : '',
-  primaryName  : '',
-  secondary    : '',
-  secondaryName: '',
-  shieldPoint  : false,
-  pieces       : {
-    Helm  : defaultPiece,
-    Chest : defaultPiece,
-    Arms  : defaultPiece,
-    Wrists: defaultPiece,
-    Hands : defaultPiece,
-    Legs  : defaultPiece,
-    Feet  : defaultPiece,
+  face  : 1,
+  pieces: {
+    Helm     : null,
+    Chest    : null,
+    Arms     : null,
+    Wrists   : null,
+    Hands    : null,
+    Legs     : null,
+    Feet     : null,
+    Primary  : null,
+    Secondary: null
   },
 };
 
 const defaultOptions = {
-  location       : locations[0],
+  location       : 0,
   selectedType   : optionType.pc,
   selectedModel  : '',
   selectedName   : '',
@@ -206,26 +207,27 @@ const defaultOptions = {
 export const ExporterOverlay = () => (
   <SettingsProvider
     stateCallback={(key, prevOptions, newOptions) => {
-      let needsRender = false;
+      let needsRender = true;
       if (['selectedType', 'selectedModel'].includes(key)) {
         needsRender = true;
         newOptions.config = localStorage.getItem(newOptions.selectedModel)
           ? JSON.parse(localStorage.getItem(newOptions.selectedModel))
           : defaultModel;
       } else if (key === 'config') {
-        needsRender = true;
+        const prevConfig = prevOptions.config;
+        const newConfig = newOptions.config;
         if (
-          prevOptions.primary === newOptions.primary &&
-          prevOptions.secondary === newOptions.secondary &&
-          prevOptions.shieldPoint === newOptions.shieldPoint &&
-          JSON.stringify(prevOptions.pieces.Helm) ===
-            JSON.stringify(newOptions.pieces.Helm)
+          prevConfig.primary === newConfig.primary &&
+          prevConfig.secondary === newConfig.secondary &&
+          prevConfig.shieldPoint === newConfig.shieldPoint &&
+          JSON.stringify(prevConfig.pieces.Helm) ===
+            JSON.stringify(newConfig.pieces.Helm)
         ) {
           needsRender = false;
         }
         localStorage.setItem(
           newOptions.selectedModel,
-          JSON.stringify(newOptions.config)
+          JSON.stringify(newConfig)
         );
       }
       newOptions.config.needsRender = needsRender;

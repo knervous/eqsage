@@ -74,11 +74,6 @@ const AsyncAutocomplete = ({
       onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
       options={displayedOptions}
       ListboxComponent={ListboxComponent}
-      componentsProps={{ popper: {
-        sx: {
-          background: 'red !important'
-        }
-      } }}
       renderInput={(params) => (
         <TextField
           {...params}

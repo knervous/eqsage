@@ -171,6 +171,7 @@ export const ExporterNavHeader = ({
           onChange={(e) => setOption('location', e.target.value)}
           value={location}
         >
+          <MenuItem value={-1}>None</MenuItem>
           {locations.map((l, i) => (
             <MenuItem value={i}>{l.name}</MenuItem>
           ))}

@@ -33,7 +33,7 @@ export const SettingsProvider = ({
       if (stateCallback) {
         newOptions = stateCallback(itemKey, options, newOptions);
       }
-      const serializedOptions = { ...newOptions };
+      const serializedOptions = JSON.parse(JSON.stringify(newOptions));
       if (serializedOptions?.config) {
         delete serializedOptions.config.needsRender;
       }

@@ -1,7 +1,19 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, FormControl, MenuItem, Select, FormLabel } from '@mui/material';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  Box,
+  FormControl,
+  MenuItem,
+  Select,
+  FormLabel,
+  DialogTitle,
+} from '@mui/material';
 import BABYLON from '@bjs';
-import { OverlayDialogs } from './dialogs/dialogs';
 import { gameController } from '../../viewer/controllers/GameController';
 import { getEQDir, getFiles } from '../../lib/util/fileHandler';
 import { PCConfig } from './pc/pc-config';
@@ -10,6 +22,7 @@ import { optionType, pcModels, wearsRobe } from './constants';
 import { AnimationBar } from './animation-bar';
 
 import './overlay.scss';
+import Draggable from 'react-draggable';
 
 const { PBRMaterial, Texture, Color3 } = BABYLON;
 
@@ -90,10 +103,103 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
     }
   }, [animation, babylonModel]);
 
+  const applyConfig = useCallback(
+    (node = gameController.currentScene.getMeshById('model_export')) => {
+      if (!node) {
+        return;
+      }
+      for (const [idx, mat] of Object.entries(node.material.subMaterials)) {
+        if (!mat?._albedoTexture || !config) {
+          continue;
+        }
+        const modelName = selectedModel.slice(0, 3);
+        const prefixes = {
+          Face  : 'he',
+          Chest : 'ch',
+          Arms  : 'ua',
+          Wrists: 'fa',
+          Legs  : 'lg',
+          Hands : 'hn',
+          Feet  : 'ft',
+        };
+        for (const [key, entry] of Object.entries(prefixes)) {
+          prefixes[key] = `${modelName}${entry}`;
+        }
+        const doSwap = (str, color) => {
+          const existing = window.gameController.currentScene.materials
+            .flat()
+            .find((m) => m.name === str);
+          if (existing) {
+            node.material.subMaterials[idx] = existing;
+          } else {
+            const newMat = new PBRMaterial(str);
+            newMat.metallic = 0;
+            newMat.roughness = 1;
+            newMat._albedoTexture = new Texture(
+              str,
+              window.gameController.currentScene,
+              mat._albedoTexture.noMipMap,
+              mat._albedoTexture.invertY,
+              mat._albedoTexture.samplingMode 
+            );
+            node.material.subMaterials[idx] = newMat;
+          }
+          const material = node.material.subMaterials[idx];
+          if (color !== undefined) {
+            const a = (color >> 24) & 0xFF;
+            const r = (color >> 16) & 0xFF;
+            const g = (color >> 8) & 0xFF;
+            const b = (color) & 0xFF;
+            material.albedoColor = new Color3(r / 255, g / 255, b / 255);
+            material.alpha = a / 255;
+          }
+        };
+        // Face
+        if (mat.name.startsWith(prefixes.Face)) {
+          const faceString = `${config.face}`.padStart(2, '0');
+          const fullString = `${prefixes.Face}0${faceString}${mat.name.at(-1)}`;
+          doSwap(fullString);
+        }
+
+        ['Chest', 'Arms', 'Wrists', 'Legs', 'Hands', 'Feet'].forEach((key) => {
+          if (mat.name.startsWith(prefixes[key])) {
+            const pieceConfig = config.pieces[key];
+            if (pieceConfig) {
+              const chestString = `${config.pieces[key].texture}`.padStart(
+                2,
+                '0'
+              );
+              const fullString = `${prefixes[key]}${chestString}${mat.name.slice(
+                mat.name.length - 2
+              )}`;
+              doSwap(fullString, config.pieces[key].color);
+            }
+     
+          }
+        });
+
+        if (wearsRobe(selectedModel)) {
+          if (mat.name.startsWith('clk')) {
+            const val = config.robe.toString().padStart(2, '0');
+            const fullString = `clk${val}${mat.name.slice(
+              mat.name.length - 2
+            )}`;
+            doSwap(fullString);
+          }
+        }
+      }
+    },
+    [config, selectedModel]
+  );
+
   useEffect(() => {
     (async () => {
       await exportPromise.current;
-      console.log('Config', config);
+      const needsRender = config.needsRender ?? true;
+      if (!needsRender) {
+        applyConfig();
+        return;
+      }
       exportPromise.current = (async () => {
         if (selectedType === optionType.pc || selectedType === optionType.npc) {
           const model = await gameController.SpawnController.addExportModel(
@@ -108,92 +214,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
             setBabylonModel(model);
             return;
           }
-          for (const [idx, mat] of Object.entries(
-            model.rootNode.material.subMaterials
-          )) {
-            if (!mat?._albedoTexture || !config) {
-              continue;
-            }
-            const modelName = selectedModel.slice(0, 3);
-            const prefixes = {
-              Face  : 'he',
-              Chest : 'ch',
-              Arms  : 'ua',
-              Wrists: 'fa',
-              Legs  : 'lg',
-              Hands : 'hn',
-              Feet  : 'ft',
-            };
-            for (const [key, entry] of Object.entries(prefixes)) {
-              prefixes[key] = `${modelName}${entry}`;
-            }
-            const doSwap = (str, color) => {
-              if (mat.name !== str) {
-                const existing = window.gameController.currentScene.materials
-                  .flat()
-                  .find((m) => m.name === str);
-                if (existing) {
-                  model.rootNode.material.subMaterials[idx] = existing;
-                } else {
-                  const newMat = new PBRMaterial(str);
-                  newMat.metallic = 0;
-                  newMat.roughness = 1;
-                  newMat._albedoTexture = new Texture(
-                    str,
-                    window.gameController.currentScene,
-                    mat._albedoTexture.noMipMap,
-                    mat._albedoTexture.invertY,
-                    mat._albedoTexture.samplingMode
-                  );
-                  model.rootNode.material.subMaterials[idx] = newMat;
-                }
-                const material = model.rootNode.material.subMaterials[idx];
-                if (color !== undefined) {
-                  const hexColor = rgbaNumberToHex(color);
-                  const r = parseInt(hexColor.substring(1, 3), 16) / 255;
-                  const g = parseInt(hexColor.substring(3, 5), 16) / 255;
-                  const b = parseInt(hexColor.substring(5, 7), 16) / 255;
-                  const a = parseInt(hexColor.substring(7, 9), 16) / 255;
-
-                  material.albedoColor = new Color3(r, g, b);
-                  material.alpha = a;
-                }
-              }
-            };
-            // Face
-            if (mat.name.startsWith(prefixes.Face)) {
-              const faceString = `${config.face}`.padStart(2, '0');
-              const fullString = `${prefixes.Face}0${faceString}${mat.name.at(
-                -1
-              )}`;
-              doSwap(fullString);
-            }
-
-            ['Chest', 'Arms', 'Wrists', 'Legs', 'Hands', 'Feet'].forEach(
-              (key) => {
-                if (mat.name.startsWith(prefixes[key])) {
-                  const chestString = `${config.pieces[key].texture}`.padStart(
-                    2,
-                    '0'
-                  );
-                  const fullString = `${
-                    prefixes[key]
-                  }${chestString}${mat.name.slice(mat.name.length - 2)}`;
-                  doSwap(fullString, config.pieces[key].color);
-                }
-              }
-            );
-
-            if (wearsRobe(selectedModel)) {
-              if (mat.name.startsWith('clk')) {
-                const val = config.robe.toString().padStart(2, '0');
-                const fullString = `clk${val}${mat.name.slice(
-                  mat.name.length - 2
-                )}`;
-                doSwap(fullString);
-              }
-            }
-          }
+          applyConfig(model.rootNode);
           setBabylonModel(model);
         } else if (selectedType === optionType.object) {
           const model = await gameController.SpawnController.addObject(
@@ -209,7 +230,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
         }
       })();
     })();
-  }, [head, selectedModel, texture, selectedType, config]);
+  }, [head, selectedModel, texture, selectedType, config, applyConfig]);
 
   const animations = useMemo(() => {
     if (!babylonModel?.animationGroups?.length) {
@@ -232,69 +253,83 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
 
   return !selectedModel ? null : (
     <>
-      <Box onKeyDown={(e) => e.stopPropagation()} className="model-overlay">
-        {pcModel ? (
-          <PCConfig
-            itemOptions={itemOptions}
-            textures={textures}
-            model={selectedModel}
-            config={config}
-            setOption={setOption}
-          />
-        ) : (
-          <>
-            <FormControl
-              size="small"
-              sx={{ m: 1, width: 250, margin: '5px auto' }}
-            >
-              <FormLabel id="head-group">Head</FormLabel>
-              <Select
-                aria-labelledby="head-group"
-                name="head-group"
-                value={head}
-                onChange={(e) => setHead(e.target.value)}
+      <Draggable handle="#draggable-dialog-title-opt">
+        <Box
+          className="ui-dialog model-overlay"
+          sx={{ overflow: 'visible' }}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <DialogTitle
+            className="ui-dialog-title"
+            style={{ cursor: 'move' }}
+            id="draggable-dialog-title-opt"
+          >
+            {'Options'}
+          </DialogTitle>
+          {pcModel ? (
+            <PCConfig
+              itemOptions={itemOptions}
+              textures={textures}
+              model={selectedModel}
+              config={config}
+              setOption={setOption}
+            />
+          ) : (
+            <>
+              <FormControl
+                size="small"
+                sx={{ m: 1, width: 250, margin: '5px auto' }}
               >
-                {Array.from({ length: headCount }).map((_, idx) => (
-                  <MenuItem value={idx} label={idx}>
-                    Head {idx + 1}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                <FormLabel id="head-group">Head</FormLabel>
+                <Select
+                  aria-labelledby="head-group"
+                  name="head-group"
+                  value={head}
+                  onChange={(e) => setHead(e.target.value)}
+                >
+                  {Array.from({ length: headCount }).map((_, idx) => (
+                    <MenuItem value={idx} label={idx}>
+                      Head {idx + 1}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-            <FormControl
-              size="small"
-              sx={{ m: 1, width: 250, margin: '5px auto' }}
-            >
-              <FormLabel id="head-group">Texture</FormLabel>
-              <Select
-                aria-labelledby="head-group"
-                name="head-group"
-                value={texture}
-                onChange={(e) => setTexture(e.target.value)}
+              <FormControl
+                size="small"
+                sx={{ m: 1, width: 250, margin: '5px auto' }}
               >
-                <MenuItem value={-1} label={-1}>
-                  Default
-                </MenuItem>
-                {textures.map((idx) => (
-                  <MenuItem value={idx} label={idx}>
-                    Texture {idx + 1}
+                <FormLabel id="head-group">Texture</FormLabel>
+                <Select
+                  aria-labelledby="head-group"
+                  name="head-group"
+                  value={texture}
+                  onChange={(e) => setTexture(e.target.value)}
+                >
+                  <MenuItem value={-1} label={-1}>
+                    Default
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </>
-        )}
+                  {textures.map((idx) => (
+                    <MenuItem value={idx} label={idx}>
+                      Texture {idx + 1}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </>
+          )}
 
-        <AnimationBar
-          animations={animations}
-          animation={currentAnimation}
-          name={animation}
-          setAnimation={setAnimation}
-          babylonModel={babylonModel}
-        />
-      </Box>
-      <OverlayDialogs />
+        </Box>
+        
+      </Draggable>
+
+      <AnimationBar
+        animations={animations}
+        animation={currentAnimation}
+        name={animation}
+        setAnimation={setAnimation}
+        babylonModel={babylonModel}
+      />
     </>
   );
 };

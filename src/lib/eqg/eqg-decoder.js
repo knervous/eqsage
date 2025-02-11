@@ -70,7 +70,6 @@ export class EQGDecoder {
       this.files[fileName] = this.pfsArchive.getFile(fileName);
       if (fileName.includes('broodlands')) {
         console.log('File', fileName)
-
       }
       if (fileName.endsWith(".lit")) {
       //  console.log('Filename', fileName, 'data', this.files[fileName])

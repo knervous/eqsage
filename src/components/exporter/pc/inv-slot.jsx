@@ -1,8 +1,11 @@
-import { Box, MenuItem, Select } from '@mui/material';
-import React from 'react';
-import { MuiColorInput } from 'mui-color-input';
-
+import { Box, IconButton, Typography, TextField } from '@mui/material';
+import React, { useCallback, useRef, useState } from 'react';
+import ClearIcon from '@mui/icons-material/Clear';
 import { loadItemIcon } from '../asset-loader/util';
+import { useSettingsContext } from '@/context/settings';
+import { ItemSearch } from './item-search';
+import { MuiColorInput } from 'mui-color-input';
+import { useDebouncedCallback } from 'use-debounce';
 
 const invSlotMap = {
   Helm     : 'A_InvHead',
@@ -15,157 +18,208 @@ const invSlotMap = {
   Primary  : 'A_InvPrimary',
   Secondary: 'A_InvSecondary',
 };
-  
-const itemIdMap = {
-  Helm     : [639, 640, 550, 628],
-  Chest    : [678, 632, 538, 624],
-  Arms     : [670, 634, 543, 546],
-  Wrists   : [638, 637, 620, 516],
-  Hands    : [517, 636, 526, 531],
-  Legs     : [631, 635, 540],
-  Feet     : [666, 633, 545, 524],
-  Primary  : [],
-  Secondary: [],
-};
-  
+
+function hexToRgbaNumber(hex) {
+  if (hex.startsWith('#')) {
+    hex = hex.slice(1);
+  }
+
+  if (hex.length !== 6) {
+    throw new Error('Invalid hex color format. Expected format: "#rrggbb".');
+  }
+
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  const a = 255;
+  return ((a << 24) | (r << 16) | (g << 8) | b) >>> 0;
+}
 
 function rgbaNumberToHex(rgbaNumber) {
   const r = (rgbaNumber >> 16) & 0xff;
   const g = (rgbaNumber >> 8) & 0xff;
   const b = rgbaNumber & 0xff;
-  const a = (rgbaNumber >> 24) & 0xff;
   return `#${((1 << 8) + r).toString(16).slice(1)}${((1 << 8) + g)
     .toString(16)
-    .slice(1)}${((1 << 8) + b).toString(16).slice(1)}${((1 << 8) + a)
-      .toString(16)
-      .slice(1)}`;
+    .slice(1)}${((1 << 8) + b).toString(16).slice(1)}`;
 }
-function hexToRgbaNumber(hex) {
-  if (hex.startsWith('#')) {
-    hex = hex.slice(1);
-  }
-  if (hex.length !== 8) {
-    throw new Error('Invalid hex color string. Expected format: #RRGGBBAA');
-  }
-  
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  const a = 255; // parseInt(hex.slice(6, 8), 16);
-  
-  return (a << 24) | (r << 16) | (g << 8) | b;
-}
-  
 
-export const InventorySlot = ({ piece, props, atlas, side, setLocalConfig, localConfig, textures }) => {
+export const InventorySlot = ({ piece, atlas, noTint = false }) => {
+  const { config, selectedModel, setOption } = useSettingsContext();
+  const popupRef = useRef(null);
+  const [popupOpen, setPopupOpen] = useState(false);
+  const props = config.pieces[piece];
   const atlasPiece = atlas[invSlotMap[piece]];
-  // console.log('Piece', piece, props);
-  const itemId = itemIdMap[piece][props?.texture] ?? itemIdMap[piece].at(-1);
-  const wornAtlasPiece = loadItemIcon(itemId);
-  return <Box sx={{ width: '65px' }}>
+  const wornAtlasPiece = loadItemIcon(props?.icon);
+  const onSelect = useCallback(
+    (item) => {
+      setPopupOpen(false);
+      setOption('config', {
+        ...config,
+        pieces: {
+          ...config.pieces,
+          [piece]: {
+            name   : item.name,
+            icon   : item.icon,
+            idfile : item.idfile,
+            texture: item.material ?? 0,
+            color  : item.color === 4278190080 ? hexToRgbaNumber('#FFFFFF') : item.color,
+          },
+        },
+      });
+    },
+    [config, piece, setOption]
+  );
+  const debouncedColorChange = useDebouncedCallback((value) => {
+    setOption('config', {
+      ...config,
+      pieces: {
+        ...config.pieces,
+        [piece]: {
+          ...config.pieces[piece],
+
+          color: hexToRgbaNumber(value),
+        },
+      },
+    });
+  }, 100);
+  const togglePopup = useCallback(() => {
+    if (popupOpen) {
+      setPopupOpen(false);
+      return;
+    }
+    setPopupOpen(true);
+    setTimeout(() => {
+      console.log('Hi ref', popupRef.current);
+      popupRef.current?.querySelector('input')?.focus();
+    }, 50);
+    const clickHandler = (e) => {
+      if (!e.target.contains(popupRef.current)) {
+        setPopupOpen(false);
+      }
+    };
+
+    document.addEventListener('click', clickHandler);
+
+    return () => {
+      document.removeEventListener('click', clickHandler);
+    };
+  }, [popupOpen]);
+  return (
     <Box
-      id={`${piece}-bg`}
+      title={piece}
+      onClick={togglePopup}
       sx={{
-        userSelect        : 'none',
-        pointerEvents     : 'none',
-        position          : 'absolute',
-        width             : '40px',
-        marginTop         : '15px',
-        opacity           : 1,
+        position          : 'relative',
         height            : '40px',
-        transform         : 'scale(1.2)',
-        backgroundPosition: `-${wornAtlasPiece.x}px -${wornAtlasPiece.y}px`,
-        zIndex            : 10000,
-        backgroundImage   : `url('/static/eqassets/images/${wornAtlasPiece?.texture}')`,
-      }} />
-    <Select
-      autoWidth={false}
-      IconComponent={null}
-      MenuProps={{
-        anchorOrigin: {
-          vertical  : 'top',
-          horizontal: side, // Align the menu to the left of the Select
-        },
-        transformOrigin: {
-          vertical  : 'top',
-          horizontal: side === 'left' ? 'right' : 'left', // Position the menu to pop out to the left
-        },
-        PaperProps: {
-          sx: {
-            padding        : 0,
-            backgroundColor: 'rgba(0,0,0,0)',
-          },
-        },
-      }}
-      sx={{
-        margin                              : '14px 0 !important',
-        height                              : '40px',
-        padding                             : 0,
-        width                               : '40px',
-        boxShadow                           : '2px 2px 2px 2px rgba(0,0,0,0.1)',
-        backgroundImage                     : `url('/static/eqassets/images/${atlasPiece?.texture}')`,
-        backgroundPosition                  : `-${atlasPiece.left}px -${atlasPiece.top}px`,
-        transform                           : 'scale(1.5)',
-        backgroundRepeat                    : 'no-repeat',
-        '& .MuiOutlinedInput-notchedOutline': {
-          border: 'none',
-        },
-        '*': {
-          padding     : 0,
-          paddingRight: '0 !important',
-        },
-      }}
-      value={props.texture}
-      onChange={(e) => {
-        setLocalConfig({
-          ...localConfig,
-          pieces: {
-            ...localConfig.pieces,
-            [piece]: {
-              ...localConfig.pieces[piece],
-              texture: +e.target.value,
-            },
-          },
-        });
+        width             : '40px',
+        boxShadow         : '2px 2px 2px 2px rgba(0,0,0,0.1)',
+        margin            : '3px',
+        zoom              : 1.4,
+        backgroundImage   : `url('/static/eqassets/images/${atlasPiece?.texture}')`,
+        backgroundPosition: `-${atlasPiece.left}px -${atlasPiece.top}px`,
       }}
     >
-      {textures.map((idx, i) => {
-        const itemId = itemIdMap[piece][i] ?? itemIdMap[piece].at(-1);
-        const atlasPiece = loadItemIcon(itemId);
-        return <MenuItem 
-          sx={{
-            position          : 'relative',
-            width             : '40px',
-            height            : '40px',
-            margin            : '5px',
-            zoom              : 1.2,
-            background        : 'transparent',
-            backgroundImage   : `url('/static/eqassets/images/${atlasPiece?.texture}')`,
-            backgroundPosition: `-${atlasPiece.x}px -${atlasPiece.y}px`,
-          }}
-          value={idx} label={idx}>
-                
-        </MenuItem>;
-      })}
-    </Select>
-    {/* <MuiColorInput
-            size="small"
-            isAlphaHidden
-            format={'hex8'}
-            value={rgbaNumberToHex(props.color)}
-            onChange={(e) => {
-              setLocalConfig({
-                ...localConfig,
-                pieces: {
-                  ...localConfig.pieces,
-                  [piece]: {
-                    ...localConfig.pieces[piece],
-                    color: hexToRgbaNumber(e),
-                  },
-                },
-              });
+      {props?.icon !== undefined ? (
+        <>
+          <Box
+            id={`${piece}-bg`}
+            sx={{
+              position          : 'absolute',
+              userSelect        : 'none',
+              pointerEvents     : 'none',
+              width             : '40px',
+              height            : '40px',
+              zoom              : 0.8,
+              marginLeft        : '10%',
+              marginTop         : '10%',
+              backgroundPosition: `-${wornAtlasPiece.x}px -${wornAtlasPiece.y}px`,
+              backgroundImage   : `url('/static/eqassets/images/${wornAtlasPiece?.texture}')`,
             }}
-          /> */}
-  </Box>;
+          />
+          <Box
+            sx={{
+              position: 'absolute',
+              left    : '33px',
+              top     : '-9px',
+              width   : '8px',
+              height  : '8px',
+            }}
+          >
+            <IconButton
+              onClick={() => {
+                setOption('config', {
+                  ...config,
+                  pieces: {
+                    ...config.pieces,
+                    [piece]: {
+                      texture: 0,
+                    },
+                  },
+                });
+              }}
+              sx={{
+                borderRadius: '1px',
+                background  : 'rgba(0, 0, 0, 0.4)',
+                width       : '8px',
+                height      : '8px',
+                padding     : 0,
+              }}
+              size="small"
+            >
+              <ClearIcon
+                sx={{
+                  color : 'rgba(255, 255, 255, 0.6)',
+                  width : '8px',
+                  height: '8px',
+                }}
+              />
+            </IconButton>
+          </Box>
+          {noTint ? null : (
+            <Box
+              sx={{
+                position: 'absolute',
+                left    : '0px',
+                top     : '-10px',
+              }}
+            >
+              <input
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                style={{
+                  background: rgbaNumberToHex(props.color),
+                  opacity   : 0.8,
+                }}
+                className="item-color"
+                type="color"
+                onChange={(e) => debouncedColorChange(e.target.value)}
+                value={rgbaNumberToHex(props.color)}
+              />
+            </Box>
+          )}
+        </>
+      ) : null}
 
+      {popupOpen ? (
+        <Box
+          ref={popupRef}
+          className="item-search"
+          onClick={(e) => e.stopPropagation()}
+          sx={{}}
+        >
+          <ItemSearch
+            onClose={() => {
+              setPopupOpen(false);
+            }}
+            onSelect={onSelect}
+            piece={piece}
+            label={props?.name ?? `Search ${piece}`}
+          />
+        </Box>
+      ) : null}
+    </Box>
+  );
 };
