@@ -130,7 +130,7 @@ const ExporterOverlayComponent = () => {
           refresh={refresh}
         />
       </NavHeader>
-      <NavLeft navHeight={60} height={'70%'}>
+      <NavLeft navHeight={70} height={'75%'}>
         <DrawerButton
           text={'Home'}
           Icon={HomeIcon}
