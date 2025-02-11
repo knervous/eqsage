@@ -23,6 +23,7 @@ import { AnimationBar } from './animation-bar';
 
 import './overlay.scss';
 import Draggable from 'react-draggable';
+import { GlobalStore } from '@/state';
 
 const { PBRMaterial, Texture, Color3 } = BABYLON;
 
@@ -205,6 +206,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
           );
           if (!model) {
             console.log('No model from addExportModel');
+            GlobalStore.actions.setLoading(false);
             return;
           }
           if (selectedType === optionType.npc) {
