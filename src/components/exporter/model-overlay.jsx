@@ -137,17 +137,8 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
       const boundingBox = node.getBoundingInfo().boundingBox;
       const currentHeight =
           boundingBox.maximumWorld.y - boundingBox.minimumWorld.y;
-      // node.position.y = currentHeight;
       nameplate.position.y = -currentHeight - 1.5;
-      console.log('Set NP position', nameplate.position.y);
-      console.log('CH', currentHeight);
    
-  
-
-      // materialGround.onBindObservable.add(() => {
-      //   gameController.engine.alphaState.setAlphaBlendFunctionParameters(1, 0x0303 /* ONE MINUS SRC ALPHA */, 1, 0x0303 /* ONE MINUS SRC ALPHA */);
-      // });
-
       for (const [idx, mat] of Object.entries(node.material.subMaterials)) {
         if (!mat?._albedoTexture || !config) {
           continue;
@@ -226,13 +217,17 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
         }));
 
         if (wearsRobe(selectedModel)) {
-          // if (mat.name.startsWith('clk')) {
-          //   const val = config.robe.toString().padStart(2, '0');
-          //   const fullString = `clk${val}${mat.name.slice(
-          //     mat.name.length - 2
-          //   )}`;
-          //   doSwap(fullString);
-          // }
+          console.log('Wears robe');
+          if (mat.name.startsWith('clk')) {
+            const robeTexture = config.pieces.Chest.texture - 6;
+            if (robeTexture >= 4 && robeTexture <= 10) {
+              const val = (config.pieces.Chest.texture - 6).toString().padStart(2, '0');
+              const fullString = `clk${val}${mat.name.slice(
+                mat.name.length - 2
+              )}`;
+              doSwap(fullString, config.pieces.Chest.color);
+            }
+          }
         }
       }
     },
