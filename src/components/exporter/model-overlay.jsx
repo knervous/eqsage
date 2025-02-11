@@ -26,18 +26,6 @@ import Draggable from 'react-draggable';
 
 const { PBRMaterial, Texture, Color3 } = BABYLON;
 
-function rgbaNumberToHex(rgbaNumber) {
-  const r = (rgbaNumber >> 16) & 0xff;
-  const g = (rgbaNumber >> 8) & 0xff;
-  const b = rgbaNumber & 0xff;
-  const a = (rgbaNumber >> 24) & 0xff;
-  return `#${((1 << 8) + r).toString(16).slice(1)}${((1 << 8) + g)
-    .toString(16)
-    .slice(1)}${((1 << 8) + b).toString(16).slice(1)}${((1 << 8) + a)
-      .toString(16)
-      .slice(1)}`;
-}
-
 export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
   const [animation, setAnimation] = useState('');
   const [head, setHead] = useState(0);
@@ -155,23 +143,26 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
           }
         };
         // Face
-        if (mat.name.startsWith(prefixes.Face)) {
+        if (mat.name.startsWith(`${prefixes.Face}00`)) {
           const faceString = `${config.face}`.padStart(2, '0');
           const fullString = `${prefixes.Face}0${faceString}${mat.name.at(-1)}`;
           doSwap(fullString);
         }
-
         ['Chest', 'Arms', 'Wrists', 'Legs', 'Hands', 'Feet'].forEach((key) => {
           if (mat.name.startsWith(prefixes[key])) {
             const pieceConfig = config.pieces[key];
             if (pieceConfig) {
-              const chestString = `${config.pieces[key].texture}`.padStart(
+           
+              const configString = `${config.pieces[key].texture}`.padStart(
                 2,
                 '0'
               );
-              const fullString = `${prefixes[key]}${chestString}${mat.name.slice(
+              const fullString = `${prefixes[key]}${configString}${mat.name.slice(
                 mat.name.length - 2
               )}`;
+              if (key === 'Helm') {
+                console.log('FS', fullString);
+              }
               doSwap(fullString, config.pieces[key].color);
             }
      
@@ -202,14 +193,20 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
       }
       exportPromise.current = (async () => {
         if (selectedType === optionType.pc || selectedType === optionType.npc) {
+          const headModel = selectedType === optionType.pc ? config?.pieces?.Helm?.texture : head;
+          console.log('Selected model and head', selectedModel, headModel);
           const model = await gameController.SpawnController.addExportModel(
             selectedModel,
-            head,
+            headModel,
             texture,
             config?.pieces?.Primary?.model,
             config?.pieces?.Secondary?.model,
             !config?.shieldPoint
           );
+          if (!model) {
+            console.log('No model from addExportModel');
+            return;
+          }
           if (selectedType === optionType.npc) {
             setBabylonModel(model);
             return;

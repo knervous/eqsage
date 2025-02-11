@@ -141,7 +141,7 @@ export default defineConfig({
         errors: true,
       },
     },
-    port: 4100,
+    port: 4200,
   },
   build: {
     assetsDir    : 'static',

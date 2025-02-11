@@ -85,7 +85,6 @@ class CameraController extends GameControllerChild {
     this.#autoRotationBehavior.idleRotationSpinupTime = 1;
     this.#autoRotationBehavior.idleRotationWaitTime = 1;
     if (rotate) {
-      console.log('Attach');
       this.#autoRotationBehavior.attach(this.camera);
     } else {
       this.#autoRotationBehavior.detach();

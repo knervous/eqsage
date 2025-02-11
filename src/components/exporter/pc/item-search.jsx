@@ -114,6 +114,8 @@ export const ItemSearch = ({ label, piece, onSelect, onClose, baseOptions }) => 
       
       }}
       onChange={(_e, v) => {
+        console.log('Val', v);
+
         onSelect(v.item);
       }}
       onInputChange={(_e, newInputValue) => {

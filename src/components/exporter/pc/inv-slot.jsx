@@ -92,7 +92,6 @@ export const InventorySlot = ({ piece, atlas, noTint = false, options }) => {
     }
     setPopupOpen(true);
     setTimeout(() => {
-      console.log('Hi ref', popupRef.current);
       popupRef.current?.querySelector('input')?.focus();
     }, 50);
     const clickHandler = (e) => {
