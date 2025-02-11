@@ -4,6 +4,7 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import HomeIcon from '@mui/icons-material/Home';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import ConstructionIcon from '@mui/icons-material/Construction';
+import SettingsIcon from '@mui/icons-material/Settings';
 import NotificationImportantIcon from '@mui/icons-material/NotificationImportant';
 import PictureInPictureIcon from '@mui/icons-material/PictureInPicture';
 
@@ -30,7 +31,7 @@ let videoElement = null;
 const ExporterOverlayComponent = () => {
   const { reset } = useMainContext();
   const { toggleDialog, dialogState } = useOverlayContext();
-  const { location, selectedType, selectedModel } = useSettingsContext();
+  const { location, selectedType, selectedModel, background } = useSettingsContext();
   const { openAlert } = useAlertContext();
   const confirm = useConfirm();
   const {
@@ -44,6 +45,10 @@ const ExporterOverlayComponent = () => {
   const fileRef = useRef();
   const area = useMemo(() => locations[location], [location]);
 
+  useEffect(() => {
+    gameController.ModelController.swapBackground(background);
+    console.log('Swap', background);
+  }, [background]);
   useEffect(() => {
     if (!area?.file) {
       const node = gameController.currentScene.getMeshByName('__root__');
@@ -126,6 +131,13 @@ const ExporterOverlayComponent = () => {
         />
       </NavHeader>
       <NavLeft navHeight={60} height={'70%'}>
+        <DrawerButton
+          drawerState={dialogState}
+          drawer="settings"
+          text={'Settings'}
+          Icon={SettingsIcon}
+          toggleDrawer={toggleDialog}
+        />
         <DrawerButton
           text={'Home'}
           Icon={HomeIcon}
@@ -227,6 +239,7 @@ const defaultOptions = {
   selectedType   : optionType.pc,
   selectedModel  : '',
   selectedName   : '',
+  background     : 'default',
   cycleAnimations: true,
   rotate         : true,
   config         : defaultModel,

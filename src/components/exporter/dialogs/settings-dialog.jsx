@@ -4,9 +4,47 @@ import { CommonDialog } from '../../../components/spire/dialogs/common';
 import { useSettingsContext } from '../../../context/settings';
 import { locations } from '../constants';
 
+const backgrounds = [
+  {
+    name : 'Default',
+    value: 'default'
+  },
+  {
+    name : 'Forest',
+    value: 'forest'
+  },
+  {
+    name : 'Full Moon',
+    value: 'fullmoon'
+  },
+  {
+    name : 'Halflife',
+    value: 'halflife'
+  },
+  {
+    name : 'Interstellar',
+    value: 'interstellar'
+  },
+  {
+    name : 'Meadow',
+    value: 'meadow'
+  },
+  {
+    name : 'Nebula',
+    value: 'nebula'
+  },
+  {
+    name : 'Sand',
+    value: 'sand'
+  },
+  {
+    name : 'Space',
+    value: 'space'
+  },
+];
+
 export const SettingsDialog = ({ onClose }) => {
-  const { location, setOption } = useSettingsContext();
-  console.log('set');
+  const { background, setOption } = useSettingsContext();
   return (
     <CommonDialog onClose={onClose} title={'Settings'}>
       <Box sx={{ minWidth: '400px', minHeight: '100px' }}>
@@ -15,11 +53,11 @@ export const SettingsDialog = ({ onClose }) => {
           <Select
             size='small'
             fullWidth
-            onChange={(e) => setOption('location', e.target.value)}
-            value={location}
+            onChange={(e) => setOption('background', e.target.value)}
+            value={background}
           >
-            {locations.map((l, i) => (
-              <MenuItem value={i}>{l.name}</MenuItem>
+            {backgrounds.map(({ name, value }) => (
+              <MenuItem value={value}>{name}</MenuItem>
             ))}
           </Select>
         </FormControl>

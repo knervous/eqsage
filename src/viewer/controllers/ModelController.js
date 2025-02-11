@@ -146,6 +146,28 @@ class ModelController extends GameControllerChild {
     this.skybox.position = this.CameraController.camera.position;
   }
 
+  swapBackground(bg) {
+    const png_array = [];
+    const map = ['right', 'top', 'front', 'left', 'bot', 'back'];
+    for (let i = 0; i < 6; i++) {
+      png_array.push(`/static/bg/${bg}/${map[i]}.png`);
+    }
+    this.skybox.material.reflectionTexture.dispose();
+    this.skybox.material.reflectionTexture = new CubeTexture(
+      '/',
+      this.scene,
+      [],
+      false,
+      png_array,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      '.jpg'
+    );
+    this.skybox.material.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
+  }
+
   async initializeModelExporter() {
     GlobalStore.actions.setLoading(true);
     GlobalStore.actions.setLoadingTitle('Loading');
@@ -168,9 +190,9 @@ class ModelController extends GameControllerChild {
     skyboxMaterial.backFaceCulling = false;
 
     const png_array = [];
-    const map = ['px', 'py', 'pz', 'nx', 'ny', 'nz'];
+    const map = ['right', 'top', 'front', 'left', 'bot', 'back'];
     for (let i = 0; i < 6; i++) {
-      png_array.push(`/static/skybox_${map[i]}.jpg`);
+      png_array.push(`/static/bg/default/${map[i]}.png`);
     }
     skyboxMaterial.reflectionTexture = new CubeTexture(
       '/',
