@@ -5,6 +5,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import NotificationImportantIcon from '@mui/icons-material/NotificationImportant';
+import PictureInPictureIcon from '@mui/icons-material/PictureInPicture';
 
 import { useOverlayContext } from '../spire/provider';
 import { OverlayDialogs } from './dialogs/dialogs';
@@ -22,9 +23,10 @@ import { ExporterNavHeader } from './header';
 import { useAlertContext } from '@/context/alerts';
 import { useConfirm } from 'material-ui-confirm';
 import { deleteEqFolder } from '@/lib/util/fileHandler';
-import BABYLON from '@bjs';
 
 const cachedBlobUrls = {};
+let videoElement = null;
+
 const ExporterOverlayComponent = () => {
   const { reset } = useMainContext();
   const { toggleDialog, dialogState } = useOverlayContext();
@@ -147,7 +149,34 @@ const ExporterOverlayComponent = () => {
           Icon={FileDownloadIcon}
           toggleDrawer={toggleDialog}
         />
-
+        <DrawerButton
+          drawerState={dialogState}
+          drawer="export"
+          text={'Picture in Picture'}
+          Icon={PictureInPictureIcon}
+          toggleDrawer={async () => {
+            try {
+              if (!videoElement) {
+                videoElement = document.createElement('video');
+                videoElement.style.display = 'none';
+                document.body.appendChild(videoElement);
+      
+                const stream = gameController.canvas.captureStream(60);
+                videoElement.srcObject = stream;
+                await videoElement.play();
+              }
+      
+              if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+              } else {
+                await videoElement.requestPictureInPicture();
+              }
+            } catch (error) {
+              openAlert('Could not create a Picture In Picture session');
+              console.error('An error occurred with Picture-in-Picture:', error);
+            }
+          }}
+        />
         <DrawerButton
           text={'Purge'}
           Icon={DeleteForeverIcon}
