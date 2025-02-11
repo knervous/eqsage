@@ -6,6 +6,10 @@ import { locations } from '../constants';
 
 const backgrounds = [
   {
+    name : 'None',
+    value: 'none',
+  },
+  {
     name : 'Default',
     value: 'default'
   },

@@ -147,6 +147,11 @@ class ModelController extends GameControllerChild {
   }
 
   swapBackground(bg) {
+    if (bg === 'none') {
+      this.skybox.setEnabled(false);
+      return;
+    }
+    this.skybox.setEnabled(true);
     const png_array = [];
     const map = ['right', 'top', 'front', 'left', 'bot', 'back'];
     for (let i = 0; i < 6; i++) {
