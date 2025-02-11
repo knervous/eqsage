@@ -1,36 +1,18 @@
 import {
   Box,
-  Checkbox,
   FormControl,
-  FormControlLabel,
-  FormLabel,
   MenuItem,
   Select,
   Stack,
   Button,
 } from '@mui/material';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { getEQDir, getFiles } from '../../../lib/util/fileHandler';
 import { InventorySlot } from './inv-slot';
 import { MageloDialog } from '../dialogs/magelo-dialog';
-import AsyncAutocomplete from '@/components/common/autocomplete';
+import { ProfileDialog } from '../dialogs/profile-dialog';
 
 import './inventory.scss';
-
-/**
- * 
- * fetch('/static/magelo/', { headers: {
-    ['x-remote-api']: 'https://eq.magelo.com', ['x-remote-path']: '/profile/4304412',
-} }).then(r => r.text()).then(t => {
-    let arr;
-    const results = [];
-    const regex = /Item\((\d+),'([^,]*)',(\d+)/gm;
-    while((arr = regex.exec(t))) {
-        results.push([arr.slice(1, arr.length)]);
-    }
-    console.log('Got res', results)
-})
- */
 
 export const PCConfig = ({
   model,
@@ -49,6 +31,7 @@ export const PCConfig = ({
   }, []);
 
   const [mageloDialogOpen, setMageloDialogOpen] = useState(false);
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   useEffect(() => {
     (async () => {
       const scrubbedModel = model.slice(0, 3);
@@ -97,6 +80,10 @@ export const PCConfig = ({
         open={mageloDialogOpen}
         onClose={() => setMageloDialogOpen(false)}
       />
+      <ProfileDialog
+        open={profileDialogOpen}
+        onClose={() => setProfileDialogOpen(false)}
+      />
       <Button
         variant="outlined"
         size="small"
@@ -113,7 +100,7 @@ export const PCConfig = ({
         variant="outlined"
         size="small"
         sx={{ width: '100px', margin: '5px auto' }}
-        onClick={() => setMageloDialogOpen(true)}
+        onClick={() => setProfileDialogOpen(true)}
       >
         Profile
       </Button>

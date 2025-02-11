@@ -70,8 +70,8 @@ function proxyPlugin() {
       );
 
       server.middlewares.use(
-        '/static/magelo',
-        customProxyMiddleware('/static/magelo', {
+        '/api/magelo',
+        customProxyMiddleware('/api/magelo', {
           changeOrigin: true,
           secure      : false,
         })

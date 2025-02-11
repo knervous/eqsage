@@ -60,12 +60,13 @@ export const InventorySlot = ({ piece, atlas, noTint = false, options }) => {
         pieces: {
           ...config.pieces,
           [piece]: {
-            name   : item.name,
-            icon   : item.icon,
-            idfile : item.idfile,
-            texture: item.material ?? 0,
-            model  : item.model,
-            color  : item.color === 4278190080 ? hexToRgbaNumber('#FFFFFF') : item.color,
+            name       : item.name,
+            icon       : item.icon,
+            idfile     : item.idfile,
+            texture    : item.material ?? 0,
+            model      : item.model,
+            color      : item.color === 4278190080 ? hexToRgbaNumber('#FFFFFF') : item.color,
+            shieldPoint: item.itemtype === 8
           },
         },
       });
@@ -217,6 +218,7 @@ export const InventorySlot = ({ piece, atlas, noTint = false, options }) => {
             onSelect={onSelect}
             baseOptions={options}
             piece={piece}
+            fullyPopulate={piece === 'Secondary'}
             label={props?.name ?? `Search ${piece}`}
           />
         </Box>

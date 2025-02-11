@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import BABYLON from '@bjs';
 import { gameController } from '../../viewer/controllers/GameController';
-import { getEQDir, getFiles } from '../../lib/util/fileHandler';
+import { getEQDir, getEQFileExists, getFiles } from '../../lib/util/fileHandler';
 import { PCConfig } from './pc/pc-config';
 import { useSettingsContext } from '@/context/settings';
 import { optionType, pcModels, wearsRobe } from './constants';
@@ -93,10 +93,61 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
   }, [animation, babylonModel]);
 
   const applyConfig = useCallback(
-    (node = gameController.currentScene.getMeshById('model_export')) => {
+    async (node = gameController.currentScene.getMeshById('model_export')) => {
       if (!node) {
         return;
       }
+
+      // Nameplate
+      let nameplate = gameController.currentScene.getMeshByName('nameplate');
+      if (nameplate) {
+        nameplate.dispose();
+      }
+      if (gameController.currentScene.getTextureByName('temp_texture')) {
+        gameController.currentScene.getTextureByName('temp_texture').dispose();
+      }
+      if (gameController.currentScene.getTextureByName('nameplate_texture')) {
+        gameController.currentScene.getTextureByName('nameplate_texture').dispose();
+      }
+      if (gameController.currentScene.getMaterialByName('nameplate_material')) {
+        gameController.currentScene.getMaterialByName('nameplate_material').dispose();
+      }
+      const name = config.name ?? '';
+      const temp = new BABYLON.DynamicTexture('temp_texture', 64, gameController.currentScene);
+      const tmpctx = temp.getContext();
+      tmpctx.font = '16px Arial';
+      const textWidth = tmpctx.measureText(name).width + 20;
+      const textureGround = new BABYLON.DynamicTexture('nameplate_texture', { width: textWidth, height: 30 }, gameController.currentScene);   
+      textureGround.drawText(name, null, null, '17px Arial', '#F0F046', 'transparent', false, true);
+      textureGround.update(false, true);
+      const materialGround = new BABYLON.StandardMaterial('nameplate_material', gameController.currentScene);
+
+      materialGround.diffuseTexture = textureGround;
+      materialGround.diffuseTexture.hasAlpha = true;
+      materialGround.useAlphaFromDiffuseTexture = true;
+      materialGround.emissiveColor = Color3.FromHexString('#fbdc02');
+      materialGround.disableLighting = true;
+      nameplate = BABYLON.MeshBuilder.CreatePlane('nameplate', { width: textWidth / 30, height: 1 }, gameController.currentScene);
+      nameplate.parent = node;
+      nameplate.billboardMode = BABYLON.ParticleSystem.BILLBOARDMODE_ALL;
+      nameplate.material = materialGround;
+  
+      node.computeWorldMatrix(true);
+      node.refreshBoundingInfo();
+      const boundingBox = node.getBoundingInfo().boundingBox;
+      const currentHeight =
+          boundingBox.maximumWorld.y - boundingBox.minimumWorld.y;
+      // node.position.y = currentHeight;
+      nameplate.position.y = -currentHeight - 1.5;
+      console.log('Set NP position', nameplate.position.y);
+      console.log('CH', currentHeight);
+   
+  
+
+      // materialGround.onBindObservable.add(() => {
+      //   gameController.engine.alphaState.setAlphaBlendFunctionParameters(1, 0x0303 /* ONE MINUS SRC ALPHA */, 1, 0x0303 /* ONE MINUS SRC ALPHA */);
+      // });
+
       for (const [idx, mat] of Object.entries(node.material.subMaterials)) {
         if (!mat?._albedoTexture || !config) {
           continue;
@@ -110,17 +161,23 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
           Legs  : 'lg',
           Hands : 'hn',
           Feet  : 'ft',
+          Helm  : 'he',
         };
         for (const [key, entry] of Object.entries(prefixes)) {
           prefixes[key] = `${modelName}${entry}`;
         }
-        const doSwap = (str, color) => {
+        const doSwap = async (str, color) => {
           const existing = window.gameController.currentScene.materials
             .flat()
             .find((m) => m.name === str);
           if (existing) {
             node.material.subMaterials[idx] = existing;
           } else {
+            const exists = await getEQFileExists('textures', `${str}.png`);
+            if (!exists) {
+              console.log('Texture did not exist, skipping', str);
+              return;
+            }
             const newMat = new PBRMaterial(str);
             newMat.metallic = 0;
             newMat.roughness = 1;
@@ -147,13 +204,12 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
         if (mat.name.startsWith(`${prefixes.Face}00`)) {
           const faceString = `${config.face}`.padStart(2, '0');
           const fullString = `${prefixes.Face}0${faceString}${mat.name.at(-1)}`;
-          doSwap(fullString);
+          await doSwap(fullString);
         }
-        ['Chest', 'Arms', 'Wrists', 'Legs', 'Hands', 'Feet'].forEach((key) => {
+        await Promise.all(['Chest', 'Arms', 'Wrists', 'Legs', 'Hands', 'Feet'].map(async (key) => {
           if (mat.name.startsWith(prefixes[key])) {
             const pieceConfig = config.pieces[key];
             if (pieceConfig) {
-           
               const configString = `${config.pieces[key].texture}`.padStart(
                 2,
                 '0'
@@ -164,11 +220,10 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
               if (key === 'Helm') {
                 console.log('FS', fullString);
               }
-              doSwap(fullString, config.pieces[key].color);
+              await doSwap(fullString, config.pieces[key].color);
             }
-     
           }
-        });
+        }));
 
         if (wearsRobe(selectedModel)) {
           // if (mat.name.startsWith('clk')) {
@@ -202,7 +257,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
             texture,
             config?.pieces?.Primary?.model,
             config?.pieces?.Secondary?.model,
-            !config?.shieldPoint
+            config?.pieces?.Secondary?.shieldPoint
           );
           if (!model) {
             console.log('No model from addExportModel');

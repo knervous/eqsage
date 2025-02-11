@@ -19,7 +19,7 @@ const StyledPopper = (props) => {
   );
 };
 
-export const ItemSearch = ({ label, piece, onSelect, onClose, baseOptions }) => {
+export const ItemSearch = ({ label, piece, onSelect, onClose, baseOptions, fullyPopulate }) => {
   const [options, setOptions] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
@@ -113,9 +113,38 @@ export const ItemSearch = ({ label, piece, onSelect, onClose, baseOptions }) => 
         }
       
       }}
-      onChange={(_e, v) => {
+      onChange={async (_e, v) => {
         console.log('Val', v);
-
+        if (fullyPopulate) {
+          const Spire = window.Spire;
+          const itemApi = new ItemApi(...Spire.SpireApi.cfg());
+          const queryBuilder = new Spire.SpireQueryBuilder();
+          queryBuilder.where('name', '=', v.item.name);
+          queryBuilder.where('slots', '!=', 65535);
+          const bitwiseMap = {
+            Helm     : 4,
+            Arms     : 128,
+            Wrists   : 1536,
+            Hands    : 4096,
+            Primary  : 8192,
+            Secondary: 16384,
+            Legs     : 262144,
+            Chest    : 131072,
+            Feet     : 524288,
+          };
+          queryBuilder.where('slots', '&', bitwiseMap[piece]);
+          queryBuilder.limit(1);
+    
+          const result = await itemApi.listItems(queryBuilder.get());
+          const foundItem = result?.data?.[0];
+          console.log('res', result);
+          if (foundItem) {
+            v.item = {
+              ...v.item,
+              ...foundItem,
+            };
+          }
+        }
         onSelect(v.item);
       }}
       onInputChange={(_e, newInputValue) => {
