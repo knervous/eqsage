@@ -217,7 +217,6 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
         }));
 
         if (wearsRobe(selectedModel)) {
-          console.log('Wears robe');
           if (mat.name.startsWith('clk')) {
             const robeTexture = config.pieces.Chest.texture - 6;
             if (robeTexture >= 4 && robeTexture <= 10) {

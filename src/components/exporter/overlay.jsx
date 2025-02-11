@@ -40,7 +40,6 @@ const ExporterOverlayComponent = () => {
     empty,
   } = useEqOptions();
   const fileRef = useRef();
-  console.log('loc', location);
   const area = useMemo(() => locations[location], [location]);
 
   useEffect(() => {
