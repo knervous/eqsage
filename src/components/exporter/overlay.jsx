@@ -217,10 +217,10 @@ export const ExporterOverlay = () => (
         const prevConfig = prevOptions.config;
         const newConfig = newOptions.config;
         if (
-          prevConfig.pieces?.Primary?.model === newConfig.pieces?.Primary?.model &&
-          prevConfig.pieces?.Secondary?.model === newConfig.pieces?.Secondary?.model &&
-          JSON.stringify(prevConfig.pieces.Helm) ===
-            JSON.stringify(newConfig.pieces.Helm)
+          prevConfig?.pieces?.Primary?.model === newConfig.pieces?.Primary?.model &&
+          prevConfig?.pieces?.Secondary?.model === newConfig.pieces?.Secondary?.model &&
+          JSON.stringify(prevConfig?.pieces.Helm) ===
+            JSON.stringify(newConfig?.pieces.Helm)
         ) {
           needsRender = false;
         }
