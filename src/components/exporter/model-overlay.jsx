@@ -179,13 +179,13 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
         });
 
         if (wearsRobe(selectedModel)) {
-          if (mat.name.startsWith('clk')) {
-            const val = config.robe.toString().padStart(2, '0');
-            const fullString = `clk${val}${mat.name.slice(
-              mat.name.length - 2
-            )}`;
-            doSwap(fullString);
-          }
+          // if (mat.name.startsWith('clk')) {
+          //   const val = config.robe.toString().padStart(2, '0');
+          //   const fullString = `clk${val}${mat.name.slice(
+          //     mat.name.length - 2
+          //   )}`;
+          //   doSwap(fullString);
+          // }
         }
       }
     },
