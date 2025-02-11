@@ -132,13 +132,6 @@ const ExporterOverlayComponent = () => {
       </NavHeader>
       <NavLeft navHeight={60} height={'70%'}>
         <DrawerButton
-          drawerState={dialogState}
-          drawer="settings"
-          text={'Settings'}
-          Icon={SettingsIcon}
-          toggleDrawer={toggleDialog}
-        />
-        <DrawerButton
           text={'Home'}
           Icon={HomeIcon}
           toggleDrawer={() => {
@@ -148,17 +141,9 @@ const ExporterOverlayComponent = () => {
         />
         <DrawerButton
           drawerState={dialogState}
-          drawer="process"
-          text={'Process'}
-          Icon={ConstructionIcon}
-          NotificationIcon={empty ? NotificationImportantIcon : null}
-          toggleDrawer={toggleDialog}
-        />
-        <DrawerButton
-          drawerState={dialogState}
-          drawer="export"
-          text={'Export'}
-          Icon={FileDownloadIcon}
+          drawer="settings"
+          text={'Settings'}
+          Icon={SettingsIcon}
           toggleDrawer={toggleDialog}
         />
         <DrawerButton
@@ -188,6 +173,21 @@ const ExporterOverlayComponent = () => {
               console.error('An error occurred with Picture-in-Picture:', error);
             }
           }}
+        />
+        <DrawerButton
+          drawerState={dialogState}
+          drawer="process"
+          text={'Process'}
+          Icon={ConstructionIcon}
+          NotificationIcon={empty ? NotificationImportantIcon : null}
+          toggleDrawer={toggleDialog}
+        />
+        <DrawerButton
+          drawerState={dialogState}
+          drawer="export"
+          text={'Export'}
+          Icon={FileDownloadIcon}
+          toggleDrawer={toggleDialog}
         />
         <DrawerButton
           text={'Purge'}
