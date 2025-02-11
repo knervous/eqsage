@@ -538,7 +538,7 @@ class SpawnController extends GameControllerChild {
   async exportSTL() {
     const clone = this.modelExport.rootNode.clone();
     clone.skeleton = this.modelExport.skeleton?.clone();
-    const children = clone.getChildMeshes().map((c) => {
+    const children = clone.getChildMeshes().filter(m => m.name !== 'nameplate').map((c) => {
       c?.clone();
       c?.makeGeometryUnique();
       return c;
@@ -612,6 +612,9 @@ class SpawnController extends GameControllerChild {
       this.modelExport?.modelName,
       {
         shouldExportNode(node) {
+          if (node.name === 'nameplate') {
+            return false;
+          }
           while (node.parent) {
             node = node.parent;
           }
