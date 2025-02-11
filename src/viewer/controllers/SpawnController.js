@@ -834,6 +834,7 @@ class SpawnController extends GameControllerChild {
       await window.gameController.SpawnController.getAssetContainer(modelName);
     const instanceContainer = assetContainer?.instantiateModelsToScene();
     if (!instanceContainer) {
+      console.log('Did not instantiate models to scene', modelName);
       return;
     }
     const animationGroups = instanceContainer.animationGroups;
