@@ -154,7 +154,7 @@ export const MageloDialog = ({ open, onClose }) => {
     setOption('config', {
       ...config,
       pieces: profile.pieces,
-      name  : profile.title?.split(' ')?.[0] ?? '',
+      name  : profile.title?.split(' -')?.[0] ?? '',
     });
     onClose();
   };
