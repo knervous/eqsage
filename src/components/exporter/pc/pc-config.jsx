@@ -5,6 +5,7 @@ import {
   Select,
   Stack,
   Button,
+  TextField,
 } from '@mui/material';
 import React, { useEffect, useRef, useState } from 'react';
 import { getEQDir, getFiles } from '../../../lib/util/fileHandler';
@@ -67,7 +68,7 @@ export const PCConfig = ({
   const setConfig = (newConfig) => {
     setOption('config', newConfig);
   };
-
+  console.log('Name', config?.name);
   return !atlas ? null : (
     <Stack
       sx={{
@@ -102,8 +103,37 @@ export const PCConfig = ({
         sx={{ width: '100px', margin: '5px auto' }}
         onClick={() => setProfileDialogOpen(true)}
       >
-        Profile
+        Profiles
       </Button>
+      <FormControl size="small">
+        <TextField
+          margin="dense"
+          size="small"
+          sx={{
+            margin                 : '10px 12.5% 3px 12.5%',
+            width                  : '75%',
+            '& .MuiInputBase-input': {
+              paddingTop   : '4px',
+              paddingBottom: '4px',
+              textAlign    : 'center',
+
+            },
+          }}
+          InputLabelProps={{
+            sx: {
+              marginTop: '-2px',
+              textAlign: 'center',
+              fontSize : '0.75rem',
+            },
+          }}
+          value={config.name ?? ''}
+          variant={'outlined'}
+          onChange={(e) => {
+            setOption('config', { ...config, name: e.target.value });
+          }}
+          label="Name"
+        />
+      </FormControl>
       <FormControl
         size="small"
         sx={{

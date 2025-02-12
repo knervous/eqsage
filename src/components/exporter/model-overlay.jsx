@@ -218,7 +218,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
 
         if (wearsRobe(selectedModel)) {
           if (mat.name.startsWith('clk')) {
-            const robeTexture = config.pieces.Chest.texture - 6;
+            const robeTexture = config.pieces.Chest?.texture - 6;
             if (robeTexture >= 4 && robeTexture <= 10) {
               const val = (config.pieces.Chest.texture - 6).toString().padStart(2, '0');
               const fullString = `clk${val}${mat.name.slice(
