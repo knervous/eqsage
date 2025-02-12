@@ -89,6 +89,7 @@ export const PCConfig = ({
         size="small"
         sx={{
           width    : '120px',
+          color    : 'white',
           margin   : '5px auto',
           marginTop: '15px !important',
         }}
@@ -99,7 +100,7 @@ export const PCConfig = ({
       <Button
         variant="outlined"
         size="small"
-        sx={{ width: '100px', margin: '5px auto' }}
+        sx={{ width: '100px', margin: '5px auto', color: 'white' }}
         onClick={() => setProfileDialogOpen(true)}
       >
         Profiles
@@ -115,7 +116,6 @@ export const PCConfig = ({
               paddingTop   : '4px',
               paddingBottom: '4px',
               textAlign    : 'center',
-
             },
           }}
           InputLabelProps={{
