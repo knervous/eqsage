@@ -12,10 +12,15 @@ import {
   Select,
   FormLabel,
   DialogTitle,
+  Stack,
 } from '@mui/material';
 import BABYLON from '@bjs';
 import { gameController } from '../../viewer/controllers/GameController';
-import { getEQDir, getEQFileExists, getFiles } from '../../lib/util/fileHandler';
+import {
+  getEQDir,
+  getEQFileExists,
+  getFiles,
+} from '../../lib/util/fileHandler';
 import { PCConfig } from './pc/pc-config';
 import { useSettingsContext } from '@/context/settings';
 import { optionType, pcModels, wearsRobe } from './constants';
@@ -36,15 +41,23 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
   const [currentAnimation, setCurrentAnimation] = useState(null);
   const [babylonModel, setBabylonModel] = useState(null);
   const exportPromise = useRef(Promise.resolve());
-  const { config, setOption, nameplateColor = '#F0F046FF' } = useSettingsContext();
+  const {
+    config,
+    setOption,
+    nameplateColor = '#F0F046FF',
+  } = useSettingsContext();
   useEffect(() => {
     (async () => {
       setTexture(-1);
       setHead(0);
       setAnimation('pos');
-      const count = 0;
       const doesWearRobe = wearsRobe(selectedModel);
-
+      const modelDir = await getEQDir('models');
+      const baseName = selectedModel.slice(0, 3);
+      const headFiles = await getFiles(modelDir, (n) =>
+        n.startsWith(`${baseName}he`)
+      );
+      const count = headFiles.length;
       setHeadCount(count);
       if (doesWearRobe) {
         setTextures([0, 1, 2, 3, 4, 5, 6]);
@@ -68,7 +81,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
         }
       }
     })();
-  }, [selectedModel]);
+  }, [selectedModel, selectedType]);
 
   useEffect(() => {
     if (!babylonModel) {
@@ -92,7 +105,6 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
     }
   }, [animation, babylonModel]);
 
-
   const applyConfig = useCallback(
     async (node = gameController.currentScene.getMeshById('model_export')) => {
       if (!node) {
@@ -108,38 +120,66 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
         gameController.currentScene.getTextureByName('temp_texture').dispose();
       }
       if (gameController.currentScene.getTextureByName('nameplate_texture')) {
-        gameController.currentScene.getTextureByName('nameplate_texture').dispose();
+        gameController.currentScene
+          .getTextureByName('nameplate_texture')
+          .dispose();
       }
       if (gameController.currentScene.getMaterialByName('nameplate_material')) {
-        gameController.currentScene.getMaterialByName('nameplate_material').dispose();
+        gameController.currentScene
+          .getMaterialByName('nameplate_material')
+          .dispose();
       }
       const name = config.name ?? '';
-      const temp = new BABYLON.DynamicTexture('temp_texture', 64, gameController.currentScene);
+      const temp = new BABYLON.DynamicTexture(
+        'temp_texture',
+        64,
+        gameController.currentScene
+      );
       const tmpctx = temp.getContext();
       tmpctx.font = '16px Arial';
       const textWidth = tmpctx.measureText(name).width + 20;
-      const textureGround = new BABYLON.DynamicTexture('nameplate_texture', { width: textWidth, height: 30 }, gameController.currentScene);   
-      textureGround.drawText(name, null, null, '17px Arial', nameplateColor, 'transparent', false, true);
+      const textureGround = new BABYLON.DynamicTexture(
+        'nameplate_texture',
+        { width: textWidth, height: 30 },
+        gameController.currentScene
+      );
+      textureGround.drawText(
+        name,
+        null,
+        null,
+        '17px Arial',
+        nameplateColor,
+        'transparent',
+        false,
+        true
+      );
       textureGround.update(false, true);
-      const materialGround = new BABYLON.StandardMaterial('nameplate_material', gameController.currentScene);
+      const materialGround = new BABYLON.StandardMaterial(
+        'nameplate_material',
+        gameController.currentScene
+      );
 
       materialGround.diffuseTexture = textureGround;
       materialGround.diffuseTexture.hasAlpha = true;
       materialGround.useAlphaFromDiffuseTexture = true;
       materialGround.emissiveColor = Color3.FromHexString('#fbdc02');
       materialGround.disableLighting = true;
-      nameplate = BABYLON.MeshBuilder.CreatePlane('nameplate', { width: textWidth / 30, height: 1 }, gameController.currentScene);
+      nameplate = BABYLON.MeshBuilder.CreatePlane(
+        'nameplate',
+        { width: textWidth / 30, height: 1 },
+        gameController.currentScene
+      );
       nameplate.parent = node;
       nameplate.billboardMode = BABYLON.ParticleSystem.BILLBOARDMODE_ALL;
       nameplate.material = materialGround;
-  
+
       node.computeWorldMatrix(true);
       node.refreshBoundingInfo();
       const boundingBox = node.getBoundingInfo().boundingBox;
       const currentHeight =
-          boundingBox.maximumWorld.y - boundingBox.minimumWorld.y;
+        boundingBox.maximumWorld.y - boundingBox.minimumWorld.y;
       nameplate.position.y = -currentHeight - 1.5;
-   
+
       for (const [idx, mat] of Object.entries(node.material.subMaterials)) {
         if (!mat?._albedoTexture || !config) {
           continue;
@@ -178,16 +218,16 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
               window.gameController.currentScene,
               mat._albedoTexture.noMipMap,
               mat._albedoTexture.invertY,
-              mat._albedoTexture.samplingMode 
+              mat._albedoTexture.samplingMode
             );
             node.material.subMaterials[idx] = newMat;
           }
           const material = node.material.subMaterials[idx];
           if (color !== undefined) {
-            const a = (color >> 24) & 0xFF;
-            const r = (color >> 16) & 0xFF;
-            const g = (color >> 8) & 0xFF;
-            const b = (color) & 0xFF;
+            const a = (color >> 24) & 0xff;
+            const r = (color >> 16) & 0xff;
+            const g = (color >> 8) & 0xff;
+            const b = color & 0xff;
             material.albedoColor = new Color3(r / 255, g / 255, b / 255);
             material.alpha = a / 255;
           }
@@ -198,30 +238,36 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
           const fullString = `${prefixes.Face}0${faceString}${mat.name.at(-1)}`;
           await doSwap(fullString);
         }
-        await Promise.all(['Chest', 'Arms', 'Wrists', 'Legs', 'Hands', 'Feet'].map(async (key) => {
-          if (mat.name.startsWith(prefixes[key])) {
-            const pieceConfig = config.pieces[key];
-            if (pieceConfig) {
-              const configString = `${config.pieces[key].texture}`.padStart(
-                2,
-                '0'
-              );
-              const fullString = `${prefixes[key]}${configString}${mat.name.slice(
-                mat.name.length - 2
-              )}`;
-              if (key === 'Helm') {
-                console.log('FS', fullString);
+        await Promise.all(
+          ['Chest', 'Arms', 'Wrists', 'Legs', 'Hands', 'Feet'].map(
+            async (key) => {
+              if (mat.name.startsWith(prefixes[key])) {
+                const pieceConfig = config.pieces[key];
+                if (pieceConfig) {
+                  const configString = `${config.pieces[key].texture}`.padStart(
+                    2,
+                    '0'
+                  );
+                  const fullString = `${
+                    prefixes[key]
+                  }${configString}${mat.name.slice(mat.name.length - 2)}`;
+                  if (key === 'Helm') {
+                    console.log('FS', fullString);
+                  }
+                  await doSwap(fullString, config.pieces[key].color);
+                }
               }
-              await doSwap(fullString, config.pieces[key].color);
             }
-          }
-        }));
+          )
+        );
 
         if (wearsRobe(selectedModel)) {
           if (mat.name.startsWith('clk')) {
             const robeTexture = config.pieces.Chest?.texture - 6;
             if (robeTexture >= 4 && robeTexture <= 10) {
-              const val = (config.pieces.Chest.texture - 6).toString().padStart(2, '0');
+              const val = (config.pieces.Chest.texture - 6)
+                .toString()
+                .padStart(2, '0');
               const fullString = `clk${val}${mat.name.slice(
                 mat.name.length - 2
               )}`;
@@ -244,7 +290,10 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
       }
       exportPromise.current = (async () => {
         if (selectedType === optionType.pc || selectedType === optionType.npc) {
-          const headModel = selectedType === optionType.pc ? config?.pieces?.Helm?.texture : head;
+          const headModel =
+            selectedType === optionType.pc
+              ? config?.pieces?.Helm?.texture
+              : head;
           console.log('Selected model and head', selectedModel, headModel);
           const model = await gameController.SpawnController.addExportModel(
             selectedModel,
@@ -252,7 +301,8 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
             texture,
             config?.pieces?.Primary?.model,
             config?.pieces?.Secondary?.model,
-            config?.pieces?.Secondary?.shieldPoint
+            config?.pieces?.Secondary?.shieldPoint,
+            selectedType === optionType.npc
           );
           if (!model) {
             console.log('No model from addExportModel');
@@ -300,85 +350,97 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
     [selectedModel]
   );
 
-  return !selectedModel ? null : (
-    <>
-      <Draggable handle="#draggable-dialog-title-opt">
-        <Box
-          className="ui-dialog model-overlay"
-          sx={{ overflow: 'visible' }}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          <DialogTitle
-            className="ui-dialog-title"
-            style={{ cursor: 'move' }}
-            id="draggable-dialog-title-opt"
+  return !selectedModel ||
+    ![optionType.npc, optionType.pc].includes(selectedType) ? null : (
+      <>
+        <Draggable handle="#draggable-dialog-title-opt">
+          <Box
+            className="ui-dialog model-overlay"
+            sx={{
+              overflow: 'visible',
+              ...(selectedType === optionType.npc
+                ? {
+                  height    : '200px !important',
+                  width     : '200px',
+                  paddingTop: '20px',
+                }
+                : {}),
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
           >
-            {'Options'}
-          </DialogTitle>
-          {pcModel ? (
-            <PCConfig
-              itemOptions={itemOptions}
-              textures={textures}
-              model={selectedModel}
-              config={config}
-              setOption={setOption}
-            />
-          ) : (
-            <>
-              <FormControl
-                size="small"
-                sx={{ m: 1, width: 250, margin: '5px auto' }}
+            <DialogTitle
+              className="ui-dialog-title"
+              style={{ cursor: 'move' }}
+              id="draggable-dialog-title-opt"
+            >
+              {'Options'}
+            </DialogTitle>
+            {pcModel ? (
+              <PCConfig
+                itemOptions={itemOptions}
+                textures={textures}
+                model={selectedModel}
+                config={config}
+                setOption={setOption}
+              />
+            ) : (
+              <Stack
+                direction="column"
+                justifyContent="center"
+                alignContent="center"
               >
-                <FormLabel id="head-group">Head</FormLabel>
-                <Select
-                  aria-labelledby="head-group"
-                  name="head-group"
-                  value={head}
-                  onChange={(e) => setHead(e.target.value)}
+                <FormControl
+                  size="small"
+                  sx={{ m: 1, width: 150, margin: '5px auto' }}
                 >
-                  {Array.from({ length: headCount }).map((_, idx) => (
-                    <MenuItem value={idx} label={idx}>
-                      Head {idx + 1}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  <FormLabel id="head-group">Body</FormLabel>
+                  <Select
+                    aria-labelledby="head-group"
+                    name="head-group"
+                    value={head}
+                    onChange={(e) => setHead(e.target.value)}
+                  >
+                    {Array.from({ length: headCount }).map((_, idx) => (
+                      <MenuItem value={idx} label={idx}>
+                      Body {idx + 1}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
 
-              <FormControl
-                size="small"
-                sx={{ m: 1, width: 250, margin: '5px auto' }}
-              >
-                <FormLabel id="head-group">Texture</FormLabel>
-                <Select
-                  aria-labelledby="head-group"
-                  name="head-group"
-                  value={texture}
-                  onChange={(e) => setTexture(e.target.value)}
+                <FormControl
+                  size="small"
+                  sx={{ m: 1, width: 150, margin: '5px auto' }}
                 >
-                  <MenuItem value={-1} label={-1}>
+                  <FormLabel id="head-group">Texture</FormLabel>
+                  <Select
+                    aria-labelledby="head-group"
+                    name="head-group"
+                    value={texture}
+                    onChange={(e) => setTexture(e.target.value)}
+                  >
+                    <MenuItem value={-1} label={-1}>
                     Default
-                  </MenuItem>
-                  {textures.map((idx) => (
-                    <MenuItem value={idx} label={idx}>
-                      Texture {idx + 1}
                     </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </>
-          )}
+                    {textures.map((idx) => (
+                      <MenuItem value={idx} label={idx}>
+                      Texture {idx + 1}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            )}
+          </Box>
+        </Draggable>
 
-        </Box>
-        
-      </Draggable>
-
-      <AnimationBar
-        animations={animations}
-        animation={currentAnimation}
-        name={animation}
-        setAnimation={setAnimation}
-        babylonModel={babylonModel}
-      />
-    </>
-  );
+        <AnimationBar
+          animations={animations}
+          animation={currentAnimation}
+          name={animation}
+          setAnimation={setAnimation}
+          babylonModel={babylonModel}
+        />
+      </>
+    );
 };

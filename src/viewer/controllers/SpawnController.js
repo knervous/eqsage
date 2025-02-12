@@ -824,7 +824,8 @@ class SpawnController extends GameControllerChild {
     texture = -1,
     primary = null,
     secondary = null,
-    secondaryPoint = false
+    secondaryPoint = false,
+    npc = false
   ) {
     const wearsRobe = this.wearsRobe(modelName);
     GlobalStore.actions.setLoading(true);
@@ -912,55 +913,55 @@ class SpawnController extends GameControllerChild {
     // if (wearsRobe) {
     //   texture += 10;
     // }
-    // if (texture !== -1 && !this.skipTextureSwap(modelName)) {
-    //   for (const [idx, mat] of Object.entries(multiMat.subMaterials)) {
-    //     if (!mat?._albedoTexture) {
-    //       continue;
-    //     }
+    if (npc && texture !== -1 && !this.skipTextureSwap(modelName)) {
+      for (const [idx, mat] of Object.entries(multiMat.subMaterials)) {
+        if (!mat?._albedoTexture) {
+          continue;
+        }
 
-    //     const isVariationTexture = wearsRobe && texture >= 10;
-    //     let text = isVariationTexture ? texture - 10 : texture;
-    //     if (mat.name.startsWith('clk')) {
-    //       text += 4;
-    //     } else if (wearsRobe) {
-    //       continue;
-    //     }
-    //     const prefix = mat.name.slice(0, mat.name.length - 4);
-    //     const suffix = mat.name.slice(mat.name.length - 4, mat.name.length);
-    //     const textVer = suffix.slice(0, 2);
-    //     const textNum = suffix.slice(2, 4);
-    //     const thisText = text.toString().padStart(2, '0');
-    //     let newFullName = `${prefix}${thisText}${textNum}`;
-    //     const isHead = newFullName.includes(`he${thisText}`);
+        const isVariationTexture = wearsRobe && texture >= 10;
+        let text = isVariationTexture ? texture - 10 : texture;
+        if (mat.name.startsWith('clk')) {
+          text += 4;
+        } else if (wearsRobe) {
+          continue;
+        }
+        const prefix = mat.name.slice(0, mat.name.length - 4);
+        const suffix = mat.name.slice(mat.name.length - 4, mat.name.length);
+        const textVer = suffix.slice(0, 2);
+        const textNum = suffix.slice(2, 4);
+        const thisText = text.toString().padStart(2, '0');
+        let newFullName = `${prefix}${thisText}${textNum}`;
+        const isHead = newFullName.includes(`he${thisText}`);
 
-    //     if (isHead && newModel) {
-    //       newFullName = `${prefix}sk${textNum}`;
-    //     } else if (isHead && this.secondaryHelm(modelName)) {
-    //       continue;
-    //     }
+        if (isHead && newModel) {
+          newFullName = `${prefix}sk${textNum}`;
+        } else if (isHead && this.secondaryHelm(modelName)) {
+          continue;
+        }
 
-    //     if (thisText !== textVer) {
-    //       const existing = window.gameController.currentScene.materials
-    //         .flat()
-    //         .find((m) => m.name === newFullName);
-    //       if (existing) {
-    //         multiMat.subMaterials[idx] = existing;
-    //       } else {
-    //         const newMat = new PBRMaterial(newFullName);
-    //         newMat.metallic = 0;
-    //         newMat.roughness = 1;
-    //         newMat._albedoTexture = new Texture(
-    //           newFullName,
-    //           window.gameController.currentScene,
-    //           mat._albedoTexture.noMipMap,
-    //           mat._albedoTexture.invertY,
-    //           mat._albedoTexture.samplingMode
-    //         );
-    //         multiMat.subMaterials[idx] = newMat;
-    //       }
-    //     }
-    //   }
-    // }
+        if (thisText !== textVer) {
+          const existing = window.gameController.currentScene.materials
+            .flat()
+            .find((m) => m.name === newFullName);
+          if (existing) {
+            multiMat.subMaterials[idx] = existing;
+          } else {
+            const newMat = new PBRMaterial(newFullName);
+            newMat.metallic = 0;
+            newMat.roughness = 1;
+            newMat._albedoTexture = new Texture(
+              newFullName,
+              window.gameController.currentScene,
+              mat._albedoTexture.noMipMap,
+              mat._albedoTexture.invertY,
+              mat._albedoTexture.samplingMode
+            );
+            multiMat.subMaterials[idx] = newMat;
+          }
+        }
+      }
+    }
 
     rootNode.scaling.z = -1;
 
