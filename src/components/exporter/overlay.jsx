@@ -24,6 +24,7 @@ import { ExporterNavHeader } from './header';
 import { useAlertContext } from '@/context/alerts';
 import { useConfirm } from 'material-ui-confirm';
 import { deleteEqFolder } from '@/lib/util/fileHandler';
+import BABYLON from '@bjs';
 
 const cachedBlobUrls = {};
 let videoElement = null;
@@ -31,7 +32,7 @@ let videoElement = null;
 const ExporterOverlayComponent = () => {
   const { reset } = useMainContext();
   const { toggleDialog, dialogState } = useOverlayContext();
-  const { location, selectedType, selectedModel, background } = useSettingsContext();
+  const { location, selectedType, selectedModel, background, bgColor } = useSettingsContext();
   const { openAlert } = useAlertContext();
   const confirm = useConfirm();
   const {
@@ -47,8 +48,10 @@ const ExporterOverlayComponent = () => {
 
   useEffect(() => {
     gameController.ModelController.swapBackground(background);
-    console.log('Swap', background);
   }, [background]);
+  useEffect(() => {
+    gameController.currentScene.clearColor = BABYLON.Color4.FromHexString(bgColor);
+  }, [bgColor]);
   useEffect(() => {
     if (!area?.file) {
       const node = gameController.currentScene.getMeshByName('__root__');
@@ -243,6 +246,9 @@ const defaultOptions = {
   cycleAnimations: true,
   rotate         : true,
   config         : defaultModel,
+  bgColor        : '#00DDDDFF',
+  nameplateColor : '#F0F046FF',
+  rotationSpeed  : 0.5,
 };
 
 export const ExporterOverlay = () => (

@@ -78,9 +78,11 @@ class CameraController extends GameControllerChild {
   }
   #autoRotationBehavior = new BABYLON.AutoRotationBehavior();
   #rotating = false;
-  rotate(rotate) {
+  #rotateSpeed = 0.5;
+  rotate(rotate, speed = 0.5) {
     this.#rotating = rotate;
-    this.#autoRotationBehavior.idleRotationSpeed = 0.5;
+    this.#rotateSpeed = speed;
+    this.#autoRotationBehavior.idleRotationSpeed = speed;
     this.#autoRotationBehavior.zoomStopsAnimation = false;
     this.#autoRotationBehavior.idleRotationSpinupTime = 1;
     this.#autoRotationBehavior.idleRotationWaitTime = 1;
@@ -88,6 +90,12 @@ class CameraController extends GameControllerChild {
       this.#autoRotationBehavior.attach(this.camera);
     } else {
       this.#autoRotationBehavior.detach();
+    }
+  }
+
+  setRotationSpeed(speed) {
+    if (this.#autoRotationBehavior) {
+      this.#autoRotationBehavior.idleRotationSpeed = speed;
     }
   }
 
@@ -147,7 +155,7 @@ class CameraController extends GameControllerChild {
     if (e.button === 2) {
       document.exitPointerLock();
     }
-    this.rotate(this.#rotating);
+    this.rotate(this.#rotating, this.#rotateSpeed);
   }
 
   createModelCamera = () => {

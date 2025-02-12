@@ -98,7 +98,7 @@ export const animateVignette = (camera, scene) => {
 
   vignetteParams.animations = [];
   vignetteParams.animations.push(pulseAnimation);
-  scene.clearColor = new BABYLON.Color4(227, 220, 80, 1);
+  // scene.clearColor = new BABYLON.Color4(227, 220, 80, 1);
 
   /**
    * 

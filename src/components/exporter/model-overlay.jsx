@@ -36,7 +36,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
   const [currentAnimation, setCurrentAnimation] = useState(null);
   const [babylonModel, setBabylonModel] = useState(null);
   const exportPromise = useRef(Promise.resolve());
-  const { config, setOption } = useSettingsContext();
+  const { config, setOption, nameplateColor = '#F0F046FF' } = useSettingsContext();
   useEffect(() => {
     (async () => {
       setTexture(-1);
@@ -92,6 +92,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
     }
   }, [animation, babylonModel]);
 
+
   const applyConfig = useCallback(
     async (node = gameController.currentScene.getMeshById('model_export')) => {
       if (!node) {
@@ -118,7 +119,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
       tmpctx.font = '16px Arial';
       const textWidth = tmpctx.measureText(name).width + 20;
       const textureGround = new BABYLON.DynamicTexture('nameplate_texture', { width: textWidth, height: 30 }, gameController.currentScene);   
-      textureGround.drawText(name, null, null, '17px Arial', '#F0F046', 'transparent', false, true);
+      textureGround.drawText(name, null, null, '17px Arial', nameplateColor, 'transparent', false, true);
       textureGround.update(false, true);
       const materialGround = new BABYLON.StandardMaterial('nameplate_material', gameController.currentScene);
 
@@ -230,7 +231,7 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
         }
       }
     },
-    [config, selectedModel]
+    [config, selectedModel, nameplateColor]
   );
 
   useEffect(() => {

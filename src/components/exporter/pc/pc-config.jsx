@@ -68,7 +68,6 @@ export const PCConfig = ({
   const setConfig = (newConfig) => {
     setOption('config', newConfig);
   };
-  console.log('Name', config?.name);
   return !atlas ? null : (
     <Stack
       sx={{

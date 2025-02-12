@@ -36,7 +36,7 @@ export const AnimationBar = ({
   setAnimation,
 }) => {
   const [playMs, setPlayMs] = useState(0);
-  const { cycleAnimations, rotate, setOption } = useSettingsContext();
+  const { cycleAnimations, rotate, setOption, rotateSpeed } = useSettingsContext();
   const currentAnimation = useRef(animation);
   useEffect(() => {
     if (babylonModel?.rootNode) {
@@ -73,8 +73,8 @@ export const AnimationBar = ({
   }, [animation, babylonModel?.rootNode]);
 
   useEffect(() => {
-    gameController.CameraController.rotate(rotate);
-  }, [rotate]);
+    gameController.CameraController.rotate(rotate, rotateSpeed);
+  }, [rotate, rotateSpeed]);
 
 
 
