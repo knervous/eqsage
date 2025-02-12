@@ -110,8 +110,8 @@ export const PCConfig = ({
           margin="dense"
           size="small"
           sx={{
-            margin                 : '10px 12.5% 3px 12.5%',
-            width                  : '75%',
+            margin                 : '18px 7.5% 3px 7.5%',
+            width                  : '85%',
             '& .MuiInputBase-input': {
               paddingTop   : '4px',
               paddingBottom: '4px',
