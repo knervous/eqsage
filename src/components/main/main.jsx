@@ -19,7 +19,7 @@ const CONSTANTS = {
 };
 
 const bgMax = 6;
-const sessionBg = `center no-repeat url('/static/sage/bg${Math.ceil(Math.random() * bgMax)}.png')`;
+const sessionBg = `center no-repeat url('/static/sage/bg${Math.ceil(Math.random() * bgMax)}.jpg')`;
 
 export const Main = () => {
   const {
