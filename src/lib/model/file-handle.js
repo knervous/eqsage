@@ -2,7 +2,7 @@ import { FILE_TYPE, VERSION } from './constants';
 import { S3DDecoder } from '../s3d/s3d-decoder';
 import { Document } from '@gltf-transform/core';
 import { EQGDecoder } from '../eqg/eqg-decoder';
-import { getEQFile } from '../util/fileHandler';
+import { getEQFile, getEQFileExists } from '../util/fileHandler';
 import { gameController } from '../../viewer/controllers/GameController';
 
 
@@ -79,7 +79,8 @@ export class EQFileHandle {
       return;
     }
     const existingMetadata = await getEQFile('zones', `${this.name}.json`, 'json');
-    if (existingMetadata?.version === VERSION && !this.#settings.forceReload) {
+    const exists = await getEQFileExists('zones', `${this.name}.glb`);
+    if (exists && existingMetadata?.version === VERSION && !this.#settings.forceReload) {
       console.log('Had cached version, skipping translation');
       return;
     }
