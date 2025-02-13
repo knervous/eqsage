@@ -5,7 +5,27 @@ import { getEQFile, writeEQFile } from '../../util/fileHandler';
 import { VERSION } from '../../model/constants';
 import { writeMetadata } from './common';
 
-const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+import { draco, DRACO_DEFAULTS } from '@gltf-transform/functions';
+import draco3d from 'draco3dgltf';
+
+const io = new WebIO()
+  .registerDependencies({
+    'draco3d.decoder': await draco3d.createDecoderModule({
+      locateFile: (file) => {
+        return `/static/${file}`;
+      },
+      print   : console.log,
+      printErr: console.error,
+    }),
+    'draco3d.encoder': await draco3d.createEncoderModule({
+      locateFile: (file) => {
+        return `/static/${file}`;
+      },
+      print   : console.log,
+      printErr: console.error,
+    }),
+  })
+  .registerExtensions(ALL_EXTENSIONS);
 
 // Helper function to convert uint32 (assumed format 0xAARRGGBB) to normalized [r, g, b, a]
 function uint32ToRGBA(color) {
@@ -67,7 +87,7 @@ export async function exportv3(zoneName) {
         const [name] = prop.valueS.toLowerCase().split('.');
         const texture = document
           .createTexture(name)
-          .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+          // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
           .setURI(`/eq/textures/${name}`)
           .setExtras({ name, shader: mat.shader });
         if (prop.name.includes('Normal')) {
@@ -116,7 +136,7 @@ export async function exportv3(zoneName) {
         await writeMetadata.call(this, placeable, zoneMetadata, modelFile, writtenModels, true);
         continue;
       }
-
+      console.log('mod', mod);
       if (mod) {
         const primitiveMap = {};
         // Process each polygon in the model geometry.
@@ -140,7 +160,7 @@ export async function exportv3(zoneName) {
           // Generate a primitive name (same as your current logic).
           let primName = mat.name;
           const endDigitRegex = /-(\d+)$/;
-          while (primitiveMap[primName]?.vecs?.length > 20000) {
+          while (primitiveMap[primName]?.vecs?.length > 200000) {
             if (endDigitRegex.test(primName)) {
               const [, n] = endDigitRegex.exec(primName);
               primName = primName.replace(endDigitRegex, `-${+n + 1}`);
@@ -196,7 +216,7 @@ export async function exportv3(zoneName) {
           const col3 = uint32ToRGBA(lit[poly.verts[2]]);
           sharedPrimitive.colors.push(...col1, ...col2, ...col3);
         }
-
+        console.log('Pri', primitiveMap);
         // Now create accessors for each primitive.
         for (const { gltfPrim, indices, vecs, normals, uv, colors } of Object.values(primitiveMap)) {
           const idc = new Uint16Array(indices);
@@ -254,6 +274,12 @@ export async function exportv3(zoneName) {
     `${this.zone.name.replace('.zon', '.json')}`,
     JSON.stringify(zoneMetadata)
   );
+  console.log('Start', document);
+  await document.transform(
+    // Compress mesh geometry with Draco.
+    draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+  );
+  console.log('Finish draco');
   const bytes = await io.writeBinary(document);
   await writeEQFile('zones', `${zoneName}.glb`, bytes.buffer);
 }
