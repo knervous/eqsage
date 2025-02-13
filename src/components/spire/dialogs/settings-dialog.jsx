@@ -27,6 +27,7 @@ export const SettingsDialog = ({ onClose }) => {
     spawnLOD = 500,
     remoteUrl = '',
     importBoundary = false,
+    showSpawns = true,
   } = useSettingsContext();
   const [testState, setTestState] = useState('Ready');
   const [user, setUser] = useState('');
@@ -118,6 +119,18 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Show Regions"
+      />
+      <br />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={showSpawns}
+            onChange={({ target: { checked } }) =>
+              setOption('showSpawns', checked)
+            }
+          />
+        }
+        label="Load Spawns (Requires Page Refresh)"
       />
       <br />
       <FormControlLabel

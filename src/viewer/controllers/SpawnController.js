@@ -1064,6 +1064,9 @@ class SpawnController extends GameControllerChild {
     if (!this.currentScene || spawns.length === 0) {
       return;
     }
+    if (!this.gc.settings.showSpawns) {
+      return;
+    }
 
     this.zoneSpawnsNode = this.currentScene?.getNodeById('zone-spawns');
     if (!this.zoneSpawnsNode) {

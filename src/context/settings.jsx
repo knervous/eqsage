@@ -5,7 +5,7 @@ export const useSettingsContext = () => useContext(SettingsContext);
 
 export const globalSettings = {
   flySpeed      : 2,
-  showRegions   : true,
+  showRegions   : false,
   glow          : true,
   webgpu        : false,
   forceReload   : false,
@@ -16,6 +16,7 @@ export const globalSettings = {
   soundRepeat   : false,
   soundShuffle  : false,
   importBoundary: false,
+  showSpawns    : true,
 };
 
 export const SettingsProvider = ({
