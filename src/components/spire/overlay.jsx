@@ -73,7 +73,6 @@ export const SpireOverlay = ({ inZone }) => {
         <NavHeader
           width={45}
           minWidth={'500px'}
-          offset={rightDrawerOpen}
           height={inZone ? 80 : 50}
           sx={{ padding: '5px 5vw', height: '100%' }}
         >
