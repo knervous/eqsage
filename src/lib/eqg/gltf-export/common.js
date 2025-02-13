@@ -122,7 +122,7 @@ export async function writeModels(modelFile, mod) {
       const texture = document
         .createTexture(name)
         .setMimeType('image/png')
-        .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
+        // .setImage(new Uint8Array(await getEQFile('textures', `${name}.png`)))
         .setURI(`/eq/textures/${name}`)
         .setExtras({
           name,
