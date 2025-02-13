@@ -13,14 +13,17 @@ export const DrawerButton = ({
   drawer,
   drawerState,
   NotificationIcon,
+  disabled = false,
 }) => {
   const doToggleDrawer = useCallback(() => {
     toggleDrawer(drawer, !drawerState?.[drawer]);
   }, [toggleDrawer, drawer, drawerState]);
   return (
     <IconButton
+      disabled={disabled}
       className={classNames('builder-left-nav-button', {
-        'builder-left-nav-button-open': drawerState?.[drawer],
+        'builder-left-nav-button-open'    : drawerState?.[drawer],
+        'builder-left-nav-button-disabled': disabled,
       })}
       onClick={doToggleDrawer}
     >

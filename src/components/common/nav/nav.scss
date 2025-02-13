@@ -2,12 +2,8 @@
     background-image: url('../../images/super_fancy_bg.png');
     background-repeat: repeat;
     background-position: center;
-    width: 60vw !important;
-    height: 75px !important;
-    max-height: 75px !important;
     position: fixed;
     transition: left 0.2s ease;
-    left: 20vw;
     color: white;
     z-index: 5;
     clip-path: polygon(0 0, 100% 0%, 90% 100%, 10% 100%);
@@ -15,10 +11,7 @@
 
 .builder-header-bg {
     position: absolute;
-    width: calc(60vw + 4px) !important;
-    left: calc(20vw - 2px);
     transition: left 0.2s ease;
-    height: 77px;
     z-index: 1;
     top: 0;
     clip-path: polygon(0 0, 100% 0%, 90% 100%, 10% 100%);
@@ -101,6 +94,10 @@
     .builder-left-nav-button-open {
         opacity: 1.0;
         background-color: rgba(180, 173, 134, 0.5) !important;
+    }
+    .builder-left-nav-button-disabled {
+        opacity: 0.4
+
     }
 }
 .clickable {

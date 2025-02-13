@@ -1,9 +1,11 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 
-import { Box, Stack, Typography } from '@mui/material';
+import { Box, Button, Divider, Stack, Typography } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
+import HomeIcon from '@mui/icons-material/Home';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
-import IconButton from '@mui/material/IconButton';
 import { ZoneIcon } from '../common/icons/zone';
 import { SpawnIcon } from '../common/icons/spawn';
 import { DoorIcon } from '../common/icons/door';
@@ -12,52 +14,21 @@ import { RegionIcon } from '../common/icons/region';
 import { QuestIcon } from '../common/icons/quest';
 import { useOverlayContext } from './provider';
 import { OverlayDialogs } from './dialogs/dialogs';
-import classNames from 'classnames';
 import { useSettingsHook } from './hooks';
 import SpawnNavBar from './nav-bar/spawn-nav/spawn-nav';
-
+import { Compass } from '../common/compass/component';
+import { NavLeft } from '../common/nav/nav-left';
+import { DrawerButton } from '../common/nav/drawer-button';
+import { NavHeader } from '../common/nav/nav-header';
 import { useMainContext } from '../main/context';
-import { useSettingsContext } from '../../context/settings';
 
 import './overlay.scss';
-import { Compass } from '../common/compass/component';
-
-
-const NavButton = ({ text, Icon, toggleDialog, dialog, dialogState }) => {
-  const doToggleDialog = useCallback(() => {
-    toggleDialog(dialog, !dialogState[dialog]);
-  }, [toggleDialog, dialog, dialogState]);
-
-  return (
-    <IconButton
-      className={classNames('spire-left-nav-button', {
-        'spire-left-nav-button-open': dialogState[dialog],
-      })}
-      onClick={doToggleDialog}
-    >
-      <Stack
-        direction={'column'}
-        justifyContent={'center'}
-        alignItems={'center'}
-      >
-        <Icon
-          width={30}
-          height={30}
-        />
-        <Typography
-          className="text-outline"
-          sx={{ textAlign: 'center', fontSize: 13 }}
-        >
-          {text}
-        </Typography>
-      </Stack>
-    </IconButton>
-  );
-};
 
 export const SpireOverlay = ({ inZone }) => {
   const { toggleDialog, dialogState, closeDialogs } = useOverlayContext();
-  const { modelExporter } = useMainContext();
+  const { selectedZone, setZoneDialogOpen, setSelectedZone, rightDrawerOpen } =
+    useMainContext();
+
   useSettingsHook();
   useEffect(() => {
     const keyHandler = (e) => {
@@ -68,88 +39,174 @@ export const SpireOverlay = ({ inZone }) => {
     window.addEventListener('keydown', keyHandler);
     return () => window.removeEventListener('keydown', keyHandler);
   }, [closeDialogs]);
-  return modelExporter ? null : (
+
+  const headerText = selectedZone?.long_name
+    ? `${selectedZone.long_name} - ${selectedZone?.short_name}`
+    : 'Select a Zone';
+  return (
     <>
-      {/**
-       * Left Nav Bar
-       */}
+      <img
+        alt="ModelViewer"
+        src="/static/zone-editor.png"
+        width="155"
+        height="155"
+        style={{
+          left    : '1vw',
+          // filter      : 'brightness(1) invert(0)',
+          // mixBlendMode: 'multiply',
+          top     : '-20px',
+          position: 'fixed',
+          zIndex  : 10000,
+        }}
+      />
       <Box
         className="spire-left-nav"
         sx={{
           height  : '100vh',
           width   : '100px',
           position: 'absolute',
-          top     : modelExporter ? '-15px' : 0,
-          left    : modelExporter ? '300px' : 0,
           zIndex  : 1000,
         }}
       >
         {/** Compass */}
-        <Compass />
-        <Stack
-          sx={{ height: inZone ? 'calc(65%)' : '100px' }}
-          direction={'column'}
-          justifyContent={'space-evenly'}
-          alignItems={'center'}
+        {inZone && <Compass />}
+        <NavHeader
+          width={45}
+          minWidth={'500px'}
+          offset={rightDrawerOpen}
+          height={inZone ? 80 : 50}
+          sx={{ padding: '5px 5vw', height: '100%' }}
         >
-          <NavButton
-            dialogState={dialogState}
-            dialog="settings"
+          <Stack
+            sx={{
+              height : inZone ? '70px' : '100%',
+              padding: 0,
+              margin : 0,
+              width  : '100%'
+            }}
+            direction="column"
+            alignContent={'center'}
+            justifyContent={'space-evenly'}
+            alignItems={'space-around'}
+          >
+            <Typography
+              sx={{
+                fontSize : '17px',
+                textAlign: 'center',
+                marginTop: !inZone ? '5px' : 0,
+              }}
+            >
+              {headerText}
+            </Typography>
+            {inZone ? <Divider sx={{ background: 'rgba(180, 173, 134, 0.3)', margin: '5px 0' }} /> : null}
+            {inZone ? (
+              <Stack className="zone-buttons" justifyContent={'space-evenly'} direction="row">
+                <Button
+                  onClick={() => setZoneDialogOpen(true)}
+                  size="small"
+                >
+                  <HomeIcon />
+                  <Typography>Main Menu</Typography>
+                </Button>
+                <Button
+                  onClick={() => {
+                    setSelectedZone('');
+                    setTimeout(() => {
+                      setZoneDialogOpen(false);
+                      setSelectedZone(selectedZone);
+                    }, 1);
+                  }}
+                  size="small"
+                >
+                  <RefreshIcon />
+                  <Typography>Reload</Typography>
+                </Button>
+                <Button
+                  onClick={() => {
+                    window.gameController.ZoneController.exportZone(
+                      selectedZone.short_name
+                    );
+                  }}
+                  size="small"
+                >
+                  <FileDownloadIcon />
+                  <Typography>Export GLB</Typography>
+                </Button>
+                <Button
+                  onClick={() => {
+                    window.gameController.ZoneController.exportSTL(
+                      selectedZone.short_name
+                    );
+                  }}
+                  size="small"
+                >
+                  <FileDownloadIcon />
+                  <Typography>Export STL</Typography>
+                </Button>
+              </Stack>
+            ) : null}
+          </Stack>
+        </NavHeader>
+        <NavLeft>
+          <DrawerButton
+            drawerState={dialogState}
+            drawer="settings"
             text={'Settings'}
             Icon={SettingsIcon}
-            toggleDialog={toggleDialog}
+            toggleDrawer={toggleDialog}
           />
-          {inZone && (
-            <>
-              <NavButton
-                dialogState={dialogState}
-                dialog="zone"
-                text={'Zone'}
-                Icon={ZoneIcon}
-                toggleDialog={toggleDialog}
-              />
-              <NavButton
-                dialogState={dialogState}
-                dialog="npc"
-                text={'Spawns'}
-                Icon={SpawnIcon}
-                toggleDialog={toggleDialog}
-              />
-              <NavButton
-                dialogState={dialogState}
-                dialog="quests"
-                text={'Quests'}
-                Icon={QuestIcon}
-                toggleDialog={toggleDialog}
-              />
-              <NavButton
-                dialogState={dialogState}
-                dialog="objects"
-                text={'Objects'}
-                Icon={DoorIcon}
-                toggleDialog={toggleDialog}
-              />
-              <NavButton
-                dialogState={dialogState}
-                dialog="items"
-                text={'Items'}
-                Icon={ItemIcon}
-                toggleDialog={toggleDialog}
-              />
+          <DrawerButton
+            drawerState={dialogState}
+            drawer="zone"
+            disabled={!inZone}
+            text={'Zone'}
+            Icon={ZoneIcon}
+            toggleDrawer={toggleDialog}
+          />
+          <DrawerButton
+            drawerState={dialogState}
+            drawer="npc"
+            disabled={!inZone}
+            text={'Spawns'}
+            Icon={SpawnIcon}
+            toggleDrawer={toggleDialog}
+          />
+          <DrawerButton
+            drawerState={dialogState}
+            drawer="quests"
+            disabled={!inZone}
+            text={'Quests'}
+            Icon={QuestIcon}
+            toggleDrawer={toggleDialog}
+          />
+          <DrawerButton
+            drawerState={dialogState}
+            drawer="objects"
+            disabled={!inZone}
+            text={'Doors'}
+            Icon={DoorIcon}
+            toggleDrawer={toggleDialog}
+          />
+          <DrawerButton
+            drawerState={dialogState}
+            drawer="items"
+            disabled={!inZone}
+            text={'Items'}
+            Icon={ItemIcon}
+            toggleDrawer={toggleDialog}
+          />
 
-              <NavButton
-                dialogState={dialogState}
-                dialog="regions"
-                text={'Regions'}
-                Icon={RegionIcon}
-                toggleDialog={toggleDialog}
-              />
-            </>
-          )}
-        </Stack>
+          <DrawerButton
+            drawerState={dialogState}
+            drawer="regions"
+            disabled={!inZone}
+            text={'Regions'}
+            Icon={RegionIcon}
+            toggleDrawer={toggleDialog}
+          />
+        </NavLeft>
       </Box>
       <OverlayDialogs />
-
       <SpawnNavBar />
     </>
   );

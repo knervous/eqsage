@@ -37,7 +37,7 @@ export const FlyoutButton = ({
       <Box className="flyout-new">
         <Typography
           sx={{
-            fontSize  : '15px !important',
+            fontSize  : '17px !important',
             padding   : '10px',
             width     : '250px',
             marginLeft: '50px',

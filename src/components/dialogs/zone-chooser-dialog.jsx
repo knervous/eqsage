@@ -238,6 +238,7 @@ export const ZoneChooserDialog = ({ open }) => {
       className="ui-dialog"
       onKeyDown={(e) => e.stopPropagation()}
       maxWidth="md"
+
       open={open}
       onClose={() => (selectedZone ? setZoneDialogOpen(false) : null)}
       aria-labelledby="draggable-dialog-title"
@@ -247,7 +248,7 @@ export const ZoneChooserDialog = ({ open }) => {
         id="draggable-dialog-title"
         className="ui-dialog-title"
       >
-        Select a Zone
+        EQ Sage: Zone Editor
       </DialogTitle>
       <Flyout>
         <FlyoutButton
@@ -281,9 +282,9 @@ export const ZoneChooserDialog = ({ open }) => {
           title="Unlink EQ Directory"
         />
       </Flyout>
-      <DialogContent sx={{ minHeight: '200px' }}>
+      <DialogContent sx={{ minHeight: '220px', minWidth: '350px' }}>
         <AboutDialog open={aboutOpen} setOpen={setAboutOpen} />
-        <Stack direction={'column'}>
+        <Stack alignContent={'center'} alignItems={'center'} direction={'column'}>
           <FormControl
             size="small"
             sx={{ m: 1, width: 300, margin: '5px auto' }}
@@ -396,7 +397,7 @@ export const ZoneChooserDialog = ({ open }) => {
           variant="outlined"
           sx={{ margin: '5px auto' }}
         >
-          Enter Zone
+          Enter Zone Editor
         </Button>
       </Stack>
     </Dialog>

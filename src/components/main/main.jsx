@@ -3,7 +3,6 @@ import { Box, Stack, ThemeProvider, createTheme } from '@mui/material';
 import { ConfirmProvider } from 'material-ui-confirm';
 import { StatusDialog } from '../dialogs/status-dialog';
 import { ZoneChooserDialog } from '../dialogs/zone-chooser-dialog';
-import { BabylonZoneOverlay } from '../zone/overlay';
 import { BabylonZone } from '../zone/zone';
 import { ZoneProvider } from '../zone/zone-context';
 import { LoadingDialog } from '../spire/dialogs/loading-dialog';
@@ -18,6 +17,9 @@ const CONSTANTS = {
   CONTRAST_TEXT: '#777',
   LIGHT_GRAY   : 'rgba(0,0,0,0.1)',
 };
+
+const bgMax = 6;
+const sessionBg = `center no-repeat url('/static/sage/bg${Math.ceil(Math.random() * bgMax)}.png')`;
 
 export const Main = () => {
   const {
@@ -84,7 +86,6 @@ export const Main = () => {
           {audioDialogOpen && <AudioDialog open={true} />}
           {!zoneBuilderDialogOpen && (
             <ZoneProvider>
-              <BabylonZoneOverlay />
               <BabylonZone />
             </ZoneProvider>
           )}
@@ -96,6 +97,10 @@ export const Main = () => {
             }}
             direction={'row'}
             onDrop={onDrop}
+            sx={{
+              background    : sessionBg,
+              backgroundSize: 'cover',
+            }}
             className="sage-main"
           ></Stack>
         </ConfirmProvider>

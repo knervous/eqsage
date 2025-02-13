@@ -1,77 +1,73 @@
 .spire-left-nav {
-    svg {
-        fill: #ddd !important;
-        color: #ddd !important;
-    }
-    z-index: 100000 !important;
-    position: absolute;
-    .spire-left-nav-button {
-        border: 1px solid gold !important;
-        border-radius: 20px;
-        width: 75px;
-        opacity: 0.6;
-        transition: opacity 0.2s ease-out; // Transition effect for opacity change
-        background-image: url('../../components/images/super_fancy_bg.png');
-        // background-image: url('https://eqrequiem.com/ui/wnd_bg_light_rock.png');
+  svg {
+    fill: #ddd !important;
+    color: #ddd !important;
+  }
+  z-index: 100000 !important;
+  position: absolute;
+  .spire-left-nav-button {
+    border: 1px solid gold !important;
+    border-radius: 20px;
+    width: 75px;
+    opacity: 0.6;
+    transition: opacity 0.2s ease-out; // Transition effect for opacity change
+    background-image: url("../../components/images/super_fancy_bg.png");
+    // background-image: url('https://eqrequiem.com/ui/wnd_bg_light_rock.png');
 
-        &:hover {
-            opacity: 1.0;
-        }
+    &:hover {
+      opacity: 1;
     }
+  }
 
-    .spire-left-nav-button-open {
-        opacity: 1.0;
-    }
+  .spire-left-nav-button-open {
+    opacity: 1;
+  }
 }
 .clickable {
-    &:hover {
-        text-shadow:
-      -0.5px -1px 0 rgba(0,0,0,.1),  
-       0.5px -1px 0 rgba(0,0,0,.1),
-      -0.5px  1px 0 rgba(0,0,0,.1),
-       0.5px  1px 0 rgba(0,0,0,.1); /* Outline effect */
+  &:hover {
+    text-shadow: -0.5px -1px 0 rgba(0, 0, 0, 0.1),
+      0.5px -1px 0 rgba(0, 0, 0, 0.1), -0.5px 1px 0 rgba(0, 0, 0, 0.1),
+      0.5px 1px 0 rgba(0, 0, 0, 0.1); /* Outline effect */
     color: gold !important;
-
-    }
+  }
 }
 .text-outline {
-    cursor: initial;
-    user-select: none;
-    transition: text-shadow 0.2s ease;
-    transition: color 0.2s ease;
-    & + .clickable {
-        &:hover {
-            text-shadow:
-          -0.5px -1px 0 rgba(0,0,0,.1),  
-           0.5px -1px 0 rgba(0,0,0,.1),
-          -0.5px  1px 0 rgba(0,0,0,.1),
-           0.5px  1px 0 rgba(0,0,0,.1); /* Outline effect */
-        color: gold !important;
+  cursor: initial;
+  user-select: none;
+  transition: text-shadow 0.2s ease;
+  transition: color 0.2s ease;
+  & + .clickable {
+    &:hover {
+      text-shadow: -0.5px -1px 0 rgba(0, 0, 0, 0.1),
+        0.5px -1px 0 rgba(0, 0, 0, 0.1), -0.5px 1px 0 rgba(0, 0, 0, 0.1),
+        0.5px 1px 0 rgba(0, 0, 0, 0.1); /* Outline effect */
+      color: gold !important;
+    }
+  }
 
+  color: white !important; /* Text color */
+  text-shadow: -1px -1px 0 rgba(0, 0, 0, 0.5), 1px -1px 0 rgba(0, 0, 0, 0.5),
+    -1px 1px 0 rgba(0, 0, 0, 0.5), 1px 1px 0 rgba(0, 0, 0, 0.5); /* Outline effect */
+}
+
+.zone-buttons {
+    button {
+        min-width: 60px;
+        svg {
+            width: 16px;
+            height: 16px;
+        }
+        p {
+            font-size: 13px;
+            margin-left: 6px;
         }
     }
-   
-    color: white !important; /* Text color */
-    text-shadow:
-      -1px -1px 0 rgba(0,0,0,0.5),  
-       1px -1px 0 rgba(0,0,0,0.5),
-      -1px  1px 0 rgba(0,0,0,0.5),
-       1px  1px 0 rgba(0,0,0,0.5); /* Outline effect */
 }
 
 .outline-text-strong {
-    color: white; /* Text color */
-    text-shadow:
-      -2px -2px 0 #000,  
-       2px -2px 0 #000,
-      -2px  2px 0 #000,
-       2px  2px 0 #000,
-      -1px -2px 0 #000,
-       1px -2px 0 #000,
-      -2px -1px 0 #000,
-       2px -1px 0 #000,
-      -2px  1px 0 #000,
-       2px  1px 0 #000,
-      -1px  2px 0 #000,
-       1px  2px 0 #000; /* More detailed outline effect */
-  }
+  color: white; /* Text color */
+  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000,
+    2px 2px 0 #000, -1px -2px 0 #000, 1px -2px 0 #000, -2px -1px 0 #000,
+    2px -1px 0 #000, -2px 1px 0 #000, 2px 1px 0 #000, -1px 2px 0 #000,
+    1px 2px 0 #000; /* More detailed outline effect */
+}

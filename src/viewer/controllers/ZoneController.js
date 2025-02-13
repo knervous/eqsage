@@ -95,7 +95,7 @@ class ZoneController extends GameControllerChild {
     this.zoneLoaded = false;
   }
   async exportSTL(name) {
-    const zone = this.currentScene.getMeshByName('zone');
+    const zone = this.currentScene.getMeshByName('zone') ?? this.currentScene.getMeshByName('__root__');
     const objects =
       this.currentScene.getNodeByName('static-objects')?.getChildMeshes() ?? [];
     const zoneChildren = zone.getChildMeshes(false);

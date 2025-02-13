@@ -15,28 +15,28 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { gameController } from '../../../../viewer/controllers/GameController';
 import classNames from 'classnames';
-import './spawn-nav.scss';
-import { useMainContext } from '../../../main/context';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { AddEditSpawnDialog } from './add-edit-spawn-dialog';
-import { useAlertContext } from '../../../../context/alerts';
 import { useConfirm } from 'material-ui-confirm';
-import { useZoneContext } from '../../../zone/zone-context';
 import { GridEntryApi } from 'spire-api/api/grid-entry-api';
 import { GridApi } from 'spire-api/api/grid-api';
-import { SpawngroupApi } from 'spire-api/api/spawngroup-api';   // eslint-disable-line
+
+import { AddEditSpawnDialog } from './add-edit-spawn-dialog';
+import { useAlertContext } from '../../../../context/alerts';
+import { useZoneContext } from '../../../zone/zone-context';
+import { useMainContext } from '../../../main/context';
+import { gameController } from '../../../../viewer/controllers/GameController';
+
+import './spawn-nav.scss';
 
 function SpawnNavBar() {
   const [selectedSpawn, setSelectedSpawn] = useState(null);
   const [initialSpawn, setInitialSpawn] = useState(null);
   const [gridUpdater, setGridUpdater] = useState(0);
-  // const [spawnGroup, setSpawnGroup] = useState(null);
   const [grid, setGrid] = useState(null);
   const [, forceRender] = useState({});
   const { openAlert } = useAlertContext();
-  const { selectedZone, Spire } = useMainContext();
+  const { selectedZone, Spire, setRightDrawerOpen } = useMainContext();
   const [open, setOpen] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [gridLoading, setGridLoading] = useState(false);
@@ -57,7 +57,8 @@ function SpawnNavBar() {
     if (!open) {
       gameController.SpawnController.showSpawnPath([]);
     }
-  }, [open]);
+    setRightDrawerOpen(open);
+  }, [open, setRightDrawerOpen]);
 
   useEffect(() => {
     if (!selectedSpawn) {

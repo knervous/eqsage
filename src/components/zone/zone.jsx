@@ -67,7 +67,7 @@ export const BabylonZone = () => {
   }, [canvasState, setCanvasState]);
   return (
     <OverlayProvider>
-      <SpireOverlay inZone={!!selectedZone} />
+      {!modelExporter && <SpireOverlay inZone={!!selectedZone} />}
       {modelExporter && modelExporterLoaded && <ExporterOverlay />}
       {canvasState && <Box
         as="canvas"

@@ -76,6 +76,7 @@ export const MainProvider = ({ children }) => {
   const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
   const [zones, setZones] = useState([]);
   const [spire, setSpire] = useState(null);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [canvasState, setCanvasState] = useState(false);
   const [recentList, setRecentList] = useState(() =>
     localStorage.getItem('recent-zones')
@@ -92,6 +93,7 @@ export const MainProvider = ({ children }) => {
     setZoneBuilder(false);
     setModelExporterLoaded(false);
     setCanvasState(false);
+    setRightDrawerOpen(false);
   }, []);
 
   useEffect(() => {
@@ -176,6 +178,8 @@ export const MainProvider = ({ children }) => {
         setModelExporter,
         zoneBuilder,
         setZoneBuilder,
+        rightDrawerOpen, 
+        setRightDrawerOpen,
         modelExporterLoaded, 
         setModelExporterLoaded,
         rootFileSystemHandle,
