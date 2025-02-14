@@ -230,7 +230,7 @@ export class EQGDecoder {
         case "emt":
           break;
         case "zon":
-          this.zone = Zone.Factory(
+          this.zone = this.zone || Zone.Factory(
             new Uint8Array(await file.arrayBuffer()),
             this.#fileHandle,
             file.name,
