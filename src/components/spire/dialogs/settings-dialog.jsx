@@ -28,6 +28,7 @@ export const SettingsDialog = ({ onClose }) => {
     remoteUrl = '',
     importBoundary = false,
     showSpawns = true,
+    disableAnimations = false,
   } = useSettingsContext();
   const [testState, setTestState] = useState('Ready');
   const [user, setUser] = useState('');
@@ -131,6 +132,18 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Load Spawns (Requires Page Refresh)"
+      />
+      <br />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={disableAnimations}
+            onChange={({ target: { checked } }) =>
+              setOption('disableAnimations', checked)
+            }
+          />
+        }
+        label="Disable Animations (Requires Page Refresh)"
       />
       <br />
       <FormControlLabel

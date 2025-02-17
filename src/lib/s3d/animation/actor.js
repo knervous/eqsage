@@ -1,6 +1,16 @@
 /* eslint-disable */
 import { Location } from '../common/location';
+import { MeshReference } from '../mesh/mesh';
 import { WldFragment } from '../wld/wld-fragment';
+import { SkeletonHierarchyReference } from './skeleton';
+
+export const ActorType =  {
+  CAMERA: 0,
+  SKELETAL: 1,
+  STATIC: 2,
+  PARTICLE: 3,
+  SPRITE: 4
+}
 
 class ActorFlags {
   static HasCurrentAction = 0x01;
@@ -146,6 +156,7 @@ export class ActorDef extends WldFragment {
    * @type {import('../common/location').Location}
    */
   location = null;
+  actorType = ActorType.CAMERA;
 
   constructor(...args) {
     super(...args);
@@ -184,7 +195,23 @@ export class ActorDef extends WldFragment {
     }
     
     for (let i = 0; i < fragmentReferenceCount; i++) {
-      this.fragmentReferences.push(reader.readUint32() - 1);
+      this.fragmentReferences.push(reader.readInt32() - 1);
+    }
+
+    for (const fragRef of this.fragmentReferences) {
+      const ref = this.wld.fragments[fragRef];
+      switch(true) {
+        case ref instanceof MeshReference:
+        ref.reference.isAssigned = true;
+        this.actorType = ActorType.STATIC;
+        break;
+        case ref instanceof SkeletonHierarchyReference:
+        ref.reference.isHandled = true;
+        this.actorType = ActorType.SKELETAL;
+        break
+        default:
+          break;
+      }
     }
 
   }

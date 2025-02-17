@@ -23,9 +23,9 @@ export class MeshAnimatedVertices extends WldFragment {
       const positions = [];
 
       for (let j = 0; j < vertexCount; ++j) {
-        const x = reader.readUint16() * scale;
-        const y = reader.readUint16() * scale;
-        const z = reader.readUint16() * scale;
+        const x = reader.readInt16() * scale;
+        const y = reader.readInt16() * scale;
+        const z = reader.readInt16() * scale;
 
         positions.push(vec3.fromValues(x, y, z));
       }

@@ -4,19 +4,20 @@ export const SettingsContext = createContext({});
 export const useSettingsContext = () => useContext(SettingsContext);
 
 export const globalSettings = {
-  flySpeed      : 2,
-  showRegions   : false,
-  glow          : true,
-  webgpu        : false,
-  forceReload   : false,
-  clipPlane     : 10000,
-  spawnLOD      : 500,
-  remoteUrl     : '',
-  soundAutoPlay : false,
-  soundRepeat   : false,
-  soundShuffle  : false,
-  importBoundary: false,
-  showSpawns    : true,
+  flySpeed         : 2,
+  showRegions      : false,
+  glow             : true,
+  webgpu           : false,
+  forceReload      : false,
+  clipPlane        : 10000,
+  spawnLOD         : 500,
+  remoteUrl        : '',
+  soundAutoPlay    : false,
+  soundRepeat      : false,
+  soundShuffle     : false,
+  importBoundary   : false,
+  showSpawns       : true,
+  disableAnimations: false,
 };
 
 export const SettingsProvider = ({

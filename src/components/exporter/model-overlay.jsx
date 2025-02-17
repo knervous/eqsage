@@ -350,10 +350,10 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
     [selectedModel]
   );
 
-  return !selectedModel ||
-    ![optionType.npc, optionType.pc].includes(selectedType) ? null : (
+  return !selectedModel
+    ? null : (
       <>
-        <Draggable handle="#draggable-dialog-title-opt">
+        {[optionType.npc, optionType.pc].includes(selectedType) ? <Draggable handle="#draggable-dialog-title-opt">
           <Box
             className="ui-dialog model-overlay"
             sx={{
@@ -432,7 +432,8 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
               </Stack>
             )}
           </Box>
-        </Draggable>
+        </Draggable> : null}
+        
 
         <AnimationBar
           animations={animations}

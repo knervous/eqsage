@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { WldFragment } from '../wld/wld-fragment';
+import { WldFragment, WldFragmentReference } from '../wld/wld-fragment';
 import { fragmentNameCleaner } from '../../util/util';
 import { Animation } from './animation';
 import { Mesh, MeshReference } from '../mesh/mesh';
@@ -8,6 +8,12 @@ import * as glMat from 'gl-matrix';
 const vec3 = glMat.vec3;
 const mat4 = glMat.mat4;
 const quat = glMat.quat;
+
+export class SkeletonHierarchyReference extends WldFragmentReference {
+  get mesh() {
+    return this.reference;
+  }
+}
 
 class SkeletonFlags {
   static HasCenterOffset = 0x01;
@@ -50,31 +56,6 @@ class SkeletonBone {
   parent = null;
 }
 
-function evaluateGetters(obj) {
-  // If obj is not an object or is null, return it as is
-  if (typeof obj !== 'object' || obj === null) {
-    return obj;
-  }
-
-  // Initialize evaluated object
-  const evaluatedObj = Array.isArray(obj) ? [] : {};
-
-  // Iterate over each property of obj
-  for (const key in obj) {
-    const descriptor = Object.getOwnPropertyDescriptor(obj, key);
-
-    // If the property is a getter, evaluate it and assign the value
-    if (descriptor && typeof descriptor.get === 'function') {
-      evaluatedObj[key] = descriptor.get.call(obj);
-    } else if (typeof obj[key] === 'object') {
-      evaluatedObj[key] = evaluateGetters(obj[key]);
-    } else {
-      evaluatedObj[key] = obj[key];
-    }
-  }
-
-  return evaluatedObj;
-}
 
 function deepCloneWithIgnore(obj, ignoreKeys = []) {
   const visited = new WeakMap();
@@ -193,7 +174,7 @@ export class SkeletonHierarchy extends WldFragment {
         console.warn('Unable to link track reference');
       }
 
-      const meshReferenceIndex = reader.readUint32();
+      const meshReferenceIndex = reader.readInt32() - 1;
 
       if (meshReferenceIndex > 0) {
         pieceNew.meshReference = this.wld.fragments[meshReferenceIndex];

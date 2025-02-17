@@ -113,7 +113,7 @@ export const AnimationBar = ({
     };
   }, [cycleAnimations, animation, animations]);
 
-  return animation ? (
+  return true ? (
     <NavFooter height="85px" minWidth="800px" className="animation-playback">
       <Stack sx={{ width: '100%' }} direction="column">
         <Stack direction="row" justifyContent={'space-around'}>
@@ -128,13 +128,13 @@ export const AnimationBar = ({
               width       : '50%',
             }}
             name="animation-group"
-            value={animation.name}
+            value={animation?.name ?? 'None'}
             onChange={(e) => {
               setAnimation(e.target.value);
               setOption('cycleAnimations', false);
             }}
           >
-            {animations.map((ag) => (
+            {(animations ?? []).map((ag) => (
               <MenuItem value={ag.name} label={ag.name}>
                 {animationNames[ag.name]}
               </MenuItem>
@@ -164,8 +164,7 @@ export const AnimationBar = ({
             label="Rotate"
           />
         </Stack>
-
-        <Stack
+        {animation ? <Stack
           direction="row"
           sx={{ margin: '5px 0px', width: '100%' }}
           alignContent={'center'}
@@ -215,7 +214,8 @@ export const AnimationBar = ({
           >
             {animation.isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
           </Button>
-        </Stack>
+        </Stack> : null}
+       
       </Stack>
     </NavFooter>
   ) : null;

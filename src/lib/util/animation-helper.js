@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 import { SkeletonHierarchy } from "../s3d/animation/skeleton"; // eslint-disable-line
 import { Animation } from '../s3d/animation/animation';
 import { quat, vec3 } from 'gl-matrix';
@@ -208,7 +206,6 @@ export class S3DAnimationWriter {
       bone.children.forEach((bIndex) => node.addChild(skeletonNodes[bIndex]));
     }
 
-
     this.skeletons[skeletonName] = skeletonNodes;
     return skeletonNodes;
   }
@@ -344,7 +341,7 @@ export class S3DAnimationWriter {
           hasChildren &&
           Object.values(skeletonChildrenAttachBones).some((c) => c === boneName)
         ) {
-          for (const [key, value] of Object.entries(
+          for (const [key, _value] of Object.entries(
             skeletonChildrenAttachBones
           ).filter((c) => c[1] === boneName)) {
             const childSkeleton = this.skeletons[key];
@@ -401,7 +398,7 @@ export class S3DAnimationWriter {
           hasChildren &&
           Object.values(skeletonChildrenAttachBones).some((c) => c === boneName)
         ) {
-          for (const [key, value] in Object.entries(
+          for (const [key, _value] in Object.entries(
             skeletonChildrenAttachBones
           ).filter((c) => c[1] === boneName)) {
             const childSkeleton = this.skeletons[key];

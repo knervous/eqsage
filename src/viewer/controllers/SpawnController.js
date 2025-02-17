@@ -462,6 +462,10 @@ class SpawnController extends GameControllerChild {
     return this.assetContainers[modelName];
   }
 
+  clearAssetContainer() {
+    this.assetContainers = {};
+  }
+
   getObjectAssetContainer(objectName, path = 'objects') {
     if (!this.assetContainers[objectName]) {
       this.assetContainers[objectName] = SceneLoader.LoadAssetContainerAsync(
@@ -749,12 +753,21 @@ class SpawnController extends GameControllerChild {
       rootNode.computeWorldMatrix(true);
       rootNode.refreshBoundingInfo();
     }
-    rootNode.position.y = 5;
+    rootNode.position.y = 0;
     if (this.modelExport?.modelName !== modelName) {
       this.CameraController.camera.setTarget(rootNode.position.clone());
     }
-    rootNode.scaling.z = -1;
+    if (this.modelExport?.modelName !== modelName) {
+      this.doResetCamera = true;
+    }
 
+    const hasMorphTargets = rootNode
+      .getChildMeshes()
+      .some(mesh => mesh.morphTargetManager !== null);
+
+    if (hasMorphTargets) {
+      rootNode.visibility = 0;
+    }
     this.modelExport = {
       modelName,
       rootNode,
@@ -762,6 +775,7 @@ class SpawnController extends GameControllerChild {
       skeleton: skeletonRoot.skeleton,
     };
     GlobalStore.actions.setLoading(false);
+    
     return this.modelExport;
   }
 

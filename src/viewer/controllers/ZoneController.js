@@ -1,8 +1,6 @@
 import BABYLON from '@bjs';
 import { GameControllerChild } from './GameControllerChild';
-import {
-  optimizeBoundingBoxes,
-} from '../../lib/s3d/bsp/region-utils';
+import { optimizeBoundingBoxes } from '../../lib/s3d/bsp/region-utils';
 import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
@@ -95,7 +93,9 @@ class ZoneController extends GameControllerChild {
     this.zoneLoaded = false;
   }
   async exportSTL(name) {
-    const zone = this.currentScene.getMeshByName('zone') ?? this.currentScene.getMeshByName('__root__');
+    const zone =
+      this.currentScene.getMeshByName('zone') ??
+      this.currentScene.getMeshByName('__root__');
     const objects =
       this.currentScene.getNodeByName('static-objects')?.getChildMeshes() ?? [];
     const zoneChildren = zone.getChildMeshes(false);
@@ -121,8 +121,7 @@ class ZoneController extends GameControllerChild {
           node = node.parent;
         }
         return (
-          node.name === '__root__' ||
-          node.name.startsWith('zone-') // ||
+          node.name === '__root__' || node.name.startsWith('zone-') // ||
           // staticObjects.includes(node) ||
           // node.name === 'static-objects'
         );
@@ -671,11 +670,15 @@ class ZoneController extends GameControllerChild {
         undefined,
         { doNotInstantiate: true }
       );
-      instanceContainer.animationGroups?.forEach((ag) =>
-        this.scene.removeAnimationGroup(ag)
-      );
+      if (this.gc.settings.disableAnimations) {
+        instanceContainer.animationGroups?.forEach((ag) =>
+          this.scene.removeAnimationGroup(ag)
+        );
+        instanceContainer.animationGroups = [];
+      }
 
       const hasAnimations = instanceContainer.animationGroups.length > 0;
+
       for (const mesh of instanceContainer.rootNodes[0].getChildMeshes()) {
         if (mesh.getTotalVertices() > 0) {
           // mesh.rotation = new Vector3(
@@ -687,39 +690,60 @@ class ZoneController extends GameControllerChild {
         }
       }
       try {
+        let rootNode = instanceContainer.rootNodes[0];
+        const instanceSkeleton = instanceContainer.skeletons[0];
+        const skeletonRoot = rootNode.getChildren(undefined, true)[0];
+
         const mergedMesh = Mesh.MergeMeshes(
           meshes,
-          true,
+          false,
           true,
           undefined,
-          false,
+          true,
           true
         );
         if (mergedMesh) {
-          mergedMesh.name = mergedMesh.id = `${modelName}_${idx}`;
-          mergedMesh.position = new Vector3(x, y, z);
+          skeletonRoot.parent = mergedMesh;
+          skeletonRoot.skeleton = instanceSkeleton;
+          rootNode.dispose();
+          rootNode = mergedMesh;
+          rootNode.name = rootNode.id = `${modelName}_${idx}`;
+          rootNode.position = new Vector3(x, y, z);
 
-          mergedMesh.rotation = new Vector3(
+          rootNode.rotation = new Vector3(
             Tools.ToRadians(rotateX),
             Tools.ToRadians(rotateY),
             Tools.ToRadians(rotateZ)
           );
-
-          mergedMesh.checkCollisions = true;
-          mergedMesh.scaling.z =
-            mergedMesh.scaling.y =
-            mergedMesh.scaling.x =
-              scale;
-          mergedMesh.metadata = {
+          const hasMorphTargets = rootNode
+            .getChildMeshes()
+            .some(mesh => mesh.morphTargetManager !== null);
+    
+          if (hasMorphTargets) {
+            rootNode.visibility = 0;
+          }
+          rootNode.checkCollisions = true;
+          rootNode.scaling.z = rootNode.scaling.y = rootNode.scaling.x = scale;
+          rootNode.metadata = {
             animated  : hasAnimations,
             zoneObject: true,
           };
-          mergedMesh.addLODLevel(2000, null);
-          mergedMesh.id = `${modelName}_${idx}`;
-          if (!hasAnimations) {
-            mergedMesh.freezeWorldMatrix();
+          // Reassign the skeleton to the merged mesh
+          if (instanceSkeleton) {
+            rootNode.skeleton = instanceSkeleton;
           }
-          mergedMeshes.push(mergedMesh);
+          rootNode.addLODLevel(2000, null);
+          rootNode.id = `${modelName}_${idx}`;
+          if (!hasAnimations) {
+            rootNode.freezeWorldMatrix();
+          } else {
+            setTimeout(() => {
+              instanceContainer.animationGroups.forEach((ag) => {
+                ag.play(true);
+              });
+            }, 1000);
+          }
+          mergedMeshes.push(rootNode);
         }
       } catch (e) {
         console.warn(`Warning merging object ${modelName}`, e);

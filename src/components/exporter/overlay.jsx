@@ -25,6 +25,7 @@ import { useAlertContext } from '@/context/alerts';
 import { useConfirm } from 'material-ui-confirm';
 import { deleteEqFolder } from '@/lib/util/fileHandler';
 import BABYLON from '@bjs';
+import { DevOverlay } from './dev-overlay';
 
 const cachedBlobUrls = {};
 let videoElement = null;
@@ -122,7 +123,7 @@ const ExporterOverlayComponent = () => {
           itemOptions={itemOptions}
         />
       ) : null}
-
+      {import.meta.env.VITE_LOCAL_DEV === 'true' ? <DevOverlay refresh={refresh} /> : null}
       <NavHeader minWidth={'800px'}>
         <ExporterNavHeader
           gameController={gameController}

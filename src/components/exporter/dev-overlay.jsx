@@ -2,17 +2,43 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, Chip, FormControl, Stack } from '@mui/material';
 import './overlay.scss';
 import { useMainContext } from '../main/context';
+import { processZone } from '../zone/processZone';
 
-export const DevOverlay = ({ doProcessZone }) => {
+export const DevOverlay = ({ refresh }) => {
   const ref = useRef(null);
   const [, forceRender] = useState({});
-  const { recentList, setRecentList } = useMainContext();
+  const { recentList, setRecentList, gameController, rootFileSystemHandle } = useMainContext();
   useEffect(() => {
     const listener = () => forceRender({});
     window.addEventListener('resize', listener);
     return () => window.removeEventListener('resize', listener);
   }, []);
-
+  const doProcessZone = useCallback(
+    async (zone) => {
+      const didProcess = await processZone(
+        zone.short_name,
+        gameController.settings,
+        rootFileSystemHandle,
+        true
+      );
+      if (
+        didProcess &&
+        !recentList.some((a) => a.short_name === zone.short_name)
+      ) {
+        setRecentList((l) => [...l, zone]);
+        // localStorage.setItem('recent-zones', JSON.stringify(recentList));
+      }
+      await refresh();
+      gameController.SpawnController.clearAssetContainer();
+    },
+    [
+      rootFileSystemHandle,
+      recentList,
+      setRecentList,
+      refresh,
+      gameController,
+    ]
+  );
   const select = useCallback(zone => {
     doProcessZone(zone);
   }, [doProcessZone]);
@@ -22,7 +48,7 @@ export const DevOverlay = ({ doProcessZone }) => {
       sx={{
         position: 'fixed',
         top     : 5,
-        left    : '320px',
+        right   : '0px',
         zIndex  : 10,
         width   : 'auto',
       }}

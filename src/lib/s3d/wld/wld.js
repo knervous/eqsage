@@ -1,7 +1,7 @@
 import { TypedArrayReader } from '../../util/typed-array-reader';
 import { decodeString } from '../../util/util';
 import { ActorInstance, ActorDef } from '../animation/actor';
-import { SkeletonHierarchy } from '../animation/skeleton';
+import { SkeletonHierarchy, SkeletonHierarchyReference } from '../animation/skeleton';
 import { TrackDefFragment, TrackFragment } from '../animation/track';
 import { BspTree } from '../bsp/bsp-tree';
 import {
@@ -217,6 +217,7 @@ export class Wld {
         break;
       case 0x37: // Mesh Animated Vertices
         addFragment(MeshAnimatedVertices);
+        break;
       case 0x2f: // Mesh Animated Vertices reference
         addFragment(WldFragmentReference);
         break;
@@ -232,7 +233,7 @@ export class Wld {
         this.skeletons.push(addFragment(SkeletonHierarchy));
         break;
       case 0x11: // Skeleton Track Set Reference
-        addFragment(WldFragmentReference);
+        addFragment(SkeletonHierarchyReference);
         break;
       case 0x12: // Skeleton Piece Track
         this.trackDefs.push(addFragment(TrackDefFragment));
