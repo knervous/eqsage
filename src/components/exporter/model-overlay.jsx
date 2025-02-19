@@ -210,21 +210,26 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
               console.log('Texture did not exist, skipping', str);
               return;
             }
-            node.material.subMaterials[idx]._albedoTexture = new Texture(
+            const newMat = new PBRMaterial(str);
+            newMat.metallic = 0;
+            newMat.roughness = 1;
+            newMat._albedoTexture = new Texture(
               str,
               window.gameController.currentScene,
               mat._albedoTexture.noMipMap,
               mat._albedoTexture.invertY,
               mat._albedoTexture.samplingMode
             );
+            node.material.subMaterials[idx] = newMat;
           }
+          const material = node.material.subMaterials[idx];
           if (color !== undefined) {
             const a = (color >> 24) & 0xff;
             const r = (color >> 16) & 0xff;
             const g = (color >> 8) & 0xff;
             const b = color & 0xff;
-            node.material.subMaterials[idx].albedoColor = new Color3(r / 255, g / 255, b / 255);
-            node.material.subMaterials[idx].alpha = a / 255;
+            material.albedoColor = new Color3(r / 255, g / 255, b / 255);
+            material.alpha = a / 255;
           }
         };
         // Face
