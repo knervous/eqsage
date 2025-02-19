@@ -1,9 +1,11 @@
 {
   "name": "eqsage",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "author": "eqadvancedmaps@gmail.com",
-  "contributors": ["temp0"],
+  "contributors": [
+    "temp0"
+  ],
   "description": "EQ Sage is a multipurpose tool for EverQuest files to decode, render and encode.",
   "module": "dist/es/lib/index.js",
   "main": "electron.js",
@@ -20,7 +22,7 @@
       "src/fsInterface.js",
       "package.json"
     ],
-   "mac": {
+    "mac": {
       "icon": "public/favicon.icns",
       "target": [
         "dmg",
