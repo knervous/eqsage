@@ -1106,7 +1106,7 @@ export class S3DDecoder {
       }
       const texture = document
         .createTexture(name.toLowerCase())
-        .setImage(image)
+        // .setImage(image)
         .setURI(`/eq/textures/${name}`)
         .setExtras({
           name,
