@@ -954,13 +954,14 @@ class SpawnController extends GameControllerChild {
           continue;
         }
 
-        if (thisText !== textVer) {
+        if (thisText !== textVer && npc) {
           const existing = window.gameController.currentScene.materials
             .flat()
             .find((m) => m.name === newFullName);
           if (existing) {
             multiMat.subMaterials[idx] = existing;
           } else {
+  
             const newMat = new PBRMaterial(newFullName);
             newMat.metallic = 0;
             newMat.roughness = 1;

@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer';
 import { mat4 } from 'gl-matrix';
 import { Accessor, WebIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS, KHRMaterialsSpecular } from '@gltf-transform/extensions';
+import { ALL_EXTENSIONS, KHRMaterialsSpecular, KHRMaterialsSheen } from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
 import draco3d from 'draco3dgltf';
 
@@ -130,6 +130,7 @@ export class S3DDecoder {
     isCharacterAnimation,
     boneIdx = -1
   ) {
+    
     for (const mesh of meshes) {
       const material = mesh.materialList;
       const baseName = (name || mesh.name).split('_')[0].toLowerCase();
@@ -202,7 +203,6 @@ export class S3DDecoder {
         material.materialList,
         document
       );
-
       const primitiveMap = {};
 
       let polygonIndex = 0;
@@ -322,14 +322,14 @@ export class S3DDecoder {
           .setAttribute('TEXCOORD_0', primUv)
           .setAttribute('JOINTS_0', primJoints)
           .setAttribute('WEIGHTS_0', primWeights);
-        // const normalAccessor = gltfPrim.getAttribute('NORMAL');
-        // if (normalAccessor) {
-        //   const normals = normalAccessor.getArray();
-        //   for (let i = 0; i < normals.length; i += 3) {
-        //     normals[i] = -normals[i]; // Negate the X component of normals
-        //   }
-        //   normalAccessor.setArray(normals);
-        // }
+        const normalAccessor = gltfPrim.getAttribute('NORMAL');
+        if (normalAccessor) {
+          const normals = normalAccessor.getArray();
+          for (let i = 0; i < normals.length; i += 3) {
+            normals[i] = -normals[i]; // Negate the X component of normals
+          }
+          normalAccessor.setArray(normals);
+        }
 
         // Reverse vertex winding order for each triangle
         const indices2 = gltfPrim.getIndices();
@@ -491,6 +491,7 @@ export class S3DDecoder {
   async exportSkeletalActor(wld, skeleton, name, path = 'objects') {
     const meshes = [];
     let boneIdx = -1;
+    
     for (const [idx, bone] of Object.entries(skeleton.skeleton)) {
       if (
         bone.meshReference &&
