@@ -2,10 +2,11 @@
   "name": "eqsage",
   "version": "0.1.1",
   "private": true,
-  "author": "eqadvancedmaps@gmail.com",
-  "contributors": [
-    "temp0"
-  ],
+  "author": {
+    "name": "temp0",
+    "email": "eqadvancedmaps@gmail.com",
+    "url": "https://eqrequiem.com/"
+  },
   "type": "module",
   "description": "EQ Sage is a multipurpose tool for EverQuest files to decode, render and encode.",
   "module": "dist/es/lib/index.js",
