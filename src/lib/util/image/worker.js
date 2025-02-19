@@ -124,6 +124,8 @@ async function parseTexture(name, shaderType, data) {
           }
         } else if (alphaShaderMap[shaderType]) {
           alpha = alphaShaderMap[shaderType];
+        } else if (shaderType === undefined || shaderType === ShaderType.Diffuse) {
+          alpha = 255;
         } else {
           const maxRgb = Math.max(r, g, b);
           alpha = maxRgb <= fullAlphaToDoubleAlphaThreshold

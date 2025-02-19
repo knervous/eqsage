@@ -1,7 +1,7 @@
 import { Buffer } from 'buffer';
 import { mat4 } from 'gl-matrix';
 import { Accessor, WebIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { ALL_EXTENSIONS, KHRMaterialsSpecular } from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
 import draco3d from 'draco3dgltf';
 
@@ -322,14 +322,14 @@ export class S3DDecoder {
           .setAttribute('TEXCOORD_0', primUv)
           .setAttribute('JOINTS_0', primJoints)
           .setAttribute('WEIGHTS_0', primWeights);
-        const normalAccessor = gltfPrim.getAttribute('NORMAL');
-        if (normalAccessor) {
-          const normals = normalAccessor.getArray();
-          for (let i = 0; i < normals.length; i += 3) {
-            normals[i] = -normals[i]; // Negate the X component of normals
-          }
-          normalAccessor.setArray(normals);
-        }
+        // const normalAccessor = gltfPrim.getAttribute('NORMAL');
+        // if (normalAccessor) {
+        //   const normals = normalAccessor.getArray();
+        //   for (let i = 0; i < normals.length; i += 3) {
+        //     normals[i] = -normals[i]; // Negate the X component of normals
+        //   }
+        //   normalAccessor.setArray(normals);
+        // }
 
         // Reverse vertex winding order for each triangle
         const indices2 = gltfPrim.getIndices();
@@ -440,13 +440,10 @@ export class S3DDecoder {
         }
 
         let cleanedName = fragmentNameCleaner(mesh);
-
         let basename = cleanedName;
-
         const endsWithNumber = !isNaN(
           parseInt(cleanedName[cleanedName.length - 1])
         );
-
         if (endsWithNumber) {
           cleanedName = cleanedName.slice(0, cleanedName.length - 2);
           if (cleanedName.length !== 3) {
@@ -454,7 +451,6 @@ export class S3DDecoder {
           }
           basename = cleanedName;
         }
-
         if (basename === modelBase) {
           skeleton.addAdditionalMesh(mesh);
         }
@@ -1057,7 +1053,7 @@ export class S3DDecoder {
    * @param {[import('./materials/material-list').MaterialList]}
    * @param {Document} document
    */
-  async getMaterials(materialList, document, roughness = 0.0) {
+  async getMaterials(materialList, document) {
     const materials = {};
     for (const eqMaterial of materialList) {
       if (materials[eqMaterial.name]) {
@@ -1074,6 +1070,17 @@ export class S3DDecoder {
         .setRoughnessFactor(1)
         .setMetallicFactor(0)
         .setName(name);
+        
+      const specularExtension = document.createExtension(KHRMaterialsSpecular);
+
+      // Create a Specular property.
+      const specular = specularExtension.createSpecular()
+        .setSpecularFactor(0.0)
+        .setSpecularColorFactor([0, 0, 0]);
+        
+      // Attach the property to a Material.
+      gltfMaterial.setExtension('KHR_materials_specular', specular);
+        
       if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {
         name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
         gltfMaterial.setName(name);
@@ -1099,7 +1106,7 @@ export class S3DDecoder {
       }
       const texture = document
         .createTexture(name.toLowerCase())
-        // .setImage(image)
+        .setImage(image)
         .setURI(`/eq/textures/${name}`)
         .setExtras({
           name,
