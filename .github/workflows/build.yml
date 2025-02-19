@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 env:
   # Set the release version from the Git tag (e.g. v1.2.3)
