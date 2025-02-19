@@ -31,18 +31,23 @@ jobs:
         env:
           CI: true
 
-      - name: Build Electron App
+      - name: Build Electron App for macOS
+        if: matrix.os == 'macos-latest'
         run: |
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            echo "Building for macOS (arm64)..."
-            npm run build:electron:mac
-          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            echo "Building for Windows (x64)..."
-            npm run build:electron:win
-          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            echo "Building for Linux (x64)..."
-            npm run build:electron:linux
-          fi
+          echo "Building for macOS (arm64)..."
+          npm run build:electron:mac
+
+      - name: Build Electron App for Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "Building for Windows (x64)..."
+          npm run build:electron:win
+
+      - name: Build Electron App for Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "Building for Linux (x64)..."
+          npm run build:electron:linux
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
