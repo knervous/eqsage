@@ -60,12 +60,11 @@ export class EQGDecoder {
     return this.#fileHandle.name;
   }
 
-  async processBuffer(name, arrayBuffer) {
+  async processBuffer(name, arrayBuffer, skipImages = false) {
     this.pfsArchive = new PFSArchive();
     this.pfsArchive.openFromFile(arrayBuffer);
     const images = [];
     this.files = {};
-    console.log("l dev", import.meta.env.VITE_LOCAL_DEV);
     for (const [fileName, data] of this.pfsArchive.files.entries()) {
       this.files[fileName] = this.pfsArchive.getFile(fileName);
       if (fileName.includes('broodlands')) {
@@ -150,19 +149,22 @@ export class EQGDecoder {
       }
     }
     console.log(`Processed - ${name}`);
-    await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
-    console.log("Done processing images");
+    if (!skipImages) {
+      await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
+      console.log("Done processing images");
+    }
+    
   }
 
   /**
    *
    * @param {FileSystemHandle} file
    */
-  async processEQG(file) {
+  async processEQG(file, skipImages = false) {
     console.log("handle eqg", file.name);
 
     const arrayBuffer = await file.arrayBuffer();
-    await this.processBuffer(file.name, arrayBuffer);
+    await this.processBuffer(file.name, arrayBuffer, skipImages);
   }
 
   /**

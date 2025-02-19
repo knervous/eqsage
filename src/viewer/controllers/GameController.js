@@ -186,7 +186,7 @@ export class GameController {
     ) {
       const doFlip =
         zoneBuilderController.scene ||
-        (!url.includes('eq/models') && !/\w+\d{4}/.test(url));
+        (!url?.includes('eq/models') && !/\w+\d{4}/.test(url));
       return origCreate.call(
         this,
         url,

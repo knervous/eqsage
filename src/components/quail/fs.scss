@@ -1,0 +1,23 @@
+.fs-bg {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  height: 100vh;
+  background-image: url("../images/super_fancy_bg.png");
+  * {
+  color: #D5D5D5;
+
+  }
+
+}
+
+.fs-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 500px;
+  p {
+    font-size: 16px;
+    margin-top: 10px !important;
+  }
+}

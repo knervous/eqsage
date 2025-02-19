@@ -1,28 +1,9 @@
 import { EQFileHandle } from '../../lib/model/file-handle';
-import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
+import { getEQFile, getFilesRecursively, writeEQFile } from '../../lib/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { gameController } from '../../viewer/controllers/GameController';
 
 export const GLOBAL_VERSION = 1.8;
-
-async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
-  if (entry.kind === 'file') {
-    const file = await entry;
-    if (file !== null) {
-      if (nameCheck && nameCheck.test(file.name)) {
-        file.relativePath = path;
-        yield file;
-      }
-    }
-  } else if (entry.kind === 'directory') {
-    if (entry.name === 'eqsage') {
-      return;
-    }
-    for await (const handle of entry.values()) {
-      yield* getFilesRecursively(handle, `${path}/${handle.name}`, nameCheck);
-    }
-  }
-}
 
 export async function processGlobal(settings, rootFileSystemHandle, standalone = false) {
   gameController.rootFileSystemHandle = rootFileSystemHandle;

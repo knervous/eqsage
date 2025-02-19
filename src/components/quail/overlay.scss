@@ -1,0 +1,146 @@
+.react-joyride-portal {
+  z-index: 100000;
+}
+.__floater__arrow {
+  
+  polygon {
+    display: none;
+    fill: rgb(180, 173, 134) !important;
+  }
+}
+.react-joyride__tooltip {
+  font-family: Montaga !important;
+  border: 1px solid rgb(180, 173, 134) !important;
+  background-image: url("../images/super_fancy_bg.png");
+  color: #ddd !important;
+  fill: #ddd !important;
+  button {
+    color: #ddd !important;
+    border-radius: 5px !important;
+    background: transparent !important;
+    &:hover {
+      //background: white !important;
+      outline: 1px solid rgba(180, 173, 134, 0.5) !important;
+    }
+  }
+  svg {
+    fill: #ddd !important;
+    color: #ddd !important;
+  }
+  div {
+    font-size: 17px;
+
+    text-align: justify;
+  }
+}
+
+.animation-playback {
+  z-index: 1;
+  position: fixed;
+  width: calc(100vw - 614px);
+  height: 100px;
+  left: 0;
+  bottom: -20px;
+  margin: 0px 305px;
+  background-image: url("../images/super_fancy_bg.png");
+  padding: 15px 30px;
+  border-radius: 10px;
+  border: 2px solid rgb(180, 173, 134) !important;
+  p {
+    font-size: 20px;
+  }
+  * {
+    border-color: rgba(180, 173, 134, 0.6) !important;
+
+   border: 0px !important;
+  }
+}
+.gold-border {
+  * {
+    border-color: white;
+    border-radius: 5px !important;
+  }
+}
+.area-selection {
+  width: 110px;
+  text-align: center;
+  * {
+    border-color: white;
+    border-radius: 5px !important;
+  }
+.MuiSelect-select {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+  border-radius: 10px;
+  text-align: center;
+  background-image: url("../images/super_fancy_bg.png");
+}
+
+
+.MuiPopper-root ul, .MuiList-root {
+  background-image: url("../../components/images/super_fancy_bg.png") !important;
+  box-shadow: 0px 0px 1px 1px rgb(180, 173, 134) inset !important;
+  .Mui-selected {
+    background-color: rgba(0, 0, 0, 0.48) !important;
+    box-shadow: 0px 0px 1px 1px rgba(180, 173, 134, 0.5) inset !important;
+  }
+}
+
+.model-overlay {
+  max-width: 100vh;
+  overflow-y: scroll;
+  padding: 5px;
+  padding-left: 8px;
+  padding-right: 0px;
+  background-image: url("../../components/images/super_fancy_bg.png");
+  position: fixed;
+  background-repeat: repeat;
+  background-position: center;
+  top: 100px;
+  width: 160px;
+  border-radius: 5px;
+  height: 600px;
+  right: 20px !important;
+  border-width: 2px;
+  border-style: solid;
+  color: white;
+  border-color: rgb(180, 173, 134) rgb(142, 134, 107) rgb(61, 58, 48)
+    rgb(177, 170, 142);
+  transition: right 0.5s ease;
+  z-index: 100;
+  p {
+    width: 100%;
+    text-align: center;
+  }
+  
+}
+.exporter-left-nav {
+  left: 0px;
+}
+
+.model-overlay {
+  right: 0px;
+}
+
+.nav-bg-open {
+  right: 0px;
+}
+
+.nav-bg-closed {
+  right: -500px;
+}
+
+.outline-text-strong {
+  color: white; /* Text color */
+  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000,
+    2px 2px 0 #000, -1px -2px 0 #000, 1px -2px 0 #000, -2px -1px 0 #000,
+    2px -1px 0 #000, -2px 1px 0 #000, 2px 1px 0 #000, -1px 2px 0 #000,
+    1px 2px 0 #000; /* More detailed outline effect */
+}
+
+.zone-overlay-text {
+  &:hover {
+    color: white;
+  }
+}

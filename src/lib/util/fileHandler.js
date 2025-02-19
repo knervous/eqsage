@@ -12,6 +12,25 @@ async function* getDirFiles(entry, path = '') {
   }
 }
 
+export async function* getFilesRecursively(entry, path = '', nameCheck = undefined) {
+  if (entry.kind === 'file') {
+    const file = await entry;
+    if (file !== null) {
+      if (nameCheck && nameCheck.test(file.name)) {
+        file.relativePath = path;
+        yield file;
+      }
+    }
+  } else if (entry.kind === 'directory') {
+    if (entry.name === 'eqsage') {
+      return;
+    }
+    for await (const handle of entry.values()) {
+      yield* getFilesRecursively(handle, `${path}/${handle.name}`, nameCheck);
+    }
+  }
+}
+
 /**
  * Get top-level files from the root directory
  *
@@ -103,6 +122,7 @@ export const getEQSageDir = async () => {
 export const getEQRootDir = () => {
   return window.gameController.rootFileSystemHandle;
 };
+
 /**
  *
  * @param {string} name

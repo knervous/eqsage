@@ -2,8 +2,56 @@
   "name": "eqsage",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
+  "author": "eqadvancedmaps@gmail.com",
+  "contributors": ["temp0"],
+  "description": "EQ Sage is a multipurpose tool for EverQuest files to decode, render and encode.",
   "module": "dist/es/lib/index.js",
+  "main": "electron.js",
+  "build": {
+    "appId": "com.eqsage",
+    "productName": "EQ Sage",
+    "directories": {
+      "output": "dist",
+      "buildResources": "public"
+    },
+    "files": [
+      "electron.js",
+      "preload.js",
+      "src/fsInterface.js",
+      "package.json"
+    ],
+   "mac": {
+      "icon": "public/favicon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "arch": [
+        "arm64"
+      ]
+    },
+    "win": {
+      "icon": "public/favicon.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "arch": [
+        "x64"
+      ]
+    },
+    "linux": {
+      "icon": "public/favicon.png",
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "arch": [
+        "x64"
+      ]
+    }
+  },
   "dependencies": {
     "@babylonjs/core": "7.2.1",
     "@babylonjs/inspector": "7.2.1",
@@ -16,13 +64,16 @@
     "@gltf-transform/functions": "^3.10.0",
     "@monaco-editor/react": "^4.6.0",
     "@msgpack/msgpack": "^3.0.0-beta2",
-    "@mui/icons-material": "^5.15.10",
-    "@mui/material": "^5.15.2",
+    "@mui/icons-material": "^6.4.4",
+    "@mui/lab": "^6.0.0-beta.27",
+    "@mui/material": "^6.4.4",
+    "@mui/x-tree-view": "^7.26.0",
     "@reduxjs/toolkit": "^2.0.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitejs/plugin-react-swc": "^3.7.0",
+    "allotment": "^1.20.3",
     "auto-bind": "^5.0.1",
     "classnames": "^2.5.1",
     "comlink": "^4.4.1",
@@ -55,8 +106,11 @@
     "@originjs/vite-plugin-commonjs": "^1.0.3",
     "buffer": "^6.0.3",
     "cross-env": "^7.0.3",
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8",
     "eslint-config-react-app": "^7.0.1",
     "http-proxy": "^1.18.1",
+    "node-abi": "^3.74.0",
     "rollup": "^4.20.0",
     "sass": "^1.77.8",
     "util": "^0.12.5",
@@ -68,9 +122,12 @@
   },
   "scripts": {
     "start": "vite --mode development",
+    "start:electron": "LOCAL_DEV=true electron .",
     "build": "NODE_OPTIONS=--max-old-space-size=8192 vite build",
+    "build:electron": "electron-builder -mwl",
     "bundle-visualize": "npx vite-bundle-visualizer",
-    "test": "craco test"
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "eslintConfig": {
     "extends": [

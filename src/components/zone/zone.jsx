@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Box } from '@mui/material';
 import { useMainContext } from '../main/context';
@@ -9,19 +9,34 @@ import { OverlayProvider } from '../spire/provider';
 import { useSettingsContext } from '../../context/settings';
 import { ExporterOverlay } from '../exporter/overlay';
 import { GlobalStore } from '../../state';
+import { QuailOverlay } from '../quail/overlay';
+import { sleep } from '@/viewer/util/util';
 
 export const BabylonZone = () => {
   const canvasRef = useRef();
-  const { selectedZone, rootFileSystemHandle, modelExporter, modelExporterLoaded, setModelExporterLoaded, canvasState, setCanvasState } = useMainContext();
+  const {
+    selectedZone,
+    quailWorkspace,
+    rootFileSystemHandle,
+    modelExporter,
+    canvasState,
+    setCanvasState,
+  } = useMainContext();
+
   const settings = useSettingsContext();
+  const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
+
   useEffect(() => {
     (async () => {
-      if (!selectedZone && !modelExporter) {
+      if (!selectedZone && !modelExporter && !quailWorkspace) {
         return;
       }
-      await new Promise((res) => setTimeout(res, 50));
+      while (!canvasRef.current) {
+        await sleep(50);
+      }
+      console.log('Ref', canvasRef.current);
       await gameController.loadEngine(canvasRef.current, settings.webgpu);
-      if (!modelExporter) {
+      if (!modelExporter && !quailWorkspace) {
         await gameController.ZoneController.loadViewerScene();
       } else {
         await gameController.ModelController.initializeModelExporter();
@@ -35,7 +50,13 @@ export const BabylonZone = () => {
       window.removeEventListener('resize', gameController.resize);
       window.removeEventListener('keydown', gameController.keyDown);
     };
-  }, [selectedZone, settings?.webgpu, modelExporter, setModelExporterLoaded]);
+  }, [
+    selectedZone,
+    settings?.webgpu,
+    modelExporter,
+    setModelExporterLoaded,
+    quailWorkspace,
+  ]);
 
   useEffect(() => {
     if (!selectedZone && !modelExporter) {
@@ -44,15 +65,24 @@ export const BabylonZone = () => {
     let current = true;
     (async () => {
       if (!modelExporter) {
-        await processZone(selectedZone.short_name, settings, rootFileSystemHandle);
+        await processZone(
+          selectedZone.short_name,
+          settings,
+          rootFileSystemHandle
+        );
         if (!current) {
           return;
         }
-        gameController.ZoneController.loadModel(selectedZone.short_name).catch(e => {
-          gameController.openAlert('Error loading zone. Check console output.', 'warning');
-          console.log('Error loading zone', e);
-          GlobalStore.actions.setLoading(false);
-        });
+        gameController.ZoneController.loadModel(selectedZone.short_name).catch(
+          (e) => {
+            gameController.openAlert(
+              'Error loading zone. Check console output.',
+              'warning'
+            );
+            console.log('Error loading zone', e);
+            GlobalStore.actions.setLoading(false);
+          }
+        );
       }
     })();
     return () => (current = false);
@@ -67,17 +97,34 @@ export const BabylonZone = () => {
   }, [canvasState, setCanvasState]);
   return (
     <OverlayProvider>
-      {!modelExporter && <SpireOverlay inZone={!!selectedZone} />}
+      {!modelExporter && !quailWorkspace && (
+        <SpireOverlay inZone={!!selectedZone} />
+      )}
       {modelExporter && modelExporterLoaded && <ExporterOverlay />}
-      {canvasState && <Box
-        as="canvas"
-        sx={{ flexGrow: '1', position: 'fixed' }}
-        ref={canvasRef}
-        id="renderCanvas"
-        width="100vw"
-        height="100vh"
-      />}
-      
+      {quailWorkspace && (
+        <QuailOverlay
+          canvas={
+            <Box
+              as="canvas"
+              sx={{ flexGrow: '1', position: 'fixed' }}
+              ref={canvasRef}
+              id="renderCanvas"
+              width="100%"
+              height="100vh"
+            />
+          }
+        />
+      )}
+      {canvasState && !quailWorkspace && (
+        <Box
+          as="canvas"
+          sx={{ flexGrow: '1', position: 'fixed' }}
+          ref={canvasRef}
+          id="renderCanvas"
+          width="100vw"
+          height="100vh"
+        />
+      )}
     </OverlayProvider>
   );
 };

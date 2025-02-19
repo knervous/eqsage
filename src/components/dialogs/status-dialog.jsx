@@ -19,6 +19,7 @@ export const StatusDialog = ({
   requestPermissions,
   onDrop,
   fsHandle,
+  onFolderSelected
 }) => {
   const [_type, setType] = useState('unknown');
   const { Spire } = useMainContext();
@@ -30,7 +31,6 @@ export const StatusDialog = ({
       }
     }, 150);
   }, [Spire]);
-
   return (
     <Dialog
       fullWidth
@@ -50,8 +50,7 @@ export const StatusDialog = ({
       >
         Welcome to EQ Sage!
       </DialogTitle>
-      <DialogContent
-      >
+      <DialogContent>
         <div>
           <Stack
             alignContent="center"
@@ -76,11 +75,18 @@ export const StatusDialog = ({
             >
               Unfortunately, your browser does not support the required
               permissions to the File System. Visit{' '}
-              <Link target="_blank" href="https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle/requestPermission">
+              <Link
+                target="_blank"
+                href="https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle/requestPermission"
+              >
                 this link
               </Link>{' '}
-              to learn more about which browsers are supported. Additionally, if you are using Spire and viewing this site over http and not https, you will need to instead
-               visit the <Link href="https://eqsage.vercel.app">standalone Sage site</Link> and enter your remote host from the settings dialog to connect to sage.
+              to learn more about which browsers are supported. Additionally, if
+              you are using Spire and viewing this site over http and not https,
+              you will need to instead visit the{' '}
+              <Link href="https://eqsage.vercel.app">standalone Sage site</Link>{' '}
+              and enter your remote host from the settings dialog to connect to
+              sage.
             </Typography>
           )}
           {permissionStatus === PermissionStatusTypes.NeedRefresh && (
@@ -90,8 +96,7 @@ export const StatusDialog = ({
                 color="text.primary"
                 gutterBottom
               >
-                Linked EQ Directory: {fsHandle?.name}
-                .
+                Linked EQ Directory: {fsHandle?.name}.
               </Typography>
               <Typography
                 sx={{ fontSize: 17, marginBottom: 2 }}
@@ -100,43 +105,62 @@ export const StatusDialog = ({
               >
                 Your browser needs to request permission to access files for
                 decoding. In addition, decoded files will be written under{' '}
-                <b>{fsHandle?.name}/eqsage</b> and
-                can be safely deleted at any time.
+                <b>{fsHandle?.name}/eqsage</b> and can be safely deleted at any
+                time.
               </Typography>
-              <Button variant='outlined' sx={{ margin: '25px' }} onClick={requestPermissions}>Request Permissions</Button>
+              <Button
+                variant="outlined"
+                sx={{ margin: '25px' }}
+                onClick={requestPermissions}
+              >
+                Request Permissions
+              </Button>
               <Typography
                 sx={{ fontSize: 17, marginBottom: 2 }}
                 color="text.secondary"
                 gutterBottom
               >
-                If you want to grant persistent permissions and are using Chrome, you can enable
-                the <b>#file-system-access-persistent-permission</b> flag under <b>chrome://flags</b>. Once enabled, you need to restart your browser for this to take effect.
+                If you want to grant persistent permissions and are using
+                Chrome, you can enable the{' '}
+                <b>#file-system-access-persistent-permission</b> flag under{' '}
+                <b>chrome://flags</b>. Once enabled, you need to restart your
+                browser for this to take effect.
               </Typography>
               <Box className="chrome-flags" sx={{ width: '100%' }} />
             </Stack>
           )}
-          {permissionStatus === PermissionStatusTypes.NeedEQDir && (<Stack direction={'column'} sx={{ justifyContent: 'center !important', alignItems: 'center', alignContent: 'center' }}>
-            <Typography
-              sx={{ fontSize: 17, marginBottom: 2 }}
-              color="text.secondary"
-              gutterBottom
-            >
-              Drag and drop an EQ directory on the page to get started. All
-              Windows versions are compatible, but keep in mind availability and
-              version of zones related to the database linked, e.g. old Freeport
-              vs. new. This should be your base EQ directory including all the s3d/eqg files.
-            </Typography>
-            <Button onClick={async () => {
-              try {
-                const dirHandle = await window.showDirectoryPicker();
-                console.log('dir handle', dirHandle);
-                onDrop(dirHandle);
-              } catch (e) {
-                console.warn(e);
-              }
-            }} variant={'outlined'} sx={{ margin: '0 auto' }}>Select EQ Directory</Button>
-          </Stack>
-          )}
+          {
+            permissionStatus === PermissionStatusTypes.NeedEQDir && (
+              <Stack
+                direction={'column'}
+                sx={{
+                  justifyContent: 'center !important',
+                  alignItems    : 'center',
+                  alignContent  : 'center',
+                }}
+              >
+                <Typography
+                  sx={{ fontSize: 17, marginBottom: 2 }}
+                  color="text.secondary"
+                  gutterBottom
+                >
+                 Drag and drop an EQ directory on the page to get started. All
+                  Windows versions are compatible, but keep in mind availability
+                  and version of zones related to the database linked, e.g. old
+                  Freeport vs. new. This should be your base EQ directory
+                  including all the s3d/eqg files.
+                </Typography>
+                <Button
+                  onClick={async () => {
+                    onFolderSelected();
+                  }}
+                  variant={'outlined'}
+                  sx={{ margin: '0 auto' }}
+                >
+                  Select EQ Directory
+                </Button>
+              </Stack>
+            )}
         </div>
       </DialogContent>
     </Dialog>

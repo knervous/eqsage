@@ -31,6 +31,7 @@ export const Main = () => {
     permissionStatus,
     zoneBuilderDialogOpen,
     audioDialogOpen,
+    onFolderSelected,
   } = useMainContext();
 
   return (
@@ -79,6 +80,7 @@ export const Main = () => {
               permissionStatus={permissionStatus}
               open={true}
               requestPermissions={requestPermissions}
+              onFolderSelected={onFolderSelected}
             />
           )}
           {zoneDialogOpen && <ZoneChooserDialog open={true} />}

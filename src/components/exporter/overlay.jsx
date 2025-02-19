@@ -152,7 +152,7 @@ const ExporterOverlayComponent = () => {
         />
         <DrawerButton
           drawerState={dialogState}
-          drawer="export"
+          drawer="pip"
           text={'Picture in Picture'}
           Icon={PictureInPictureIcon}
           toggleDrawer={async () => {

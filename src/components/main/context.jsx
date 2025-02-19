@@ -36,8 +36,6 @@ const MainContext = React.createContext({});
  * @property {React.Dispatch<React.SetStateAction<boolean>>} setStatusDialogOpen - Function to set the status dialog open state.
  * @property {boolean} modelExporter - Whether the model exporter is enabled.
  * @property {React.Dispatch<React.SetStateAction<boolean>>} setModelExporter - Function to set the model exporter state.
- * @property {boolean} modelExporterLoaded - Whether the model exporter is loaded.
- * @property {React.Dispatch<React.SetStateAction<boolean>>} setModelExporterLoaded - Function to set the model exporter loaded state.
  * @property {any} rootFileSystemHandle - The file system handle for the root.
  * @property {any[]} zones - The list of zones.
  * @property {React.Dispatch<React.SetStateAction<any[]>>} setZones - Function to set the list of zones.
@@ -63,7 +61,7 @@ export const useMainContext = () => React.useContext(MainContext);
  */
 
 export const MainProvider = ({ children }) => {
-  const [permissionStatus, onDrop, requestPermissions, rootFileSystemHandle] =
+  const [permissionStatus, onDrop, requestPermissions, rootFileSystemHandle, onFolderSelected] =
     usePermissions();
   const { remoteUrl } = useSettingsContext();
   const [selectedZone, setSelectedZone] = useState(null);
@@ -72,8 +70,8 @@ export const MainProvider = ({ children }) => {
   const [zoneBuilderDialogOpen, setZoneBuilderDialogOpen] = useState(false);
   const [audioDialogOpen, setAudioDialogOpen] = useState(false);
   const [modelExporter, setModelExporter] = useState(false);
+  const [quailWorkspace, setQuailWorkspace] = useState(false);
   const [zoneBuilder, setZoneBuilder] = useState(false);
-  const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
   const [zones, setZones] = useState([]);
   const [spire, setSpire] = useState(null);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
@@ -91,9 +89,9 @@ export const MainProvider = ({ children }) => {
     setAudioDialogOpen(false);
     setModelExporter(false);
     setZoneBuilder(false);
-    setModelExporterLoaded(false);
     setCanvasState(false);
     setRightDrawerOpen(false);
+    setQuailWorkspace(false);
   }, []);
 
   useEffect(() => {
@@ -176,12 +174,12 @@ export const MainProvider = ({ children }) => {
         setZoneBuilderDialogOpen,
         modelExporter,
         setModelExporter,
+        quailWorkspace, 
+        setQuailWorkspace,
         zoneBuilder,
         setZoneBuilder,
         rightDrawerOpen, 
         setRightDrawerOpen,
-        modelExporterLoaded, 
-        setModelExporterLoaded,
         rootFileSystemHandle,
         zones,
         setZones,
@@ -189,6 +187,7 @@ export const MainProvider = ({ children }) => {
         onDrop,
         requestPermissions,
         permissionStatus,
+        onFolderSelected,
         recentList,
         setRecentList,
         reset,

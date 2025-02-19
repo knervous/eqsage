@@ -2,7 +2,6 @@ import { Buffer } from 'buffer';
 import { mat4 } from 'gl-matrix';
 import { Accessor, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
-import { draco, DRACO_DEFAULTS } from '@gltf-transform/functions';
 import { Document } from '@gltf-transform/core';
 import draco3d from 'draco3dgltf';
 
@@ -74,7 +73,7 @@ export class S3DDecoder {
    *
    * @param {FileSystemHandle} file
    */
-  async processS3D(file) {
+  async processS3D(file, skipImages = false) {
     const arrayBuffer = await file.arrayBuffer();
     const buf = Buffer.from(arrayBuffer);
     if (buf.length === 0) {
@@ -116,8 +115,10 @@ export class S3DDecoder {
     }
 
     console.log(`Processed - ${file.name}`);
-    await imageProcessor.parseImages(images);
-    console.log(`Done processing images ${file.name} - ${images.length}`);
+    if (!skipImages) {
+      await imageProcessor.parseImages(images);
+      console.log(`Done processing images ${file.name} - ${images.length}`);
+    }
   }
 
   async exportSkinnedMeshes(

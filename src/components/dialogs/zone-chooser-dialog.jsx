@@ -29,6 +29,7 @@ import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import AccessibilityIcon from '@mui/icons-material/Accessibility';
 import LinkOffIcon from '@mui/icons-material/LinkOff';
 import TerrainIcon from '@mui/icons-material/Terrain';
+import CodeIcon from '@mui/icons-material/Code';
 
 import { useMainContext } from '../main/context';
 import * as keyval from 'idb-keyval';
@@ -66,6 +67,7 @@ export const ZoneChooserDialog = ({ open }) => {
     recentList,
     setRecentList,
     setZoneBuilder,
+    setQuailWorkspace,
   } = useMainContext();
   const [zoneList, setZoneList] = useState([]);
   const [expansionFilter, setExpansionFilter] = useState([]);
@@ -130,6 +132,24 @@ export const ZoneChooserDialog = ({ open }) => {
     setSelectedZone(null);
     setModelExporter(true);
     setAudioDialogOpen(false);
+    setQuailWorkspace(false);
+    setTimeout(() => {
+      setZoneDialogOpen(false);
+    }, 250);
+  }, [
+    setSelectedZone,
+    setModelExporter,
+    setZoneDialogOpen,
+    setQuailWorkspace,
+    setAudioDialogOpen,
+  ]);
+
+  const enterQuailWorkspace = useCallback(() => {
+    gameController.dispose();
+    setSelectedZone(null);
+    setModelExporter(false);
+    setQuailWorkspace(true);
+    setAudioDialogOpen(false);
     setTimeout(() => {
       setZoneDialogOpen(false);
     }, 250);
@@ -138,6 +158,7 @@ export const ZoneChooserDialog = ({ open }) => {
     setModelExporter,
     setZoneDialogOpen,
     setAudioDialogOpen,
+    setQuailWorkspace
   ]);
 
   const enterAudio = useCallback(() => {
@@ -146,6 +167,7 @@ export const ZoneChooserDialog = ({ open }) => {
     setZoneBuilder(false);
     setZoneBuilderDialogOpen(false);
     setZoneDialogOpen(false);
+    setQuailWorkspace(false);
     setAudioDialogOpen(true);
   }, [
     setSelectedZone,
@@ -153,6 +175,7 @@ export const ZoneChooserDialog = ({ open }) => {
     setZoneBuilder,
     setZoneDialogOpen,
     setAudioDialogOpen,
+    setQuailWorkspace
   ]);
 
   const enterZoneBuilder = useCallback(() => {
@@ -162,12 +185,14 @@ export const ZoneChooserDialog = ({ open }) => {
     setZoneBuilderDialogOpen(true);
     setZoneDialogOpen(false);
     setAudioDialogOpen(false);
+    setQuailWorkspace(false);
   }, [
     setSelectedZone,
     setZoneBuilderDialogOpen,
     setZoneBuilder,
     setZoneDialogOpen,
     setAudioDialogOpen,
+    setQuailWorkspace
   ]);
 
   useEffect(() => {
@@ -260,8 +285,7 @@ export const ZoneChooserDialog = ({ open }) => {
           onClick={enterModelExporter}
           Icon={AccessibilityIcon}
           isNew
-          newText="New! (3D Printing)"
-          title="Model Viewer (NEW)"
+          title="Model Viewer (New Features!)"
         />
         <FlyoutButton
           onClick={enterAudio}
@@ -272,8 +296,13 @@ export const ZoneChooserDialog = ({ open }) => {
           onClick={enterZoneBuilder}
           Icon={TerrainIcon}
           isNew
-          newText="New! (BETA)"
-          title="Zone Builder (NEW)"
+          title="Zone Builder"
+        />
+        <FlyoutButton
+          onClick={enterQuailWorkspace}
+          Icon={CodeIcon}
+          isNew
+          title="Quail Workspace (Under Development)"
         />
         <FlyoutButton
           disabled={selectedZone}
@@ -282,7 +311,7 @@ export const ZoneChooserDialog = ({ open }) => {
           title="Unlink EQ Directory"
         />
       </Flyout>
-      <DialogContent sx={{ minHeight: '220px', minWidth: '350px' }}>
+      <DialogContent sx={{ minHeight: '240px', minWidth: '350px' }}>
         <AboutDialog open={aboutOpen} setOpen={setAboutOpen} />
         <Stack alignContent={'center'} alignItems={'center'} direction={'column'}>
           <FormControl

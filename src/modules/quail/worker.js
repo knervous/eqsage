@@ -1,5 +1,6 @@
 import * as Comlink from 'comlink';
-import { CreateQuail } from 'quail-wasm';
+import { CreateQuail } from './wrapper';
+import { createDirectoryHandle } from '@/lib/util/fileSystem';
 /**
  * @typedef QueueItem
  * @property {string} name
@@ -46,7 +47,52 @@ async function convertS3D(name, zone, textures, lights, objects) {
   return output ? Comlink.transfer(output.data.buffer, [output.data.buffer]) : null;
 }
 
-const exports = { convertS3D };
+/**
+ *
+ * @param {FileSystemDirectoryHandle} fileHandle
+ */
+async function parseWce(fileHandle) {
+  if (typeof fileHandle === 'string') {
+    fileHandle = createDirectoryHandle(fileHandle);
+  }
+  console.log('Quail Worker convert');
+  const { quail, fs } = await CreateQuail('/static/quail.wasm');
+  const prefix = `${fileHandle.name}`;
+  fs.files.set(`/${prefix}`, {
+    type    : 'dir',
+    children: new Map(), // sub-paths
+    mode    : 0o040000,
+    ctime   : new Date(),
+    mtime   : new Date(),
+  });
+  const recurse = async (dirHandle, path = '') => {
+    for await (const [name, handle] of dirHandle.entries()) {
+      if (handle.kind === 'directory') {
+        fs.files.set(`/${path}${name}`, {
+          type    : 'dir',
+          children: new Map(),
+          mode    : 0o040000,
+          ctime   : new Date(),
+          mtime   : new Date(),
+        });
+        await recurse(handle, `${path}${name}/`);
+      } else {
+        fs.setEntry(
+          `${path}${name}`,
+          fs.makeFileEntry(undefined, new Uint8Array(await handle.getFile().then(f => f.arrayBuffer())))
+        );
+      }
+    }
+  };
+
+  await recurse(fileHandle, `${prefix}/`);
+  quail.convert(prefix, `${fileHandle.name}.s3d`);
+  const data = fs.files.get(`/${fileHandle.name}.s3d`).data;
+  return data;
+}
+
+
+const exports = { convertS3D, parseWce };
 
 /** @type {typeof exports} */
 const exp = Object.fromEntries(
