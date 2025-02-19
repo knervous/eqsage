@@ -21,7 +21,6 @@
     "files": [
       "electron.js",
       "preload.cjs",
-      "src/fsInterface.cjs",
       "src/fsInterface.js",
       "package.json"
     ],
