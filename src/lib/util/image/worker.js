@@ -2,6 +2,7 @@ import * as Comlink from 'comlink';
 import { convertDDS2Jimp } from '../image-processing';
 import 'jimp/browser/lib/jimp';
 import dxt, { compress } from 'dxt-js';
+import { createDirectoryHandle } from '../fileSystem';
 
 const ShaderType = {
   Diffuse                        : 0,
@@ -46,6 +47,9 @@ const mainThreadFuncs = Comlink.wrap(self); // eslint-disable-line
  * @param {FileSystemDirectoryHandle} eqFileHandle
  */
 async function parseTextures(entries, eqFileHandle, workerNum) {
+  if (typeof eqFileHandle === 'string') {
+    eqFileHandle = createDirectoryHandle(eqFileHandle);
+  }
   performance.mark(`${workerNum} entered function`);
 
   const requiemDir = await eqFileHandle.getDirectoryHandle('eqsage', { create: true });
@@ -55,13 +59,7 @@ async function parseTextures(entries, eqFileHandle, workerNum) {
   const cleanupFuncs = [];
   await Promise.all(entries.map(async ({ name, data, shaderType }) => {
     name = name.toLowerCase().replace(/\.\w+$/, '.png');
-    let textureHandle = await dirHandle.getFileHandle(name).catch(() => undefined);
-    if (!textureHandle) {
-      textureHandle = await dirHandle.getFileHandle(name, { create: true });
-    } else {
-      mainThreadFuncs.incrementParsedImage();
-      return;
-    }
+    const textureHandle = await dirHandle.getFileHandle(name, { create: true });
     const writable = await textureHandle.createWritable();
     if (writable.locked) {
       mainThreadFuncs.incrementParsedImage();

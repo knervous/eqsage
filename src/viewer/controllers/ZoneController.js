@@ -696,7 +696,7 @@ class ZoneController extends GameControllerChild {
 
         const mergedMesh = Mesh.MergeMeshes(
           meshes,
-          false,
+          true,
           true,
           undefined,
           true,

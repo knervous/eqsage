@@ -2,6 +2,7 @@ import * as Comlink from 'comlink';
 import { gameController } from '../../../viewer/controllers/GameController.js';
 import { GlobalStore } from '../../../state/store.js';
 import { getEQDir, getFiles } from '../fileHandler.js';
+import { SageFileSystemDirectoryHandle } from '../fileSystem.js';
 
 function chunkArray(array, numChunks) {
   if (numChunks < 1) {
@@ -54,7 +55,9 @@ class ImageProcessor {
     }
     this.clearWorkers();
     for (let i = 0; i < workers; i++) {
-      const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+      const worker = new Worker(new URL('./worker.js', import.meta.url), {
+        type: 'module',
+      });
       this.#workers.push(worker);
       this.babylonWorkers.push(Comlink.wrap(worker));
     }
@@ -72,8 +75,8 @@ class ImageProcessor {
 
   currentWorkerIdx = 0;
   /**
-   * 
-   * @param {ArrayBuffer} buffer 
+   *
+   * @param {ArrayBuffer} buffer
    */
   async compressImage(arr, name) {
     const idx = this.currentWorkerIdx % 4;
@@ -95,8 +98,8 @@ class ImageProcessor {
     const modelDir = await getEQDir('textures');
     if (modelDir) {
       const files = await getFiles(modelDir, undefined, true);
-      unionImages = unionImages.filter(i => 
-        !files.some(f => f.split('.')[0] === i.name.split('.')[0])
+      unionImages = unionImages.filter(
+        (i) => !files.some((f) => f.split('.')[0] === i.name.split('.')[0])
       );
     }
     if (!unionImages.length) {
@@ -110,27 +113,27 @@ class ImageProcessor {
       incrementParsedImage() {
         count++;
         GlobalStore.actions.setLoadingText(
-          `Decoded ${count} of ${images.length} images using ${
-            workerLength
-          } threads`
+          `Decoded ${count} of ${images.length} images using ${workerLength} threads`
         );
-      }
+      },
     };
     for (const worker of this.#workers) {
       Comlink.expose(incrementContainer, worker);
     }
-   
+
     await Promise.all(
       imageChunks.map((imgs, idx) =>
-        this.babylonWorkers[idx]
-          .parseTextures(
-            Comlink.transfer(
-              imgs,
-              imgs.map((i) => i.data)
-            ),
-            gameController.rootFileSystemHandle,
-            idx
-          )
+        this.babylonWorkers[idx].parseTextures(
+          Comlink.transfer(
+            imgs,
+            imgs.map((i) => i.data)
+          ),
+          gameController.rootFileSystemHandle instanceof
+            SageFileSystemDirectoryHandle
+            ? gameController.rootFileSystemHandle.path
+            : gameController.rootFileSystemHandle,
+          idx
+        )
       )
     );
     this.current++;

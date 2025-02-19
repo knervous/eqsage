@@ -1,7 +1,12 @@
 // electron.js
-const { app, BrowserWindow, ipcMain, dialog, nativeImage } = require('electron');
-const path = require('path');
-const { fsInterface } = require('./src/fsInterface');
+import { app, BrowserWindow, ipcMain, dialog, nativeImage, screen } from 'electron';
+import path from 'path';
+import { fsInterface } from './src/fsInterface.js';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 app.setName('EQ Sage');
 
@@ -13,7 +18,7 @@ function createWindow() {
     icon          : path.join(__dirname, 'public', process.platform === 'darwin' ? 'favicon.icns' : 'favicon.ico'),
     webPreferences: {
       nodeIntegrationInWorker: true,
-      preload                : path.join(__dirname, 'preload.js'),
+      preload                : path.join(__dirname, 'preload.cjs'),
     },
   });
   if (process.env.LOCAL_DEV === 'true') {
@@ -55,6 +60,12 @@ app.on('activate', () => {
 ipcMain.handle('electron:read-file', async (_event, filePath) => {
   return fsInterface.readFile(filePath);
 });
+ipcMain.handle('electron:delete-file', async (_event, filePath) => {
+  return fsInterface.deleteFile(filePath);
+});
+ipcMain.handle('electron:delete-folder', async (_event, filePath) => {
+  return fsInterface.deleteFolder(filePath);
+});
 ipcMain.handle('electron:create-dir', async (_event, path) => { 
   return fsInterface.createIfNotExist(path);
 });
@@ -64,7 +75,9 @@ ipcMain.handle('electron:read-dir', async (_event, filePath) => {
 ipcMain.handle('electron:write-file', async (_event, filePath, data) => {
   return fsInterface.writeFile(filePath, data);
 });
-
+ipcMain.handle('get-screen-size', () => {
+  return screen.getPrimaryDisplay().workAreaSize;
+});
 ipcMain.handle('electron:select-directory', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openDirectory'],

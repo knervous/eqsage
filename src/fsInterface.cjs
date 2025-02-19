@@ -1,8 +1,8 @@
 
-import { promises as fs } from 'fs';
-import path from 'path';
+const { promises: fs } = require('fs');
+const path = require('path');
 
-export const fsInterface = {
+const fsInterface = {
   readFile    : async (filePath) => (await fs.readFile(filePath).catch(() => null))?.buffer,
   deleteFile  : async (filePath) => (await fs.unlink(filePath).catch(() => null)),
   deleteFolder: async (folderPath) => {
@@ -32,4 +32,8 @@ export const fsInterface = {
     }
   },
   writeFile: async (filePath, data) => await fs.writeFile(filePath, data),
+};
+
+module.exports = {
+  fsInterface
 };

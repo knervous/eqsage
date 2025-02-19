@@ -1,9 +1,9 @@
-const { defineConfig } = require('vite');
-const httpProxy = require('http-proxy');
-const react = require('@vitejs/plugin-react');
-const path = require('path');
-const { esbuildCommonjs } = require('@originjs/vite-plugin-commonjs');
-const { viteStaticCopy } = require('vite-plugin-static-copy');
+import { defineConfig } from 'vite';
+import httpProxy from 'http-proxy';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import { esbuildCommonjs } from '@originjs/vite-plugin-commonjs';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 const proxy = httpProxy.createProxyServer({});
