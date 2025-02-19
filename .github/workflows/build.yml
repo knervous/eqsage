@@ -27,7 +27,7 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci  --no-audit
 
       - name: Build Electron App
         run: |
