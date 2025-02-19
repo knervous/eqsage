@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*.*.*'
 
+env:
+  # Set the release version from the Git tag (e.g. v1.2.3)
+  VERSION: ${{ github.ref_name }}
+
 jobs:
   build:
     name: Build on ${{ matrix.os }}
@@ -16,24 +20,34 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '16'
+          node-version: '20'
 
       - name: Install Dependencies
         run: npm ci
 
       - name: Build Electron App
-        run: npm run build
+        run: |
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            echo "Building for macOS (arm64)..."
+            npm run build:electron:mac
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            echo "Building for Windows (x64)..."
+            npm run build:electron:win
+          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            echo "Building for Linux (x64)..."
+            npm run build:electron:linux
+          fi
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v3
         with:
-          # Name artifacts uniquely by OS:
+          # Adjust the artifact path if needed (here we assume electron-builder outputs to "dist")
           name: build-${{ matrix.os }}
           path: dist/**
-  
+
   release:
     name: Create Release and Upload Artifacts
     runs-on: ubuntu-latest
@@ -45,25 +59,16 @@ jobs:
       - name: Download Build Artifacts
         uses: actions/download-artifact@v3
         with:
-          # Download all artifacts into the build-artifacts folder:
+          # All artifacts will be downloaded under the "build-artifacts" folder
           path: build-artifacts
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
+      - name: Create Automatic Release
+        uses: marvinpinto/action-automatic-releases@latest
         with:
-          tag_name: ${{ github.ref }}
-          name: Release ${{ github.ref }}
-          body: "Automated release from GitHub Actions."
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Artifacts to Release
-        run: |
-          # Find all files under build-artifacts and upload each to the release
-          for artifact in $(find build-artifacts -type f); do
-            echo "Uploading $artifact"
-            gh release upload "${{ github.ref }}" "$artifact" --clobber
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "${{ env.VERSION }}"
+          prerelease: false
+          title: "${{ env.VERSION }}"
+          # Adjust the file paths below to match the artifacts uploaded.
+          files: |
+            build-artifacts/**

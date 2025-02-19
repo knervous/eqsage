@@ -126,7 +126,9 @@
     "start": "vite --mode development",
     "start:electron": "LOCAL_DEV=true electron .",
     "build": "NODE_OPTIONS=--max-old-space-size=8192 vite build",
-    "build:electron": "electron-builder -mwl",
+    "build:electron:mac": "electron-builder --mac",
+    "build:electron:win": "electron-builder --win",
+    "build:electron:linux": "electron-builder --linux",
     "bundle-visualize": "npx vite-bundle-visualizer",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
