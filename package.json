@@ -18,9 +18,10 @@
       "buildResources": "public"
     },
     "files": [
-      "electron.cjs",
+      "electron.js",
       "preload.cjs",
       "src/fsInterface.cjs",
+      "src/fsInterface.js",
       "package.json"
     ],
     "mac": {
