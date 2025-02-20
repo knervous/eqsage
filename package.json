@@ -7,10 +7,10 @@
     "email": "eqadvancedmaps@gmail.com",
     "url": "https://eqrequiem.com/"
   },
+  "main": "electron.js",
   "type": "module",
   "description": "EQ Sage is a multipurpose tool for EverQuest files to decode, render and encode.",
   "module": "dist/es/lib/index.js",
-  "main": "electron.js",
   "build": {
     "appId": "com.eqsage",
     "productName": "EQ Sage",
@@ -155,7 +155,7 @@
   },
   "scripts": {
     "start": "vite --mode development",
-    "start:electron": "LOCAL_DEV=true electron .",
+    "start:electron": "cross-env LOCAL_DEV=true node node_modules/electron/cli.js .",
     "build": "NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "build:electron:mac": "electron-builder --mac",
     "build:electron:win": "electron-builder --win",

@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer, webUtils, webFrame } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: () => ipcRenderer.invoke('electron:select-directory'),
-  getPath        : file => webUtils.getPathForFile(file),
+  getPath        : file => webUtils.getPathForFile(file).replaceAll('\\', '/'),
   setZoomFactor,
 });
 

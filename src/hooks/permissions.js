@@ -98,9 +98,10 @@ export const usePermissions = (name = 'eqdir') => {
         const first = e.dataTransfer.items[0];
         if (window.electronAPI) {
           const path = window.electronAPI.getPath(e.dataTransfer.files[0]);
-          await set(name, path);
           setFsHandle(createDirectoryHandle(path));
           setPermissionStatus(PermissionStatusTypes.Ready);
+          await set(name, path);
+  
           return;
         }
 
@@ -141,6 +142,7 @@ export const usePermissions = (name = 'eqdir') => {
       set(name, selectedPath);
       const handle = createDirectoryHandle(selectedPath);
       setFsHandle(handle);
+      setPermissionStatus(PermissionStatusTypes.Ready);
       return;
     }
 

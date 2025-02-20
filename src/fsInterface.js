@@ -16,7 +16,7 @@ export const fsInterface = {
         const stats = await fs.stat(fullPath);
         return {
           name       : entry,
-          path       : fullPath,
+          path       : fullPath.replaceAll('\\', '/'),
           isDirectory: stats.isDirectory(),
           isFile     : stats.isFile()
         };

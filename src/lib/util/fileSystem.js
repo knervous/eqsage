@@ -4,18 +4,6 @@ const isElectron = () =>
   process.versions != null &&
   process.versions.electron != null;
 
-function debounce(fn, delay) {
-  let timer;
-  return function (...args) {
-    if (timer) {
-      clearTimeout(timer);
-    }
-    timer = setTimeout(() => {
-      fn.apply(this, args);
-    }, delay);
-  };
-}
-
 if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
   if (isElectron()) {
     const { promises: fs } = require('fs');
@@ -34,7 +22,7 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
             const stats = await fs.stat(fullPath);
             return {
               name       : entry,
-              path       : fullPath,
+              path       : fullPath.replaceAll('\\', '/'),
               isDirectory: stats.isDirectory(),
               isFile     : stats.isFile()
             };
