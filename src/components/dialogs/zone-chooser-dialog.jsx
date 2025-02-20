@@ -248,10 +248,15 @@ export const ZoneChooserDialog = ({ open }) => {
       title      : 'Unlink EQ Directory',
     })
       .then(() => {
-        /* ... */
-        keyval.del('eqdir').then(() => {
+        if (window.electronAPI) {
+          localStorage.removeItem('eqdir');
           window.location.reload();
-        });
+        } else {
+          keyval.del('eqdir').then(() => {
+            window.location.reload();
+          });
+        }
+
       })
       .catch(() => {
         /* ... */

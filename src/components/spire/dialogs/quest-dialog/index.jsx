@@ -194,10 +194,14 @@ export const QuestDialog = ({ onClose, open }) => {
           onClick={() => {
             confirm({ description: 'Are you sure you want to unlink your Quests directory?', title: 'Unlink Quests Directory' })
               .then(() => {
-              /* ... */
-                keyval.del('dotnet_quests').then(() => {
+                if (window.electronAPI) {
+                  localStorage.removeItem('dotnet_quests');
                   window.location.reload();
-                });
+                } else {
+                  keyval.del('dotnet_quests').then(() => {
+                    window.location.reload();
+                  });
+                }
               })
               .catch(() => {
               /* ... */

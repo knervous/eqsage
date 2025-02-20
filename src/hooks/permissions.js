@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { get, set, del } from 'idb-keyval';
+import * as keyval from 'idb-keyval';
 import { createDirectoryHandle } from '@/lib/util/fileSystem';
 
 export const PermissionStatusTypes = {
@@ -11,6 +11,15 @@ export const PermissionStatusTypes = {
 
 const apiSupported =
   typeof window.FileSystemHandle?.prototype?.queryPermission === 'function';
+
+let get, set, del;
+if (window.electronAPI) {
+  get = name => localStorage.getItem(name);
+  set = (name, val) => localStorage.setItem(name, val);
+  del = name => localStorage.removeItem(name);
+} else {
+  ({ get, set, del } = keyval);
+}
 
 /**
  * Custom React hook to manage file system permissions and handle directory selection.
