@@ -53,7 +53,11 @@ export const PCConfig = ({
             return null;
           }
           const idx = +match[1];
-          const blob = await f.getFile();
+          let blob = await f.getFile();
+          if (window.electronAPI) {
+            const ab = await blob.arrayBuffer();
+            blob = new Blob([ab], { type: 'img/png' });
+          }
           const url = URL.createObjectURL(blob);
           return [idx, url];
         });
