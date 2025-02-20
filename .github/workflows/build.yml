@@ -8,10 +8,11 @@ on:
 
 jobs:
   check_version:
-    name: Check Package Version and Tag if Needed
+    name: Check Package Version and Tag Existence
     runs-on: ubuntu-latest
     outputs:
       package_version: ${{ steps.get_version.outputs.version }}
+      tag_exists: ${{ steps.check_tag.outputs.tag_exists }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -23,37 +24,31 @@ jobs:
           echo "Package version is $version"
           echo "::set-output name=version::$version"
 
-      - name: Compare versions and create new tag if needed
+      - name: Fetch All Tags
+        run: git fetch --tags
+
+      - name: Check if Tag Exists
+        id: check_tag
         env:
           PACKAGE_VERSION: ${{ steps.get_version.outputs.version }}
-          CURRENT_REF: ${{ github.ref_name }}
         run: |
-          if [[ "$CURRENT_REF" == v* ]]; then
-            current=${CURRENT_REF:1}
+          if git tag --list "v$PACKAGE_VERSION" | grep -q "v$PACKAGE_VERSION"; then
+            echo "Tag v$PACKAGE_VERSION exists."
+            echo "::set-output name=tag_exists::true"
           else
-            current=""
-          fi
-          echo "Current tag version (if any): $current"
-          if [ "$PACKAGE_VERSION" != "$current" ]; then
-            echo "Package version ($PACKAGE_VERSION) differs from current tag ($current). Creating new tag."
-            git config user.name "github-actions"
-            git config user.email "github-actions@github.com"
-            git tag "v$PACKAGE_VERSION"
-            # Push using token authentication:
-            git push "https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git" "v$PACKAGE_VERSION"
-          else
-            echo "Package version matches the current tag. No new tag created."
+            echo "Tag v$PACKAGE_VERSION does not exist."
+            echo "::set-output name=tag_exists::false"
           fi
 
   build:
     name: Build on ${{ matrix.os }}
     needs: check_version
+    if: needs.check_version.outputs.tag_exists == 'false'
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     env:
-      # Use the package version from the previous job (without the v prefix)
       VERSION: ${{ needs.check_version.outputs.package_version }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
@@ -103,9 +98,9 @@ jobs:
   release:
     name: Create Release and Upload Artifacts
     needs: build
+    if: needs.check_version.outputs.tag_exists == 'false'
     runs-on: ubuntu-latest
     env:
-      # Again, use the package version from package.json (no v prefix)
       VERSION: ${{ needs.check_version.outputs.package_version }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
@@ -121,7 +116,6 @@ jobs:
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: "${{ secrets.GH_TOKEN }}"
-          # The release is based on the tag with the v prefix, so prepend it here
           automatic_release_tag: "v${{ env.VERSION }}"
           prerelease: false
           title: "${{ env.VERSION }}"
