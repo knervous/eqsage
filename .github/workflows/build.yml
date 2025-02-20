@@ -28,7 +28,6 @@ jobs:
           PACKAGE_VERSION: ${{ steps.get_version.outputs.version }}
           CURRENT_REF: ${{ github.ref_name }}
         run: |
-          # If the current ref is a tag (starts with 'v'), remove the leading 'v'
           if [[ "$CURRENT_REF" == v* ]]; then
             current=${CURRENT_REF:1}
           else
@@ -40,7 +39,8 @@ jobs:
             git config user.name "github-actions"
             git config user.email "github-actions@github.com"
             git tag "v$PACKAGE_VERSION"
-            git push origin "v$PACKAGE_VERSION"
+            # Push using token authentication:
+            git push "https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git" "v$PACKAGE_VERSION"
           else
             echo "Package version matches the current tag. No new tag created."
           fi
