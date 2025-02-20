@@ -2,22 +2,60 @@ name: Build and Release Electron App
 
 on:
   push:
-    tags:
-      - '*.*.*'
+    branches:
+      - master
   workflow_dispatch:
 
-env:
-  # Set the release version from the Git tag, or override manually via workflow_dispatch inputs
-  VERSION: ${{ github.ref_name }}
-  GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
 jobs:
+  check_version:
+    name: Check Package Version and Tag if Needed
+    runs-on: ubuntu-latest
+    outputs:
+      package_version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Get package.json version
+        id: get_version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          echo "Package version is $version"
+          echo "::set-output name=version::$version"
+
+      - name: Compare versions and create new tag if needed
+        env:
+          PACKAGE_VERSION: ${{ steps.get_version.outputs.version }}
+          CURRENT_REF: ${{ github.ref_name }}
+        run: |
+          # If the current ref is a tag (starts with 'v'), remove the leading 'v'
+          if [[ "$CURRENT_REF" == v* ]]; then
+            current=${CURRENT_REF:1}
+          else
+            current=""
+          fi
+          echo "Current tag version (if any): $current"
+          if [ "$PACKAGE_VERSION" != "$current" ]; then
+            echo "Package version ($PACKAGE_VERSION) differs from current tag ($current). Creating new tag."
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git tag "v$PACKAGE_VERSION"
+            git push origin "v$PACKAGE_VERSION"
+          else
+            echo "Package version matches the current tag. No new tag created."
+          fi
+
   build:
     name: Build on ${{ matrix.os }}
+    needs: check_version
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # Use the package version from the previous job (without the v prefix)
+      VERSION: ${{ needs.check_version.outputs.package_version }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -64,8 +102,12 @@ jobs:
 
   release:
     name: Create Release and Upload Artifacts
-    runs-on: ubuntu-latest
     needs: build
+    runs-on: ubuntu-latest
+    env:
+      # Again, use the package version from package.json (no v prefix)
+      VERSION: ${{ needs.check_version.outputs.package_version }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -79,7 +121,8 @@ jobs:
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: "${{ secrets.GH_TOKEN }}"
-          automatic_release_tag: "${{ env.VERSION }}"
+          # The release is based on the tag with the v prefix, so prepend it here
+          automatic_release_tag: "v${{ env.VERSION }}"
           prerelease: false
           title: "${{ env.VERSION }}"
           files: |
