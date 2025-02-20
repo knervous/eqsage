@@ -49,6 +49,7 @@ jobs:
         os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     env:
+      # Use the package version from check_version without the v prefix
       VERSION: ${{ needs.check_version.outputs.package_version }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
@@ -97,10 +98,11 @@ jobs:
 
   release:
     name: Create Release and Upload Artifacts
-    needs: build
+    needs: check_version
     if: needs.check_version.outputs.tag_exists == 'false'
     runs-on: ubuntu-latest
     env:
+      # Again, use the package version without the v prefix
       VERSION: ${{ needs.check_version.outputs.package_version }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
@@ -116,6 +118,7 @@ jobs:
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: "${{ secrets.GH_TOKEN }}"
+          # The release tag is prefixed with v, while VERSION is without it.
           automatic_release_tag: "v${{ env.VERSION }}"
           prerelease: false
           title: "${{ env.VERSION }}"
