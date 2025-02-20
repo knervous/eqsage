@@ -121,9 +121,10 @@ class ZoneController extends GameControllerChild {
           node = node.parent;
         }
         return (
-          node.name === '__root__' || node.name.startsWith('zone-') // ||
-          // staticObjects.includes(node) ||
-          // node.name === 'static-objects'
+          node.name === '__root__' || node.name.startsWith('zone-') 
+          ||
+          staticObjects.includes(node) ||
+          node.name === 'static-objects'
         );
       },
       shouldExportAnimation() {

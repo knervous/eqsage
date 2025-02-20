@@ -164,7 +164,7 @@ class CameraController extends GameControllerChild {
       Tools.ToRadians(45),
       Tools.ToRadians(45),
       10,
-      new Vector3(-15, 5, 0.6),
+      new Vector3(15, 5, 0.6),
       this.currentScene
     );
 

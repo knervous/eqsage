@@ -8,7 +8,7 @@ import { GameControllerChild } from './GameControllerChild';
 import { BabylonSpawn } from '../models/BabylonSpawn';
 import { GlobalStore } from '../../state';
 import { dedup, prune, textureCompress } from '@gltf-transform/functions';
-import { getEQFile } from '../../lib/util/fileHandler';
+import { getEQFile, getEQFileExists } from '../../lib/util/fileHandler';
 import {
   GLOBAL_VERSION,
   processGlobal,
@@ -914,6 +914,7 @@ class SpawnController extends GameControllerChild {
       skeletonRoot.skeleton.name = 'export_model_skeleton';
       rootNode.dispose();
       rootNode = merged;
+      rootNode.rotation.y = Math.PI;
       rootNode.skeleton = skeletonRoot.skeleton;
       rootNode.id = 'model_export';
       rootNode.name = modelName;
@@ -955,25 +956,18 @@ class SpawnController extends GameControllerChild {
         }
 
         if (thisText !== textVer && npc) {
-          const existing = window.gameController.currentScene.materials
-            .flat()
-            .find((m) => m.name === newFullName);
-          if (existing) {
-            multiMat.subMaterials[idx] = existing;
-          } else {
-  
-            const newMat = new PBRMaterial(newFullName);
-            newMat.metallic = 0;
-            newMat.roughness = 1;
-            newMat._albedoTexture = new Texture(
-              newFullName,
-              window.gameController.currentScene,
-              mat._albedoTexture.noMipMap,
-              mat._albedoTexture.invertY,
-              mat._albedoTexture.samplingMode
-            );
-            multiMat.subMaterials[idx] = newMat;
+          const exists = await getEQFileExists('textures', `${newFullName}.png`);
+          if (!exists) {
+            console.log('Texture did not exist, skipping', newFullName);
+            continue;
           }
+          multiMat.subMaterials[idx]._albedoTexture = new Texture(
+            newFullName,
+            window.gameController.currentScene,
+            mat._albedoTexture.noMipMap,
+            mat._albedoTexture.invertY,
+            mat._albedoTexture.samplingMode
+          );
         }
       }
     }

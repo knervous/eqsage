@@ -1073,13 +1073,9 @@ export class S3DDecoder {
         .setName(name);
         
       const specularExtension = document.createExtension(KHRMaterialsSpecular);
-
-      // Create a Specular property.
       const specular = specularExtension.createSpecular()
         .setSpecularFactor(0.0)
         .setSpecularColorFactor([0, 0, 0]);
-        
-      // Attach the property to a Material.
       gltfMaterial.setExtension('KHR_materials_specular', specular);
         
       if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {

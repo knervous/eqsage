@@ -124,6 +124,10 @@ export class EQGDecoder {
       if (fileName.endsWith(".mds")) {
         //console.log("Had MDS! ", fileName);
       }
+      if (fileName.endsWith('.txt')) {
+        //console.log('Txt', fileName)
+      }
+      console.log('File', fileName)
     }
 
     // Post process
@@ -149,11 +153,11 @@ export class EQGDecoder {
       }
     }
     console.log(`Processed - ${name}`);
+    console.log('Images', images)
     if (!skipImages) {
       await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
       console.log("Done processing images");
     }
-    
   }
 
   /**

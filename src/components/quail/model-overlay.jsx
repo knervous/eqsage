@@ -290,7 +290,6 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
             selectedType === optionType.pc
               ? config?.pieces?.Helm?.texture
               : head;
-          console.log('Selected model and head', selectedModel, headModel);
           const model = await gameController.SpawnController.addExportModel(
             selectedModel,
             headModel,

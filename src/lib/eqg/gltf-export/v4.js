@@ -2,7 +2,7 @@
 import { Accessor, Document, WebIO } from '@gltf-transform/core';
 
 
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { ALL_EXTENSIONS, KHRMaterialsSpecular } from '@gltf-transform/extensions';
 import { quat } from 'gl-matrix';
 import { writeEQFile } from '../../util/fileHandler';
 import { VERSION } from '../../model/constants';
@@ -54,6 +54,11 @@ export async function exportv4(zoneName) {
         //  .setExtension('KHR_materials_unlit')
         .setRoughnessFactor(1)
         .setMetallicFactor(0);
+      const specularExtension = document.createExtension(KHRMaterialsSpecular);
+      const specular = specularExtension.createSpecular()
+        .setSpecularFactor(0.0)
+        .setSpecularColorFactor([0, 0, 0]);
+      gltfMaterial.setExtension('KHR_materials_specular', specular);
       const detailText = tex.detailMap.replace('.dds', '');
       const _normalText = tex.normalMap.replace('.dds', '');
       gltfMaterial.setBaseColorTexture(document
@@ -80,7 +85,11 @@ export async function exportv4(zoneName) {
         //  .setExtension('KHR_materials_unlit')
         .setRoughnessFactor(1)
         .setMetallicFactor(0);
-
+      const specularExtension = document.createExtension(KHRMaterialsSpecular);
+      const specular = specularExtension.createSpecular()
+        .setSpecularFactor(0.0)
+        .setSpecularColorFactor([0, 0, 0]);
+      gltfMaterial.setExtension('KHR_materials_specular', specular);
       for (const prop of mat.properties) {
         const [name] = prop.valueS.toLowerCase().split('.');
         const texture = document

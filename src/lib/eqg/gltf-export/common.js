@@ -1,10 +1,9 @@
 import { Accessor, Document, WebIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { ALL_EXTENSIONS, KHRMaterialsSpecular } from '@gltf-transform/extensions';
 
 import { mat4, vec3 } from 'gl-matrix';
 import {
   appendObjectMetadata,
-  getEQFile,
   getEQFileExists,
   writeEQFile,
 } from '../../util/fileHandler';
@@ -116,7 +115,11 @@ export async function writeModels(modelFile, mod) {
       //  .setExtension('KHR_materials_unlit')
       .setRoughnessFactor(1)
       .setMetallicFactor(0);
-
+    const specularExtension = document.createExtension(KHRMaterialsSpecular);
+    const specular = specularExtension.createSpecular()
+      .setSpecularFactor(0.0)
+      .setSpecularColorFactor([0, 0, 0]);
+    gltfMaterial.setExtension('KHR_materials_specular', specular);
     for (const prop of mat.properties) {
       const [name] = prop.valueS.toLowerCase().split('.');
       const texture = document

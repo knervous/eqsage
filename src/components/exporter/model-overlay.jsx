@@ -198,39 +198,26 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
         for (const [key, entry] of Object.entries(prefixes)) {
           prefixes[key] = `${modelName}${entry}`;
         }
-        const doSwap = async (str, color) => {
-          const existing = window.gameController.currentScene.materials
-            .flat()
-            .find((m) => m.name === str);
-          if (existing) {
-            node.material.subMaterials[idx] = existing;
-          } else {
-            const exists = await getEQFileExists('textures', `${str}.png`);
-            if (!exists) {
-              console.log('Texture did not exist, skipping', str);
-              return;
-            }
-            const newMat = new PBRMaterial(str);
-            newMat.metallic = 0;
-            newMat.roughness = 1;
-            newMat._albedoTexture = new Texture(
-              str,
-              window.gameController.currentScene,
-              mat._albedoTexture.noMipMap,
-              mat._albedoTexture.invertY,
-              mat._albedoTexture.samplingMode
-            );
-            node.material.subMaterials[idx] = newMat;
+        const doSwap = async (str, color = '0xFFFFFFFF') => {
+          const exists = await getEQFileExists('textures', `${str}.png`);
+          if (!exists) {
+            console.log('Texture did not exist, skipping', str);
+            return;
           }
-          const material = node.material.subMaterials[idx];
-          if (color !== undefined) {
-            const a = (color >> 24) & 0xff;
-            const r = (color >> 16) & 0xff;
-            const g = (color >> 8) & 0xff;
-            const b = color & 0xff;
-            material.albedoColor = new Color3(r / 255, g / 255, b / 255);
-            material.alpha = a / 255;
-          }
+          node.material.name = str;
+          node.material.subMaterials[idx]._albedoTexture = new Texture(
+            str,
+            window.gameController.currentScene,
+            mat._albedoTexture.noMipMap,
+            mat._albedoTexture.invertY,
+            mat._albedoTexture.samplingMode
+          );
+          const a = (color >> 24) & 0xff;
+          const r = (color >> 16) & 0xff;
+          const g = (color >> 8) & 0xff;
+          const b = color & 0xff;
+          node.material.subMaterials[idx].albedoColor = new Color3(r / 255, g / 255, b / 255);
+          node.material.subMaterials[idx].alpha = a / 255;
         };
         // Face
         if (mat.name.startsWith(`${prefixes.Face}00`)) {
@@ -294,7 +281,6 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
             selectedType === optionType.pc
               ? config?.pieces?.Helm?.texture
               : head;
-          console.log('Selected model and head', selectedModel, headModel);
           const model = await gameController.SpawnController.addExportModel(
             selectedModel,
             headModel,

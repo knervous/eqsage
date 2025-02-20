@@ -114,7 +114,6 @@ export const ItemSearch = ({ label, piece, onSelect, onClose, baseOptions, fully
       
       }}
       onChange={async (_e, v) => {
-        console.log('Val', v);
         if (fullyPopulate) {
           const Spire = window.Spire;
           const itemApi = new ItemApi(...Spire.SpireApi.cfg());
