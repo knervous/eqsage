@@ -53,14 +53,14 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-${{ matrix.os }}
+          name: build-${{ matrix.os }}-${{ env.VERSION }}
           path: |
-            dist/**/*.dmg
-            dist/**/*.zip
-            dist/**/*.exe
-            dist/**/*.AppImage
-            dist/**/*.deb
-            dist/**/*.rpm
+            dist/**/*${{ env.VERSION }}*.dmg
+            dist/**/*${{ env.VERSION }}*.zip
+            dist/**/*${{ env.VERSION }}*.exe
+            dist/**/*${{ env.VERSION }}*.AppImage
+            dist/**/*${{ env.VERSION }}*.deb
+            dist/**/*${{ env.VERSION }}*.rpm
 
   release:
     name: Create Release and Upload Artifacts
