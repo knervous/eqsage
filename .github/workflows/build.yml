@@ -98,7 +98,7 @@ jobs:
 
   release:
     name: Create Release and Upload Artifacts
-    needs: check_version
+    needs: [build, check_version]
     if: needs.check_version.outputs.tag_exists == 'false'
     runs-on: ubuntu-latest
     env:
