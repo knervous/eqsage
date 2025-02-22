@@ -279,10 +279,15 @@ export async function exportv3(zoneName) {
     JSON.stringify(zoneMetadata)
   );
   console.log('Start', document);
-  await document.transform(
-    // Compress mesh geometry with Draco.
-    draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
-  );
+  try {
+    await document.transform(
+      // Compress mesh geometry with Draco.
+      draco({ ...DRACO_DEFAULTS, quantizationVolume: 'scene' })
+    );
+  } catch (e) {
+    console.log('Error with draco compression', e);
+  }
+ 
   console.log('Finish draco');
   const bytes = await io.writeBinary(document);
   await writeEQFile('zones', `${zoneName}.glb`, bytes.buffer);
