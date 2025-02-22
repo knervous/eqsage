@@ -67,7 +67,12 @@ async function parseWce(fileHandle) {
   });
   const recurse = async (dirHandle, path = '') => {
     for await (const [name, handle] of dirHandle.entries()) {
+
       if (handle.kind === 'directory') {
+        // if (!folderInclusions[name]) {
+        //   console.log('Skipping', name);
+        //   continue;
+        // }
         fs.files.set(`/${path}${name}`, {
           type    : 'dir',
           children: new Map(),
@@ -77,6 +82,9 @@ async function parseWce(fileHandle) {
         });
         await recurse(handle, `${path}${name}/`);
       } else {
+        if (name.includes('bmp') || name.includes('dds')) {
+          continue;
+        }
         fs.setEntry(
           `${path}${name}`,
           fs.makeFileEntry(undefined, new Uint8Array(await handle.getFile().then(f => f.arrayBuffer())))

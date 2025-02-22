@@ -88,6 +88,7 @@
     "@babylonjs/loaders": "7.2.1",
     "@babylonjs/materials": "7.2.1",
     "@babylonjs/serializers": "7.2.1",
+    "@base-ui-components/react": "^1.0.0-alpha.6",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@gltf-transform/core": "^4.1.1",

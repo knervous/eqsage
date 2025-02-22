@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import HomeIcon from '@mui/icons-material/Home';
@@ -31,8 +31,10 @@ import { Allotment } from 'allotment';
 
 import 'allotment/dist/style.css';
 import { FileExplorer } from './file-explorer';
+import { NavFooter } from '../common/nav/nav-footer';
 
 const QuailOverlayComponent = ({ canvas }) => {
+  const [maxSize, setMaxSize] = useState(300);
   useEffect(() => {
     if (window.gameController.currentScene) {
 
@@ -44,10 +46,11 @@ const QuailOverlayComponent = ({ canvas }) => {
   return (
     <Box sx={{ position: 'fixed', width: '100vw', height: '100vh', top: 0, left: 0 }}>
       <Allotment onDragEnd={onDragEnd} defaultSizes={[100, 200]}>
-        <Allotment.Pane minSize={100}>
-          <FileExplorer />
+        <Allotment.Pane minSize={100} maxSize={maxSize}>
+          <FileExplorer setMaxSize={setMaxSize} />
         </Allotment.Pane>
         <Allotment.Pane snap>
+
           {canvas}
         </Allotment.Pane>
       </Allotment>

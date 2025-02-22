@@ -2,25 +2,38 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Box,
   Button,
+  Checkbox,
+  IconButton,
+  ListItem,
   MenuItem,
-  Select,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
+import { Menu } from '@base-ui-components/react/menu';
 import { SimpleTreeView, TreeItem } from '@mui/x-tree-view';
 import FolderIcon from '@mui/icons-material/Folder';
+import CloseIcon from '@mui/icons-material/Close';
+import ConstructionIcon from '@mui/icons-material/Construction';
+
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import SaveIcon from '@mui/icons-material/Save';
+import LinkOffIcon from '@mui/icons-material/LinkOff';
 import { usePermissions } from '@/hooks/permissions';
 import Editor from '@monaco-editor/react';
 import { Allotment } from 'allotment';
 import { quailProcessor } from '@/modules/quail';
+import { definitionProvider, wceLanguage } from './wce';
 
 import './fs.scss';
+import styles from './index.module.css';
+import { NavFooter } from '../common/nav/nav-footer';
+import { DrawerButton } from '../common/nav/drawer-button';
 
-export const FileExplorer = () => {
-  // Custom hook providing FS access (fsHandle is a FileSystemDirectoryHandle)
+export const FileExplorer = ({ setMaxSize }) => {
+  // Custom hook providing FS access
   const [
     _apiSupported,
     onDrop,
@@ -32,51 +45,65 @@ export const FileExplorer = () => {
 
   const [treeData, setTreeData] = useState(null);
   const [fileContent, setFileContent] = useState('');
+  const [fileHandle, setFileHandle] = useState(null);
   const [currentFileName, setCurrentFileName] = useState('');
 
-  useEffect(() => {
+  const refreshDirectory = useCallback(async () => {
+    setTreeData(null);
+
     if (!fsHandle) {
-      setTreeData(null);
       return;
     }
 
-    let counter = 0;
-
-    const loadTree = async (dirHandle, parentId = '') => {
+    // Updated loadTree: builds a full relative path for the node ID
+    const loadTree = async (dirHandle, parentPath = '') => {
       const nodes = [];
       for await (const [name, handle] of dirHandle.entries()) {
-        counter++;
-        const nodeId = parentId
-          ? `${parentId}/${name}-${counter}`
-          : `${name}-${counter}`;
+        // Build the full relative path
+        const currentPath = parentPath ? `${parentPath}/${name}` : name;
         if (handle.kind === 'directory') {
-          const children = await loadTree(handle, nodeId);
-          nodes.push({ id: nodeId, name, type: 'directory', children });
+          const children = await loadTree(handle, currentPath);
+          nodes.push({ id: currentPath, name, type: 'directory', children });
         } else {
-          if (!['.bmp', '.dds'].some((p) => name.toLowerCase().endsWith(p))) {
-            nodes.push({ id: nodeId, name, type: 'file', handle });
+          if (
+            !['.bmp', '.dds', '.ds_store'].some((p) =>
+              name.toLowerCase().endsWith(p)
+            )
+          ) {
+            nodes.push({ id: currentPath, name, type: 'file', handle });
           }
         }
       }
-      return nodes;
+      const files = nodes.filter((a) => a.type === 'file');
+      const dirs = nodes.filter((a) => a.type === 'directory');
+      const sort = (a, b) => (a.name < b.name ? -1 : 1);
+      return [...files.sort(sort), ...dirs.sort(sort)];
     };
 
-    (async () => {
-      const tree = await loadTree(fsHandle);
-      setTreeData(tree);
-    })();
+    const tree = await loadTree(fsHandle);
+    setTreeData(tree);
   }, [fsHandle]);
+
+  useEffect(() => {
+    setMaxSize(fileHandle ? 900 : 200);
+  }, [fileHandle, setMaxSize]);
+
+  useEffect(() => {
+    refreshDirectory();
+  }, [refreshDirectory]);
 
   const parseWCE = useCallback(async () => {
     await quailProcessor.parseWce(fsHandle);
   }, [fsHandle]);
 
   const handleFileClick = async (node) => {
+    console.log('Click node', node);
     if (node.handle) {
       try {
         const file = await node.handle.getFile();
         const text = await file.text();
         setFileContent(text);
+        setFileHandle(file);
         setCurrentFileName(node.name);
       } catch (err) {
         console.error('Error reading file:', err);
@@ -84,39 +111,50 @@ export const FileExplorer = () => {
     }
   };
 
-  const renderTree = (nodes) =>
-    nodes.map((node) => (
-      <TreeItem
-        key={node.id}
-        itemId={node.id}
-        label={
-          <Box
-            onClick={() => node.type === 'file' && handleFileClick(node)}
-            sx={{
-              display   : 'flex',
-              alignItems: 'center',
-              cursor    : node.type === 'file' ? 'pointer' : 'default',
-            }}
-          >
+  const renderTree = (nodes, level = 0) =>
+    nodes.map((node) => {
+      const labelContent = (
+        <Box
+          sx={{
+            display       : 'flex',
+            alignItems    : 'center',
+            justifyContent: 'space-between',
+            width         : '100%',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             {node.type === 'directory' ? (
               <FolderIcon fontSize="small" sx={{ mr: 1 }} />
             ) : (
               <InsertDriveFileIcon fontSize="small" sx={{ mr: 1 }} />
             )}
-            <Typography
-              variant="body2"
-              sx={{ fontWeight: 'inherit', flexGrow: 1 }}
-            >
+            <Typography variant="body2" sx={{ fontWeight: 'inherit' }}>
               {node.name}
             </Typography>
           </Box>
-        }
-      >
-        {node.children && node.children.length > 0
-          ? renderTree(node.children)
-          : null}
-      </TreeItem>
-    ));
+        </Box>
+      );
+      return (
+        <TreeItem
+          key={node.id}
+          itemId={node.id}
+          onClick={
+            node.type === 'file'
+              ? (e) => {
+                e.stopPropagation();
+                handleFileClick(node);
+              }
+              : undefined
+          }
+          label={labelContent}
+          sx={{ '& > div': { padding: '5px 5px' } }}
+        >
+          {node.children && node.children.length > 0
+            ? renderTree(node.children, level + 1)
+            : null}
+        </TreeItem>
+      );
+    });
 
   return (
     <Box
@@ -132,27 +170,15 @@ export const FileExplorer = () => {
         color  : 'text.primary',
       }}
     >
-      <Box
-        sx={{
-          padding     : '10px',
-          borderBottom: 1,
-          borderColor : 'divider',
-          display     : 'flex',
-        }}
-      >
-        <Typography variant="h6">Quail Workspace v0.1</Typography>
-        {fsHandle && (
-          <Button
-            sx={{ marginLeft: '10px' }}
-            onClick={unlink}
-            variant="outlined"
-            size="small"
-          >
-            Unlink
-          </Button>
-        )}
-      </Box>
-
+      <NavFooter>
+        <DrawerButton
+          drawerState={{}}
+          drawer="process"
+          text={'Process WCE'}
+          Icon={ConstructionIcon}
+          toggleDrawer={parseWCE}
+        />
+      </NavFooter>
       {!fsHandle ? (
         <Box
           className="fs-start"
@@ -176,86 +202,141 @@ export const FileExplorer = () => {
           </Button>
         </Box>
       ) : (
-        <Box sx={{ overflowY: 'auto', height: 'calc(100vh - 60px)' }}>
-          <Allotment>
-            <Allotment.Pane minSize={50} maxSize={200}>
-              <SimpleTreeView
-                defaultCollapseIcon={<FolderOpenIcon />}
-                defaultExpandIcon={<FolderIcon />}
-                sx={{
-                  minHeight    : 'calc(100% - 25px)',
-                  maxHeight    : 'calc(100vh - 54px)',
-                  color        : 'inherit',
-                  bgcolor      : 'background.paper',
-                  border       : 1,
-                  borderColor  : 'divider',
-                  // borderRadius : 1,
-                  // padding      : 1,
-                  overflow     : 'scroll',
-                  paddingBottom: '25px !important'
-                }}
-              >
-                {treeData ? (
-                  renderTree(treeData)
-                ) : (
-                  <Typography variant="body2">Loading...</Typography>
-                )}
-              </SimpleTreeView>
-            </Allotment.Pane>
-            <Allotment.Pane snap>
+        <Allotment maxSize={500}>
+          <Allotment.Pane minSize={50} maxSize={200}>
+            <Box
+              sx={{
+                bgcolor: 'background.paper',
+                height : '24px',
+                width  : '100%',
+              }}
+            >
               <Stack
-                justifyContent={'center'}
-                sx={{ height: '50px', width: '100%' }}
+                sx={{ padding: '2px 8px' }}
                 direction="row"
+                justifyContent={'space-between'}
+                alignContent="center"
               >
-                <Button
-                  size="small"
-                  sx={{ margin: '0px 15px', height: '40px' }}
-                  variant="outlined"
+                <Typography
+                  variant="pre"
+                  sx={{ fontSize: '13px', lineHeight: '20px' }}
                 >
-                  Save File
-                </Button>
-                <Button
-                  size="small"
-                  sx={{ margin: '0px 15px', height: '40px' }}
-                  variant="outlined"
-                >
-                  Sync Files
-                </Button>
-                <Button
-                  size="small"
-                  onClick={parseWCE}
-                  sx={{ margin: '0px 15px', height: '40px' }}
-                  variant="outlined"
-                >
-                  Parse WCE
-                </Button>
-                <TextField
-                  select
-                  size="small"
-                  sx={{ minWidth: '150px' }}
-                  label="Select Model"
-                  value={''}
-                >
-                  <MenuItem value={-1}>None</MenuItem>
-                </TextField>
+                    EXPLORER
+                </Typography>
+                <Menu.Root>
+                  <Menu.Trigger className={styles.Button}>
+                    <MoreHorizIcon sx={{ width: '20px', height: '20px' }} />
+                  </Menu.Trigger>
+                  <Menu.Portal>
+                    <Menu.Positioner
+                      className={styles.Positioner}
+                      sideOffset={8}
+                    >
+                      <Menu.Popup className={styles.Popup}>
+                        <Menu.Arrow className={styles.Arrow}></Menu.Arrow>
+                        <Menu.Item
+                          onClick={refreshDirectory}
+                          className={styles.Item}
+                        >
+                            Reload
+                        </Menu.Item>
+                        <Menu.Separator className={styles.Separator} />
+                        <Menu.Item onClick={unlink} className={styles.Item}>
+                            Unlink Directory
+                        </Menu.Item>
+                      </Menu.Popup>
+                    </Menu.Positioner>
+                  </Menu.Portal>
+                </Menu.Root>
               </Stack>
-              {/* Optionally show the current file name */}
-              {currentFileName && (
-                <Typography variant="subtitle2" sx={{ padding: '0 10px' }}>
+            </Box>
+            <SimpleTreeView
+              defaultCollapseIcon={<FolderOpenIcon />}
+              defaultExpandIcon={<FolderIcon />}
+              sx={{
+                minHeight    : 'calc(100% - 25px)',
+                maxHeight    : 'calc(100vh - 54px)',
+                padding      : '5px',
+                color        : 'inherit',
+                bgcolor      : 'background.paper',
+                border       : 1,
+                borderColor  : 'divider',
+                overflow     : 'scroll',
+                paddingBottom: '25px !important',
+              }}
+            >
+              {treeData ? (
+                renderTree(treeData)
+              ) : (
+                <Typography variant="body2">Loading...</Typography>
+              )}
+            </SimpleTreeView>
+          </Allotment.Pane>
+          {fileHandle ? (
+            <Allotment.Pane maxSize={700}>
+              <Stack
+                sx={{ bgcolor: 'background.paper' }}
+                direction="row"
+                justifyContent={'space-between'}
+              >
+                <Typography variant="subtitle2" sx={{ padding: '0 10px', lineHeight: '26px' }}>
                   {currentFileName}
                 </Typography>
+                <Stack
+                  sx={{
+                    button: {
+                      borderRadius: '0px',
+                      width       : '26px',
+                      height      : '26px',
+                    },
+                    svg: {
+                      width : '16px',
+                      height: '16px',
+                    },
+                  }}
+                  direction="row"
+                >
+                  <IconButton>
+                    <SaveIcon />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => {
+                      setCurrentFileName('');
+                      setFileContent('');
+                      setFileHandle(null);
+                    }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                </Stack>
+              </Stack>
+
+              {currentFileName ? (
+                <Editor
+                  theme="vs-dark"
+                  height="calc(100vh)"
+                  width="100%"
+                  value={fileContent}
+                  language="wce"
+                  beforeMount={(monaco) => {
+                    monaco.languages.register({ id: 'wce' });
+                    monaco.languages.setMonarchTokensProvider(
+                      'wce',
+                      wceLanguage
+                    );
+                    monaco.languages.registerDefinitionProvider(
+                      'wce',
+                      definitionProvider(monaco)
+                    );
+                  }}
+                  onChange={(newValue) => setFileContent(newValue)}
+                />
+              ) : (
+                <Box />
               )}
-              <Editor
-                theme="vs-dark"
-                height="calc(100vh - 100px)"
-                width="100%"
-                value={fileContent}
-                onChange={(newValue) => setFileContent(newValue)}
-              />
             </Allotment.Pane>
-          </Allotment>
-        </Box>
+          ) : null}
+        </Allotment>
       )}
     </Box>
   );
