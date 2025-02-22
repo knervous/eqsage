@@ -29,6 +29,7 @@ export const SettingsDialog = ({ onClose }) => {
     importBoundary = false,
     showSpawns = true,
     disableAnimations = false,
+    exportObjects = false,
   } = useSettingsContext();
   const [testState, setTestState] = useState('Ready');
   const [user, setUser] = useState('');
@@ -144,6 +145,18 @@ export const SettingsDialog = ({ onClose }) => {
           />
         }
         label="Disable Animations (Requires Page Refresh)"
+      />
+      <br />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={exportObjects}
+            onChange={({ target: { checked } }) =>
+              setOption('exportObjects', checked)
+            }
+          />
+        }
+        label="Export Objects with Zone Export"
       />
       <br />
       <FormControlLabel

@@ -18,6 +18,7 @@ export const globalSettings = {
   importBoundary   : false,
   showSpawns       : true,
   disableAnimations: false,
+  exportObjects    : false,
 };
 
 export const SettingsProvider = ({

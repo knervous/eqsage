@@ -115,17 +115,18 @@ class ZoneController extends GameControllerChild {
     GlobalStore.actions.setLoadingTitle(`Exporting zone ${name}`);
     GlobalStore.actions.setLoadingText('LOADING, PLEASE WAIT...');
     const staticObjects = this.objectContainer?.getChildMeshes() ?? [];
+    const exportObjects = this.gc.settings.exportObjects;
     GLTF2Export.GLBAsync(this.scene, name, {
       shouldExportNode(node) {
         while (node.parent) {
           node = node.parent;
         }
-        return (
-          node.name === '__root__' || node.name.startsWith('zone-') 
-          ||
-          staticObjects.includes(node) ||
-          node.name === 'static-objects'
-        );
+        return exportObjects
+          ? node.name === '__root__' ||
+              node.name.startsWith('zone') ||
+              staticObjects.includes(node) ||
+              node.name === 'static-objects'
+          : node.name === '__root__' || node.name.startsWith('zone');
       },
       shouldExportAnimation() {
         return false;
@@ -718,8 +719,8 @@ class ZoneController extends GameControllerChild {
           );
           const hasMorphTargets = rootNode
             .getChildMeshes()
-            .some(mesh => mesh.morphTargetManager !== null);
-    
+            .some((mesh) => mesh.morphTargetManager !== null);
+
           if (hasMorphTargets) {
             rootNode.visibility = 0;
           }

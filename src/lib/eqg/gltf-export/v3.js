@@ -275,8 +275,8 @@ export async function exportv3(zoneName) {
   // Write out metadata and the final GLB.
   await writeEQFile(
     'zones',
-    `${this.zone.name.replace('.zon', '.json')}`,
-    JSON.stringify(zoneMetadata)
+  `${this.zone.name.replace('.zon', '.json')}`,
+  JSON.stringify(zoneMetadata)
   );
   console.log('Start', document);
   try {
