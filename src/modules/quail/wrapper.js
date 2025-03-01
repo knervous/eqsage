@@ -1184,6 +1184,10 @@ export const CreateQuail = (url) =>
               makeFileEntry,
               makeDirEntry,
               files: inMemoryFS,
+              reset() {
+                inMemoryFS.clear();
+                inMemoryFS.set('/', makeDirEntry());
+              }
             },
           };
           res(cached);
@@ -1205,6 +1209,10 @@ export const CreateQuail = (url) =>
                 makeFileEntry,
                 makeDirEntry,
                 files: inMemoryFS,
+                reset() {
+                  inMemoryFS.clear();
+                  inMemoryFS.set('/', makeDirEntry());
+                }
               },
             };
             res(cached);

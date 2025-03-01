@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -8,6 +8,7 @@ import {
   MenuItem,
   Stack,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material';
 import { Menu } from '@base-ui-components/react/menu';
@@ -20,34 +21,27 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import SaveIcon from '@mui/icons-material/Save';
-import LinkOffIcon from '@mui/icons-material/LinkOff';
-import { usePermissions } from '@/hooks/permissions';
+// import LinkOffIcon from '@mui/icons-material/LinkOff';
 import Editor from '@monaco-editor/react';
 import { Allotment } from 'allotment';
 import { quailProcessor } from '@/modules/quail';
 import { definitionProvider, wceLanguage } from './wce';
+import { NavFooter } from '../common/nav/nav-footer';
+import { DrawerButton } from '../common/nav/drawer-button';
+import { useAlertContext } from '@/context/alerts';
+import { S3DDecoder } from '@/lib/s3d/s3d-decoder';
 
 import './fs.scss';
 import styles from './index.module.css';
-import { NavFooter } from '../common/nav/nav-footer';
-import { DrawerButton } from '../common/nav/drawer-button';
 
-export const FileExplorer = ({ setMaxSize }) => {
-  // Custom hook providing FS access
-  const [
-    _apiSupported,
-    onDrop,
-    _checkHandlePermissions,
-    fsHandle,
-    onFolderSelected,
-    unlink,
-  ] = usePermissions('quail-workspace');
+export const FileExplorer = ({ setMaxSize, onDrop, fsHandle, onFolderSelected, unlink }) => {
 
   const [treeData, setTreeData] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [fileHandle, setFileHandle] = useState(null);
   const [currentFileName, setCurrentFileName] = useState('');
-
+  const { openAlert } = useAlertContext();
+  const monacoRef = useRef(null);
   const refreshDirectory = useCallback(async () => {
     setTreeData(null);
 
@@ -92,24 +86,30 @@ export const FileExplorer = ({ setMaxSize }) => {
     refreshDirectory();
   }, [refreshDirectory]);
 
-  const parseWCE = useCallback(async () => {
-    await quailProcessor.parseWce(fsHandle);
-  }, [fsHandle]);
+
 
   const handleFileClick = async (node) => {
-    console.log('Click node', node);
     if (node.handle) {
       try {
         const file = await node.handle.getFile();
         const text = await file.text();
         setFileContent(text);
-        setFileHandle(file);
+        setFileHandle(node.handle);
         setCurrentFileName(node.name);
       } catch (err) {
         console.error('Error reading file:', err);
       }
     }
   };
+
+  const doSave = useCallback(async () => {
+    const text = monacoRef.current.editor.getModels()[0].getValue();
+    const writable = await fileHandle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    console.log('text', text);
+    openAlert(`Saved ${fileHandle.name}`);
+  }, [fileHandle, openAlert]);
 
   const renderTree = (nodes, level = 0) =>
     nodes.map((node) => {
@@ -170,15 +170,6 @@ export const FileExplorer = ({ setMaxSize }) => {
         color  : 'text.primary',
       }}
     >
-      <NavFooter>
-        <DrawerButton
-          drawerState={{}}
-          drawer="process"
-          text={'Process WCE'}
-          Icon={ConstructionIcon}
-          toggleDrawer={parseWCE}
-        />
-      </NavFooter>
       {!fsHandle ? (
         <Box
           className="fs-start"
@@ -202,7 +193,9 @@ export const FileExplorer = ({ setMaxSize }) => {
           </Button>
         </Box>
       ) : (
-        <Allotment maxSize={500}>
+        <Allotment onDragEnd={() => {
+          window.gameController.resize();
+        }} maxSize={900}>
           <Allotment.Pane minSize={50} maxSize={200}>
             <Box
               sx={{
@@ -221,7 +214,7 @@ export const FileExplorer = ({ setMaxSize }) => {
                   variant="pre"
                   sx={{ fontSize: '13px', lineHeight: '20px' }}
                 >
-                    EXPLORER
+                  EXPLORER
                 </Typography>
                 <Menu.Root>
                   <Menu.Trigger className={styles.Button}>
@@ -238,11 +231,11 @@ export const FileExplorer = ({ setMaxSize }) => {
                           onClick={refreshDirectory}
                           className={styles.Item}
                         >
-                            Reload
+                          Reload
                         </Menu.Item>
                         <Menu.Separator className={styles.Separator} />
                         <Menu.Item onClick={unlink} className={styles.Item}>
-                            Unlink Directory
+                          Unlink Directory
                         </Menu.Item>
                       </Menu.Popup>
                     </Menu.Positioner>
@@ -279,7 +272,10 @@ export const FileExplorer = ({ setMaxSize }) => {
                 direction="row"
                 justifyContent={'space-between'}
               >
-                <Typography variant="subtitle2" sx={{ padding: '0 10px', lineHeight: '26px' }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{ padding: '0 10px', lineHeight: '26px' }}
+                >
                   {currentFileName}
                 </Typography>
                 <Stack
@@ -296,18 +292,22 @@ export const FileExplorer = ({ setMaxSize }) => {
                   }}
                   direction="row"
                 >
-                  <IconButton>
-                    <SaveIcon />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => {
-                      setCurrentFileName('');
-                      setFileContent('');
-                      setFileHandle(null);
-                    }}
-                  >
-                    <CloseIcon />
-                  </IconButton>
+                  <Tooltip placement="bottom" title={'Save'}>
+                    <IconButton onClick={doSave}>
+                      <SaveIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip placement="bottom" title={'Close'}>
+                    <IconButton
+                      onClick={() => {
+                        setCurrentFileName('');
+                        setFileContent('');
+                        setFileHandle(null);
+                      }}
+                    >
+                      <CloseIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Stack>
               </Stack>
 
@@ -319,6 +319,8 @@ export const FileExplorer = ({ setMaxSize }) => {
                   value={fileContent}
                   language="wce"
                   beforeMount={(monaco) => {
+                    monacoRef.current = monaco;
+                    // monaco.editor.addKeybindingRule()
                     monaco.languages.register({ id: 'wce' });
                     monaco.languages.setMonarchTokensProvider(
                       'wce',

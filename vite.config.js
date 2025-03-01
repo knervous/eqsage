@@ -123,9 +123,9 @@ export default defineConfig({
   plugins: [
     react(),
     proxyPlugin(),
-    viteStaticCopy({
-      targets: [{ src: 'node_modules/quail-wasm/quail.wasm', dest: 'static' }],
-    }),
+    // viteStaticCopy({
+    //   targets: [{ src: 'node_modules/quail-wasm/quail.wasm', dest: 'static' }],
+    // }),
     esbuildCommonjs(['spire-api']),
   ],
   optimizeDeps: {

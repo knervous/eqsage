@@ -1,7 +1,11 @@
 import { Buffer } from 'buffer';
 import { mat4 } from 'gl-matrix';
 import { Accessor, WebIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS, KHRMaterialsSpecular, KHRMaterialsSheen } from '@gltf-transform/extensions';
+import {
+  ALL_EXTENSIONS,
+  KHRMaterialsSpecular,
+  KHRMaterialsSheen,
+} from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
 import draco3d from 'draco3dgltf';
 
@@ -65,8 +69,9 @@ export class S3DDecoder {
 
   gequip = false;
 
-  constructor(fileHandle) {
+  constructor(fileHandle, options = {}) {
     this.#fileHandle = fileHandle;
+    this.options = options;
   }
 
   /**
@@ -115,7 +120,7 @@ export class S3DDecoder {
     }
 
     console.log(`Processed - ${file.name}`);
-    if (!skipImages) {
+    if (!skipImages && !this.options?.forceWrite) {
       await imageProcessor.parseImages(images);
       console.log(`Done processing images ${file.name} - ${images.length}`);
     }
@@ -130,7 +135,6 @@ export class S3DDecoder {
     isCharacterAnimation,
     boneIdx = -1
   ) {
-    
     for (const mesh of meshes) {
       const material = mesh.materialList;
       const baseName = (name || mesh.name).split('_')[0].toLowerCase();
@@ -142,7 +146,10 @@ export class S3DDecoder {
 
       // Write skeleton data to json if we're a supplier of animations for other models
       if (!secondary && Object.values(animationMap).includes(baseName)) {
-        if (!(await getEQFileExists('data', `${baseName}-animations.json`))) {
+        if (
+          this.options.forceWrite ||
+          !(await getEQFileExists('data', `${baseName}-animations.json`))
+        ) {
           GlobalStore.actions.setLoadingText(
             `Writing shared animations for ${baseName}`
           );
@@ -491,7 +498,7 @@ export class S3DDecoder {
   async exportSkeletalActor(wld, skeleton, name, path = 'objects') {
     const meshes = [];
     let boneIdx = -1;
-    
+
     for (const [idx, bone] of Object.entries(skeleton.skeleton)) {
       if (
         bone.meshReference &&
@@ -605,7 +612,7 @@ export class S3DDecoder {
         const uvs = idxArr.map((idx) => mesh.textureUvCoordinates[idx]);
 
         const transformedPositions = vertices.map((v) => [
-          (v[0] + mesh.center[0]),
+          v[0] + mesh.center[0],
           v[2] + mesh.center[2],
           v[1] + mesh.center[1],
         ]);
@@ -633,7 +640,11 @@ export class S3DDecoder {
             dedupIndex = sharedPrimitive.vertexMapping.length;
             sharedPrimitive.vertexDedupMap.set(key, dedupIndex);
             // Save the original WLD vertex index.
-            sharedPrimitive.vertexMapping.push({ idx: idxArr[k], pos: transformedPositions[k], norm: transformedNormals[k] });
+            sharedPrimitive.vertexMapping.push({
+              idx : idxArr[k],
+              pos : transformedPositions[k],
+              norm: transformedNormals[k],
+            });
             // Push the vertex data.
             sharedPrimitive.vecs.push(...transformedPositions[k]);
             sharedPrimitive.normals.push(...transformedNormals[k]);
@@ -684,7 +695,7 @@ export class S3DDecoder {
       const flipMatrix = mat4.create();
       mat4.scale(flipMatrix, flipMatrix, [-1, 1, 1]); // Flip X axis.
       node.setMatrix(flipMatrix);
-  
+
       for (const [_name, primData] of Object.entries(primitiveMap)) {
         const { gltfPrim, vertexMapping } = primData;
         // For each animation frame...
@@ -698,12 +709,11 @@ export class S3DDecoder {
             const originalIndex = idx;
             const v = frame[originalIndex]; // [x, y, z] from the animated frame
             morphPositions.push(
-              (v[0] + mesh.center[0]) - pos[0],
-              (v[2] + mesh.center[2]) - pos[1],
-              (v[1] + mesh.center[1]) - pos[2]);
-            morphNormals.push(
-              ...norm
+              v[0] + mesh.center[0] - pos[0],
+              v[2] + mesh.center[2] - pos[1],
+              v[1] + mesh.center[1] - pos[2]
             );
+            morphNormals.push(...norm);
           }
           // Create accessors for morph target data.
           const morphAccessor = document
@@ -1071,13 +1081,14 @@ export class S3DDecoder {
         .setRoughnessFactor(1)
         .setMetallicFactor(0)
         .setName(name);
-        
+
       const specularExtension = document.createExtension(KHRMaterialsSpecular);
-      const specular = specularExtension.createSpecular()
+      const specular = specularExtension
+        .createSpecular()
         .setSpecularFactor(0.0)
         .setSpecularColorFactor([0, 0, 0]);
       gltfMaterial.setExtension('KHR_materials_specular', specular);
-        
+
       if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {
         name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
         gltfMaterial.setName(name);

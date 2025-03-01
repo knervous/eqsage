@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getEQDir, getFiles } from '../../lib/util/fileHandler';
 import { models, pcModels } from './constants';
 
-export const useEqOptions = () => {
+export const useEqOptions = (useRawItems = false) => {
   const [filledItemOptions, setFilledItemOptions] = useState([]);
   const [modelOptions, refreshModelOptions] = useOptions('models', models);
   const [objectOptions, refreshObjectOptions] = useOptions('objects');
@@ -40,6 +40,9 @@ export const useEqOptions = () => {
   );
 
   useEffect(() => {
+    if (!useRawItems) {
+      return;
+    }
     fetch('/static/items.json')
       .then(r => r.json())
       .then(data => {
@@ -71,13 +74,14 @@ export const useEqOptions = () => {
         console.log('Err', err);
         console.error('Error:', err);
       });
-  }, [itemOptions]);
+  }, [itemOptions, useRawItems]);
+  
   return {
     empty,
     pcModelOptions,
     npcModelOptions,
     objectOptions,
-    itemOptions: filledItemOptions,
+    itemOptions: useRawItems ? itemOptions : filledItemOptions,
     refresh,
   };
 };

@@ -1,73 +1,296 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import HomeIcon from '@mui/icons-material/Home';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import ConstructionIcon from '@mui/icons-material/Construction';
-import SettingsIcon from '@mui/icons-material/Settings';
-import NotificationImportantIcon from '@mui/icons-material/NotificationImportant';
 import PictureInPictureIcon from '@mui/icons-material/PictureInPicture';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
-import { useOverlayContext } from '../spire/provider';
-import { OverlayDialogs } from './dialogs/dialogs';
 import { SettingsProvider, useSettingsContext } from '../../context/settings';
 import { useMainContext } from '../main/context';
 import { gameController } from '../../viewer/controllers/GameController';
-import { ModelOverlay } from './model-overlay';
-import { locations, optionType } from './constants';
-import { NavLeft } from '../common/nav/nav-left';
 import { DrawerButton } from '../common/nav/drawer-button';
-import { useEqOptions } from './use-options';
 import { NavHeader } from '../common/nav/nav-header';
 import { animateVignette, gaussianBlurTeleport } from '@bjs/util';
-import { ExporterNavHeader } from './header';
 import { useAlertContext } from '@/context/alerts';
-import { useConfirm } from 'material-ui-confirm';
-import { deleteEqFolder } from '@/lib/util/fileHandler';
 import BABYLON from '@bjs';
-import { DevOverlay } from './dev-overlay';
 import { Box } from '@mui/material';
 import { Allotment } from 'allotment';
+import { FileExplorer } from './file-explorer';
+import { usePermissions } from '@/hooks/permissions';
+import { S3DDecoder } from '@/lib/s3d/s3d-decoder';
+import { quailProcessor } from '@/modules/quail';
+import { NavRight } from '../common/nav/nav-right';
+import { defaultOptions, stateCallback } from '../exporter/overlay';
 
 import 'allotment/dist/style.css';
-import { FileExplorer } from './file-explorer';
-import { NavFooter } from '../common/nav/nav-footer';
+import { ExporterNavHeader } from '../exporter/header';
+import { locations } from '../exporter/constants';
+import { useEqOptions } from '../exporter/use-options';
+import { ModelOverlay } from '../exporter/model-overlay';
+
+import './overlay.scss';
+
+const cachedBlobUrls = {};
 
 const QuailOverlayComponent = ({ canvas }) => {
-  const [maxSize, setMaxSize] = useState(300);
-  useEffect(() => {
-    if (window.gameController.currentScene) {
+  const { reset, modelExporterLoaded } = useMainContext();
+  const {
+    location,
+    selectedType,
+    selectedModel,
+    background,
+    bgColor,
+    setOption,
+  } = useSettingsContext();
+  const {
+    pcModelOptions,
+    npcModelOptions,
+    objectOptions,
+    itemOptions,
+    refresh,
+    empty,
+  } = useEqOptions(true);
+  const [
+    _apiSupported,
+    onDrop,
+    _checkHandlePermissions,
+    fsHandle,
+    onFolderSelected,
+    unlink,
+  ] = usePermissions('quail-workspace');
 
+  const [maxSize, setMaxSize] = useState(300);
+  const [hideProfile, setHideProfile] = useState(true);
+  const [watchFsHandle, setWatchFsHandle] = useState(null);
+  const watchLastModified = useRef(0);
+  const watchInterval = useRef(-1);
+  const selectedModelRef = useRef(selectedModel);
+  const { openAlert } = useAlertContext();
+  const parseWCE = useCallback(
+    async (handle, isS3d = false) => {
+      const buffer = isS3d
+        ? await handle.getFile().then((f) => f.arrayBuffer())
+        : await quailProcessor.parseWce(handle);
+      const s3dDecoder = new S3DDecoder(undefined, { forceWrite: true });
+      await s3dDecoder.processS3D(
+        {
+          arrayBuffer() {
+            return buffer;
+          },
+          name: handle.name,
+        },
+        true
+      );
+      await s3dDecoder.export();
+      gameController.SpawnController.clearAssetContainer();
+      gameController.SpawnController.disposeModel();
+      openAlert('Finished processing');
+      await refresh();
+      const model = selectedModelRef.current;
+      // This lets us swap back and rehydrate based on effects just one render cycle
+      setOption('selectedModel', model === 'bam' ? 'baf' : 'bam');
+      setTimeout(() => {
+        setOption('selectedModel', model);
+      }, 0);
+    },
+    [openAlert, refresh, setOption]
+  );
+
+  const fileRef = useRef();
+  const area = useMemo(() => locations[location], [location]);
+
+  const selectFsWatch = useCallback(async () => {
+    if (watchFsHandle) {
+      setWatchFsHandle(null);
+      watchLastModified.current = 0;
+      clearInterval(watchInterval.current);
+      return;
     }
-  }, []);
+    const [file] = await window
+      .showOpenFilePicker({
+        startIn: fsHandle,
+        types  : [
+          {
+            description: 'EverQuest S3D File',
+            accept     : {
+              'application/octet-stream': ['.s3d'],
+            },
+          },
+        ],
+      })
+      .catch(() => []);
+    if (file) {
+      setWatchFsHandle(file);
+      let processing = false;
+      watchInterval.current = setInterval(async () => {
+        if (processing) {
+          return;
+        }
+        const lastModified = await file
+          .getFile()
+          .then((f) => f.lastModified)
+          .catch(() => -1);
+        // Something bad happened like the file disappeared or we lost privileges
+        if (lastModified === -1) {
+          clearInterval(watchInterval.current);
+          watchLastModified.current = 0;
+          return;
+        }
+        // The file has been updated, process
+        if (lastModified > watchLastModified.current) {
+          processing = true;
+          await parseWCE(file, true);
+          processing = false;
+          watchLastModified.current = lastModified;
+        }
+      }, 250);
+    }
+  }, [watchFsHandle, fsHandle, parseWCE]);
+
+  useEffect(() => {
+    if (!modelExporterLoaded) {
+      return;
+    }
+    gameController.ModelController.swapBackground(background);
+  }, [background, modelExporterLoaded]);
+
+  useEffect(() => {
+    selectedModelRef.current = selectedModel;
+  }, [selectedModel]);
+
+  useEffect(() => {
+    if (!modelExporterLoaded) {
+      return;
+    }
+    gameController.currentScene.clearColor =
+      BABYLON.Color4.FromHexString(bgColor);
+  }, [bgColor, modelExporterLoaded]);
+  useEffect(() => {
+    if (!modelExporterLoaded) {
+      return;
+    }
+    if (!area?.file) {
+      const node = gameController.currentScene.getMeshByName('__root__');
+      if (node) {
+        fileRef.current = null;
+        node.dispose();
+      }
+      return;
+    }
+
+    (async () => {
+      const node = gameController.currentScene.getMeshByName('__root__');
+      if (node && fileRef.current === area.file) {
+        const { x, y, z } = area;
+        if (node) {
+          node.position.set(x, y, z);
+        }
+        return;
+      }
+      fileRef.current = area.file;
+      if (!cachedBlobUrls[area.file]) {
+        await fetch(area.file)
+          .then((r) => r.blob())
+          .then((blob) => {
+            const blobUrl = URL.createObjectURL(blob);
+            cachedBlobUrls[area.file] = blobUrl;
+          });
+      }
+      await gameController.SpawnController.addBackgroundMesh(
+        cachedBlobUrls[area.file],
+        area
+      );
+    })().then(() => {
+      animateVignette(
+        gameController.CameraController.camera,
+        gameController.currentScene
+      );
+      gaussianBlurTeleport(
+        gameController.CameraController.camera,
+        gameController.currentScene
+      );
+    });
+  }, [area, modelExporterLoaded]);
+
   const onDragEnd = () => {
     window.gameController.resize();
   };
+  window.h = watchFsHandle;
   return (
-    <Box sx={{ position: 'fixed', width: '100vw', height: '100vh', top: 0, left: 0 }}>
+    <Box
+      className="quail-overlay"
+      sx={{
+        position: 'fixed',
+        width   : '100vw',
+        height  : '100vh',
+        top     : 0,
+        left    : 0,
+      }}
+    >
       <Allotment onDragEnd={onDragEnd} defaultSizes={[100, 200]}>
         <Allotment.Pane minSize={100} maxSize={maxSize}>
-          <FileExplorer setMaxSize={setMaxSize} />
+          <FileExplorer
+            onDrop={onDrop}
+            fsHandle={fsHandle}
+            onFolderSelected={onFolderSelected}
+            unlink={unlink}
+            setMaxSize={setMaxSize}
+          />
         </Allotment.Pane>
-        <Allotment.Pane snap>
-
+        <Allotment.Pane>
+          {selectedModel && modelExporterLoaded ? (
+            <ModelOverlay
+              hideProfile={hideProfile}
+              selectedType={selectedType}
+              selectedModel={selectedModel}
+              itemOptions={itemOptions}
+            />
+          ) : null}
+          <NavHeader width="80">
+            <ExporterNavHeader
+              gameController={gameController}
+              pcModelOptions={pcModelOptions}
+              npcModelOptions={npcModelOptions}
+              objectOptions={objectOptions}
+              itemOptions={itemOptions}
+              refresh={refresh}
+            />
+          </NavHeader>
+          <NavRight>
+            <DrawerButton
+              drawerState={{}}
+              drawer="process"
+              text={'Process WCE'}
+              Icon={ConstructionIcon}
+              toggleDrawer={() => parseWCE(fsHandle)}
+            />
+            <DrawerButton
+              drawerState={{}}
+              drawer="process"
+              className={!!watchFsHandle ? 'pulse' : ''}
+              text={'Watch S3D'}
+              Icon={VisibilityIcon}
+              toggleDrawer={selectFsWatch}
+            />
+            <DrawerButton
+              drawerState={{}}
+              drawer="pip"
+              text={'Picture in Picture'}
+              Icon={PictureInPictureIcon}
+              toggleDrawer={() => gameController.togglePip()}
+            />
+          </NavRight>
+          {/* <NavFooter>Footer</NavFooter> */}
           {canvas}
         </Allotment.Pane>
       </Allotment>
     </Box>
-    
   );
-};
-
-const version = 0.1;
-
-const defaultOptions = {
-  
 };
 
 export const QuailOverlay = ({ canvas }) => (
   <SettingsProvider
-    storageKey={'quail'}
+    stateCallback={stateCallback}
+    storageKey={'exporter'}
     defaultOptions={defaultOptions}
   >
     <QuailOverlayComponent canvas={canvas} />

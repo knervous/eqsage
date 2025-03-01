@@ -13,7 +13,6 @@ import { gameController } from '../../viewer/controllers/GameController';
 
 const MainContext = React.createContext({});
 
-
 /**
  * @typedef Spire
  * @property {import ('../../../../spire/frontend/src/app/api/spire-api')} SpireApi
@@ -24,7 +23,6 @@ const MainContext = React.createContext({});
  * @property {import ('../../../../spire/frontend/src/app/grid').Grid} Grid
  * @property {import ('../../../../spire/frontend/src/app/npcs').Npcs} Npcs
  */
-
 
 /**
  * @typedef {Object} UseMainContextReturn
@@ -48,21 +46,25 @@ const MainContext = React.createContext({});
  */
 
 /**
- * 
+ *
  * @returns {UseMainContextReturn}
  */
 export const useMainContext = () => React.useContext(MainContext);
 
-
 /**
- * 
- * @param {*} param0 
- * @returns 
+ *
+ * @param {*} param0
+ * @returns
  */
 
 export const MainProvider = ({ children }) => {
-  const [permissionStatus, onDrop, requestPermissions, rootFileSystemHandle, onFolderSelected] =
-    usePermissions();
+  const [
+    permissionStatus,
+    onDrop,
+    requestPermissions,
+    rootFileSystemHandle,
+    onFolderSelected,
+  ] = usePermissions();
   const { remoteUrl } = useSettingsContext();
   const [selectedZone, setSelectedZone] = useState(null);
   const [zoneDialogOpen, setZoneDialogOpen] = useState(false);
@@ -76,6 +78,8 @@ export const MainProvider = ({ children }) => {
   const [spire, setSpire] = useState(null);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [canvasState, setCanvasState] = useState(false);
+  const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
+
   const [recentList, setRecentList] = useState(() =>
     localStorage.getItem('recent-zones')
       ? JSON.parse(localStorage.getItem('recent-zones'))
@@ -156,7 +160,7 @@ export const MainProvider = ({ children }) => {
   useEffect(() => {
     gameController.Spire = Spire;
   }, [Spire]);
-  
+
   return (
     <MainContext.Provider
       value={{
@@ -174,12 +178,14 @@ export const MainProvider = ({ children }) => {
         setZoneBuilderDialogOpen,
         modelExporter,
         setModelExporter,
-        quailWorkspace, 
+        quailWorkspace,
         setQuailWorkspace,
         zoneBuilder,
         setZoneBuilder,
-        rightDrawerOpen, 
+        rightDrawerOpen,
         setRightDrawerOpen,
+        modelExporterLoaded,
+        setModelExporterLoaded,
         rootFileSystemHandle,
         zones,
         setZones,
@@ -191,7 +197,7 @@ export const MainProvider = ({ children }) => {
         recentList,
         setRecentList,
         reset,
-        gameController
+        gameController,
       }}
     >
       {children}

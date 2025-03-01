@@ -28,7 +28,6 @@ import BABYLON from '@bjs';
 import { DevOverlay } from './dev-overlay';
 
 const cachedBlobUrls = {};
-let videoElement = null;
 
 const ExporterOverlayComponent = () => {
   const { reset } = useMainContext();
@@ -151,32 +150,11 @@ const ExporterOverlayComponent = () => {
           toggleDrawer={toggleDialog}
         />
         <DrawerButton
-          drawerState={dialogState}
+          drawerState={{}}
           drawer="pip"
           text={'Picture in Picture'}
           Icon={PictureInPictureIcon}
-          toggleDrawer={async () => {
-            try {
-              if (!videoElement) {
-                videoElement = document.createElement('video');
-                videoElement.style.display = 'none';
-                document.body.appendChild(videoElement);
-      
-                const stream = gameController.canvas.captureStream(60);
-                videoElement.srcObject = stream;
-                await videoElement.play();
-              }
-      
-              if (document.pictureInPictureElement) {
-                await document.exitPictureInPicture();
-              } else {
-                await videoElement.requestPictureInPicture();
-              }
-            } catch (error) {
-              openAlert('Could not create a Picture In Picture session');
-              console.error('An error occurred with Picture-in-Picture:', error);
-            }
-          }}
+          toggleDrawer={() => gameController.togglePip()}
         />
         <DrawerButton
           drawerState={dialogState}
@@ -238,7 +216,7 @@ const defaultModel = {
   },
 };
 
-const defaultOptions = {
+export const defaultOptions = {
   location       : 0,
   selectedType   : optionType.pc,
   selectedModel  : '',
@@ -252,34 +230,36 @@ const defaultOptions = {
   rotationSpeed  : 0.5,
 };
 
+export const stateCallback = (key, prevOptions, newOptions) => {
+  let needsRender = true;
+  if (['selectedType', 'selectedModel'].includes(key)) {
+    needsRender = true;
+    newOptions.config = localStorage.getItem(newOptions.selectedModel)
+      ? JSON.parse(localStorage.getItem(newOptions.selectedModel))
+      : defaultModel;
+  } else if (key === 'config') {
+    const prevConfig = prevOptions.config;
+    const newConfig = newOptions.config;
+    if (
+      prevConfig?.pieces?.Primary?.model === newConfig.pieces?.Primary?.model &&
+      prevConfig?.pieces?.Secondary?.model === newConfig.pieces?.Secondary?.model &&
+      JSON.stringify(prevConfig?.pieces.Helm) ===
+        JSON.stringify(newConfig?.pieces.Helm)
+    ) {
+      needsRender = false;
+    }
+    localStorage.setItem(
+      newOptions.selectedModel,
+      JSON.stringify(newConfig)
+    );
+  }
+  newOptions.config.needsRender = needsRender;
+  return newOptions;
+};
+
 export const ExporterOverlay = () => (
   <SettingsProvider
-    stateCallback={(key, prevOptions, newOptions) => {
-      let needsRender = true;
-      if (['selectedType', 'selectedModel'].includes(key)) {
-        needsRender = true;
-        newOptions.config = localStorage.getItem(newOptions.selectedModel)
-          ? JSON.parse(localStorage.getItem(newOptions.selectedModel))
-          : defaultModel;
-      } else if (key === 'config') {
-        const prevConfig = prevOptions.config;
-        const newConfig = newOptions.config;
-        if (
-          prevConfig?.pieces?.Primary?.model === newConfig.pieces?.Primary?.model &&
-          prevConfig?.pieces?.Secondary?.model === newConfig.pieces?.Secondary?.model &&
-          JSON.stringify(prevConfig?.pieces.Helm) ===
-            JSON.stringify(newConfig?.pieces.Helm)
-        ) {
-          needsRender = false;
-        }
-        localStorage.setItem(
-          newOptions.selectedModel,
-          JSON.stringify(newConfig)
-        );
-      }
-      newOptions.config.needsRender = needsRender;
-      return newOptions;
-    }}
+    stateCallback={stateCallback}
     storageKey={'exporter'}
     defaultOptions={defaultOptions}
   >

@@ -32,7 +32,12 @@ import { GlobalStore } from '@/state';
 
 const { PBRMaterial, Texture, Color3 } = BABYLON;
 
-export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
+export const ModelOverlay = ({
+  selectedModel,
+  selectedType,
+  itemOptions,
+  hideProfile = false,
+}) => {
   const [animation, setAnimation] = useState('');
   const [head, setHead] = useState(0);
   const [headCount, setHeadCount] = useState(0);
@@ -216,7 +221,11 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
           const r = (color >> 16) & 0xff;
           const g = (color >> 8) & 0xff;
           const b = color & 0xff;
-          node.material.subMaterials[idx].albedoColor = new Color3(r / 255, g / 255, b / 255);
+          node.material.subMaterials[idx].albedoColor = new Color3(
+            r / 255,
+            g / 255,
+            b / 255
+          );
           node.material.subMaterials[idx].alpha = a / 255;
         };
         // Face
@@ -336,98 +345,99 @@ export const ModelOverlay = ({ selectedModel, selectedType, itemOptions }) => {
     [selectedModel]
   );
 
-  return !selectedModel
-    ? null : (
-      <>
-        {[optionType.npc, optionType.pc].includes(selectedType) ? <Draggable handle="#draggable-dialog-title-opt">
-          <Box
-            className="ui-dialog model-overlay"
-            sx={{
-              overflow: 'visible',
-              ...(selectedType === optionType.npc
-                ? {
-                  height    : '200px !important',
-                  width     : '200px',
-                  paddingTop: '20px',
-                }
-                : {}),
-            }}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <DialogTitle
-              className="ui-dialog-title"
-              style={{ cursor: 'move' }}
-              id="draggable-dialog-title-opt"
+  return !selectedModel ? null : (
+    <>
+      {[optionType.npc, optionType.pc].includes(selectedType) &&
+      !hideProfile ? (
+          <Draggable handle="#draggable-dialog-title-opt">
+            <Box
+              className="ui-dialog model-overlay"
+              sx={{
+                overflow: 'visible',
+                ...(selectedType === optionType.npc
+                  ? {
+                    height    : '200px !important',
+                    width     : '200px',
+                    paddingTop: '20px',
+                  }
+                  : {}),
+              }}
+              onKeyDown={(e) => e.stopPropagation()}
             >
-              {'Options'}
-            </DialogTitle>
-            {pcModel ? (
-              <PCConfig
-                itemOptions={itemOptions}
-                textures={textures}
-                model={selectedModel}
-                config={config}
-                setOption={setOption}
-              />
-            ) : (
-              <Stack
-                direction="column"
-                justifyContent="center"
-                alignContent="center"
+              <DialogTitle
+                className="ui-dialog-title"
+                style={{ cursor: 'move' }}
+                id="draggable-dialog-title-opt"
               >
-                <FormControl
-                  size="small"
-                  sx={{ m: 1, width: 150, margin: '5px auto' }}
+                {'Options'}
+              </DialogTitle>
+              {pcModel ? (
+                <PCConfig
+                  itemOptions={itemOptions}
+                  textures={textures}
+                  model={selectedModel}
+                  config={config}
+                  setOption={setOption}
+                />
+              ) : (
+                <Stack
+                  direction="column"
+                  justifyContent="center"
+                  alignContent="center"
                 >
-                  <FormLabel id="head-group">Body</FormLabel>
-                  <Select
-                    aria-labelledby="head-group"
-                    name="head-group"
-                    value={head}
-                    onChange={(e) => setHead(e.target.value)}
+                  <FormControl
+                    size="small"
+                    sx={{ m: 1, width: 150, margin: '5px auto' }}
                   >
-                    {Array.from({ length: headCount }).map((_, idx) => (
-                      <MenuItem value={idx} label={idx}>
-                      Body {idx + 1}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                    <FormLabel id="head-group">Body</FormLabel>
+                    <Select
+                      aria-labelledby="head-group"
+                      name="head-group"
+                      value={head}
+                      onChange={(e) => setHead(e.target.value)}
+                    >
+                      {Array.from({ length: headCount }).map((_, idx) => (
+                        <MenuItem value={idx} label={idx}>
+                        Body {idx + 1}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
 
-                <FormControl
-                  size="small"
-                  sx={{ m: 1, width: 150, margin: '5px auto' }}
-                >
-                  <FormLabel id="head-group">Texture</FormLabel>
-                  <Select
-                    aria-labelledby="head-group"
-                    name="head-group"
-                    value={texture}
-                    onChange={(e) => setTexture(e.target.value)}
+                  <FormControl
+                    size="small"
+                    sx={{ m: 1, width: 150, margin: '5px auto' }}
                   >
-                    <MenuItem value={-1} label={-1}>
-                    Default
-                    </MenuItem>
-                    {textures.map((idx) => (
-                      <MenuItem value={idx} label={idx}>
-                      Texture {idx + 1}
+                    <FormLabel id="head-group">Texture</FormLabel>
+                    <Select
+                      aria-labelledby="head-group"
+                      name="head-group"
+                      value={texture}
+                      onChange={(e) => setTexture(e.target.value)}
+                    >
+                      <MenuItem value={-1} label={-1}>
+                      Default
                       </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Stack>
-            )}
-          </Box>
-        </Draggable> : null}
-        
+                      {textures.map((idx) => (
+                        <MenuItem value={idx} label={idx}>
+                        Texture {idx + 1}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Stack>
+              )}
+            </Box>
+          </Draggable>
+        ) : null}
 
-        <AnimationBar
-          animations={animations}
-          animation={currentAnimation}
-          name={animation}
-          setAnimation={setAnimation}
-          babylonModel={babylonModel}
-        />
-      </>
-    );
+      <AnimationBar
+        animations={animations}
+        animation={currentAnimation}
+        name={animation}
+        setAnimation={setAnimation}
+        babylonModel={babylonModel}
+      />
+    </>
+  );
 };

@@ -55,22 +55,16 @@ export const SpireOverlay = ({ inZone }) => {
         height="155"
         style={{
           left    : '1vw',
-          // filter      : 'brightness(1) invert(0)',
-          // mixBlendMode: 'multiply',
           top     : '-20px',
           position: 'fixed',
           zIndex  : 10000,
         }}
       />
-      <Box
+      <Box 
         className="spire-left-nav"
         sx={{
-          height  : '100vh',
-          width   : '100px',
-          position: 'absolute',
-          zIndex  : 1000,
-        }}
-      >
+          width: '100vw'
+        }}>
         {/** Compass */}
         {inZone && <Compass />}
         <NavHeader
@@ -154,6 +148,14 @@ export const SpireOverlay = ({ inZone }) => {
             ) : null}
           </Stack>
         </NavHeader>
+      </Box>
+      <Box
+        className="spire-left-nav"
+        sx={{
+          height: '100vh',
+        }}
+      >
+
         <NavLeft>
           <DrawerButton
             drawerState={dialogState}

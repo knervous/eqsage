@@ -9,8 +9,8 @@ export const NavFooter = ({ children, offset = false, minWidth = '400px', height
   };
   const options = { minWidth, height };
   if (offset) {
-    bgOptions.left = 'calc(25vw - 252px) !important';
-    options.left = 'calc(25vw - 250px) !important';
+    bgOptions.left = 'calc(25% - 252px) !important';
+    options.left = 'calc(25% - 250px) !important';
   }
   return (
     <>

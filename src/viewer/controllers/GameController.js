@@ -133,6 +133,8 @@ export class GameController {
   ModelController = modelController;
   ZoneBuilderController = zoneBuilderController;
 
+  videoElement = null;
+
   constructor() {
     this.CameraController.setGameController(this);
     this.SkyController.setGameController(this);
@@ -328,6 +330,29 @@ export class GameController {
       } catch (e) {
         console.warn(e);
       }
+    }
+  }
+
+  async togglePip() {
+    try {
+      if (!this.videoElement) {
+        this.videoElement = document.createElement('video');
+        this.videoElement.style.display = 'none';
+        document.body.appendChild(this.videoElement);
+
+        const stream = this.canvas.captureStream(60);
+        this.videoElement.srcObject = stream;
+        await this.videoElement.play();
+      }
+
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await this.videoElement.requestPictureInPicture();
+      }
+    } catch (error) {
+      this.openAlert('Could not create a Picture In Picture session');
+      console.error('An error occurred with Picture-in-Picture:', error);
     }
   }
 

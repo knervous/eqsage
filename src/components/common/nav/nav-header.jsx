@@ -6,20 +6,20 @@ export const NavHeader = ({ children, offset = false, minWidth = '400px', height
   const bgOptions = {
     minWidth: `calc(${minWidth} + 4px)`,
     height  : `${height + 2}px`,
-    width   : `calc(${width}vw + 4px)`,
-    left    : `calc(${(100 - width) / 2}vw - 2px)`,
+    width   : `calc(${width}% + 4px)`,
+    left    : `calc(${(100 - width) / 2}% - 2px)`,
   };
   const options = { 
     minWidth,
     height   : `${height}px`,
     maxHeight: `${height}px`,
-    width    : `${width}vw`,
-    left     : `${(100 - width) / 2}vw`,
+    width    : `${width}%`,
+    left     : `${(100 - width) / 2}%`,
 
   };
   if (offset) {
-    bgOptions.left = 'calc(25vw - 252px) !important';
-    options.left = 'calc(25vw - 250px) !important';
+    bgOptions.left = 'calc(25% - 252px) !important';
+    options.left = 'calc(25% - 250px) !important';
   }
   return (
     <>

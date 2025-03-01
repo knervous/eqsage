@@ -114,7 +114,7 @@ export const AnimationBar = ({
   }, [cycleAnimations, animation, animations]);
 
   return true ? (
-    <NavFooter height="85px" minWidth="800px" className="animation-playback">
+    <NavFooter height="85px" className="animation-playback">
       <Stack sx={{ width: '100%' }} direction="column">
         <Stack direction="row" justifyContent={'space-around'}>
           <Select

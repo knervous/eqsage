@@ -21,10 +21,11 @@ export const BabylonZone = () => {
     modelExporter,
     canvasState,
     setCanvasState,
+    modelExporterLoaded,
+    setModelExporterLoaded,
   } = useMainContext();
 
   const settings = useSettingsContext();
-  const [modelExporterLoaded, setModelExporterLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -106,7 +107,7 @@ export const BabylonZone = () => {
           canvas={
             <Box
               as="canvas"
-              sx={{ flexGrow: '1', position: 'fixed' }}
+              sx={{ flexGrow: '1' }}
               ref={canvasRef}
               id="renderCanvas"
               width="100%"

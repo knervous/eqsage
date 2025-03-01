@@ -147,6 +147,9 @@ class ModelController extends GameControllerChild {
   }
 
   swapBackground(bg) {
+    if (!this.skybox) {
+      return;
+    }
     if (bg === 'none') {
       this.skybox.setEnabled(false);
       return;
