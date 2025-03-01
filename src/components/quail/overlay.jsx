@@ -113,8 +113,7 @@ const QuailOverlayComponent = ({ canvas }) => {
     }
     const [file] = await window
       .showOpenFilePicker({
-        startIn: fsHandle,
-        types  : [
+        types: [
           {
             description: 'EverQuest S3D File',
             accept     : {
