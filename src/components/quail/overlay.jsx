@@ -28,6 +28,7 @@ import { useEqOptions } from '../exporter/use-options';
 import { ModelOverlay } from '../exporter/model-overlay';
 
 import './overlay.scss';
+import { GlobalStore } from '@/state';
 
 const cachedBlobUrls = {};
 
@@ -67,6 +68,9 @@ const QuailOverlayComponent = ({ canvas }) => {
   const { openAlert } = useAlertContext();
   const parseWCE = useCallback(
     async (handle, isS3d = false) => {
+      GlobalStore.actions.setLoading(true);
+      GlobalStore.actions.setLoadingTitle('Processing...');
+      GlobalStore.actions.setLoadingText('Loading, please wait...');
       const buffer = isS3d
         ? await handle.getFile().then((f) => f.arrayBuffer())
         : await quailProcessor.parseWce(handle);
@@ -81,6 +85,8 @@ const QuailOverlayComponent = ({ canvas }) => {
         true
       );
       await s3dDecoder.export();
+      GlobalStore.actions.setLoading(false);
+
       gameController.SpawnController.clearAssetContainer();
       gameController.SpawnController.disposeModel();
       openAlert('Finished processing');
