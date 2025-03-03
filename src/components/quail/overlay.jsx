@@ -4,6 +4,7 @@ import ConstructionIcon from '@mui/icons-material/Construction';
 import PictureInPictureIcon from '@mui/icons-material/PictureInPicture';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
+import HomeIcon from '@mui/icons-material/Home';
 
 import { SettingsProvider, useSettingsContext } from '../../context/settings';
 import { useMainContext } from '../main/context';
@@ -266,6 +267,14 @@ const QuailOverlayComponent = ({ canvas }) => {
             />
           </NavHeader>
           <NavRight>
+            <DrawerButton
+              text={'Home'}
+              Icon={HomeIcon}
+              toggleDrawer={() => {
+                gameController.dispose();
+                reset();
+              }}
+            />
             <DrawerButton
               drawerState={{}}
               drawer="process"
