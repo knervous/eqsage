@@ -2,16 +2,23 @@ import * as Comlink from 'comlink';
 import { SageFileSystemDirectoryHandle } from '@/lib/util/fileSystem';
 
 class QuailProcessor {
+  /**
+   * @type {Worker}
+   */
   #worker = null;
-  #wrappedWorker = null;
-  async convertS3D(name, zone, textures, lights, objects) {
+
+  get quailWorker() {
+    if (this.#worker) {
+      this.#worker.terminate();
+    }
     const worker =
-      this.#worker ||
       new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
-    const wrappedWorker = this.#wrappedWorker || Comlink.wrap(worker);
+    const wrappedWorker = Comlink.wrap(worker);
     this.#worker = worker;
-    this.#wrappedWorker = wrappedWorker;
-    const result = await wrappedWorker.convertS3D(
+    return wrappedWorker;
+  }
+  async convertS3D(name, zone, textures, lights, objects) {
+    const result = await this.quailWorker.convertS3D(
       name,
       zone,
       textures,
@@ -22,18 +29,7 @@ class QuailProcessor {
   }
 
   async parseWce(fileHandle) {
-    const worker =
-      this.#worker ||
-      new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
-    const wrappedWorker = this.#wrappedWorker || Comlink.wrap(worker);
-    this.#worker = worker;
-    this.#wrappedWorker = wrappedWorker;
-    console.log(
-      'FH',
-      fileHandle,
-      fileHandle instanceof SageFileSystemDirectoryHandle
-    );
-    const result = await wrappedWorker.parseWce(
+    const result = await this.quailWorker.parseWce(
       fileHandle instanceof SageFileSystemDirectoryHandle
         ? fileHandle.path
         : fileHandle,
@@ -41,10 +37,13 @@ class QuailProcessor {
     return result;
   }
 
+  async createQuail(file, folder, name) {
+    return this.quailWorker.createQuail(file, folder, name);
+  }
+
   terminate() {
     this.#worker.terminate();
     this.#worker = null;
-    this.#wrappedWorker = null;
   }
 }
 

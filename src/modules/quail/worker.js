@@ -1,6 +1,9 @@
 import * as Comlink from 'comlink';
 import { CreateQuail } from './wrapper';
-import { createDirectoryHandle } from '@/lib/util/fileSystem';
+import {
+  createDirectoryHandle,
+  createFileSystemHandle,
+} from '@/lib/util/fileSystem';
 /**
  * @typedef QueueItem
  * @property {string} name
@@ -101,7 +104,7 @@ async function parseWce(fileHandle) {
     if (line.trim().startsWith('//')) {
       continue;
     }
-    const rootRegex = /"(\w+)\/_ROOT\.WCE/gm;
+    const rootRegex = /"(\w+)\/_ROOT\.WCE/gmi;
     let match;
     if ((match = rootRegex.exec(line)) !== null) {
       lines.push(match[1]);
@@ -116,7 +119,7 @@ async function parseWce(fileHandle) {
     if (dirHandle) {
       for await (const [_name, handle] of dirHandle.entries()) {
         const fileText = await getFileText(handle);
-        const textureRegex = /"(\w+\.(?:DDS|BMP))"/gm;
+        const textureRegex = /"(\w+\.(?:DDS|BMP))"/gmi;
         let match;
         while ((match = textureRegex.exec(fileText)) !== null) {
           textureFiles.add(match[1]);
@@ -124,7 +127,6 @@ async function parseWce(fileHandle) {
       }
     }
   }
-  console.log('Tex files', textureFiles);
   const recurse = async (dirHandle, path = '') => {
     for await (const [name, handle] of dirHandle.entries()) {
       if (handle.kind === 'directory') {
@@ -159,7 +161,85 @@ async function parseWce(fileHandle) {
   return data;
 }
 
-const exports = { convertS3D, parseWce };
+/**
+ *
+ * @param {FileSystemFileHandle} file
+ * @param {FileSystemDirectoryHandle} folder
+ * @param {string} name
+ */
+const createQuail = async (file, folder) => {
+  if (typeof file === 'string') {
+    file = createFileSystemHandle(file);
+  }
+  if (typeof folder === 'string') {
+    folder = createDirectoryHandle(folder);
+  }
+
+  try {
+    const { quail, fs } = await CreateQuail('/static/quail.wasm');
+    fs.reset();
+
+    // Read the file as an array buffer
+    const arrayBuffer = await file.getFile().then((f) => f.arrayBuffer());
+    const uint8Array = new Uint8Array(arrayBuffer);
+
+    // Write the file to quail filesystem
+    const baseName = file.name.replace(/\.[^/.]+$/, ''); // e.g., "qeynos2"
+    const inputS3D = `/${file.name}`;
+    fs.setEntry(inputS3D, fs.makeFileEntry(undefined, uint8Array));
+
+    // Convert the S3D -> JSON + extracted assets
+    const baseQuailName = `${baseName}.quail`;
+    quail.convert(inputS3D, `/${baseQuailName}`);
+    const rootDirHandle = await folder.getDirectoryHandle(baseQuailName, {
+      create: true,
+    });
+    await Promise.all(
+      fs.files.entries().map(async ([key, value]) => {
+        if (
+          key === '/' ||
+          key.slice(1) === baseQuailName ||
+          key.endsWith('.s3d') ||
+          key.endsWith('.eqg')
+        ) {
+          return;
+        }
+        const pathParts = key.split('/').filter(Boolean);
+
+        if (value.type === 'dir') {
+          const dirName = pathParts.at(-1);
+          await rootDirHandle.getDirectoryHandle(dirName, { create: true });
+        } else {
+          const fName = pathParts.at(-1);
+          let dirHandle = rootDirHandle;
+          for (const [idx, part] of Object.entries(pathParts)) {
+            if (part === dirHandle.name || +idx === pathParts.length - 1) {
+              continue;
+            }
+
+            dirHandle = await dirHandle.getDirectoryHandle(part, {
+              create: true,
+            });
+          }
+          const writableHandle = await dirHandle.getFileHandle(fName, {
+            create: true,
+          });
+          if (writableHandle) {
+            const writable = await writableHandle.createWritable();
+            await writable.write(value.data);
+            await writable.getWriter().releaseLock();
+            await writable.close();
+          }
+        }
+      })
+    );
+    console.log('FS', fs);
+  } catch (e) {
+    console.log('Error parsing', e);
+  }
+};
+
+const exports = { convertS3D, parseWce, createQuail };
 
 /** @type {typeof exports} */
 const exp = Object.fromEntries(

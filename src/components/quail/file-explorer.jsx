@@ -34,8 +34,13 @@ import { S3DDecoder } from '@/lib/s3d/s3d-decoder';
 import './fs.scss';
 import styles from './index.module.css';
 
-export const FileExplorer = ({ setMaxSize, onDrop, fsHandle, onFolderSelected, unlink }) => {
-
+export const FileExplorer = ({
+  setMaxSize,
+  onDrop,
+  fsHandle,
+  onFolderSelected,
+  unlink,
+}) => {
   const [treeData, setTreeData] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [fileHandle, setFileHandle] = useState(null);
@@ -86,8 +91,6 @@ export const FileExplorer = ({ setMaxSize, onDrop, fsHandle, onFolderSelected, u
     refreshDirectory();
   }, [refreshDirectory]);
 
-
-
   const handleFileClick = async (node) => {
     if (node.handle) {
       try {
@@ -107,7 +110,6 @@ export const FileExplorer = ({ setMaxSize, onDrop, fsHandle, onFolderSelected, u
     const writable = await fileHandle.createWritable();
     await writable.write(text);
     await writable.close();
-    console.log('text', text);
     openAlert(`Saved ${fileHandle.name}`);
   }, [fileHandle, openAlert]);
 
@@ -193,9 +195,12 @@ export const FileExplorer = ({ setMaxSize, onDrop, fsHandle, onFolderSelected, u
           </Button>
         </Box>
       ) : (
-        <Allotment onDragEnd={() => {
-          window.gameController.resize();
-        }} maxSize={900}>
+        <Allotment
+          onDragEnd={() => {
+            window.gameController.resize();
+          }}
+          maxSize={900}
+        >
           <Allotment.Pane minSize={50} maxSize={200}>
             <Box
               sx={{
@@ -214,7 +219,7 @@ export const FileExplorer = ({ setMaxSize, onDrop, fsHandle, onFolderSelected, u
                   variant="pre"
                   sx={{ fontSize: '13px', lineHeight: '20px' }}
                 >
-                  EXPLORER
+                  {fsHandle?.name}
                 </Typography>
                 <Menu.Root>
                   <Menu.Trigger className={styles.Button}>

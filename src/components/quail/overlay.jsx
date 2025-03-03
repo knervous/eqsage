@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ConstructionIcon from '@mui/icons-material/Construction';
 import PictureInPictureIcon from '@mui/icons-material/PictureInPicture';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 
 import { SettingsProvider, useSettingsContext } from '../../context/settings';
 import { useMainContext } from '../main/context';
@@ -29,6 +30,7 @@ import { ModelOverlay } from '../exporter/model-overlay';
 
 import './overlay.scss';
 import { GlobalStore } from '@/state';
+import { QuailDialog } from './quail-dialog';
 
 const cachedBlobUrls = {};
 
@@ -62,6 +64,7 @@ const QuailOverlayComponent = ({ canvas }) => {
   const [maxSize, setMaxSize] = useState(300);
   const [hideProfile, setHideProfile] = useState(true);
   const [watchFsHandle, setWatchFsHandle] = useState(null);
+  const [quailDialogOpen, setQuailDialogOpen] = useState(false);
   const watchLastModified = useRef(0);
   const watchInterval = useRef(-1);
   const selectedModelRef = useRef(selectedModel);
@@ -103,6 +106,7 @@ const QuailOverlayComponent = ({ canvas }) => {
 
   const fileRef = useRef();
   const area = useMemo(() => locations[location], [location]);
+
 
   const selectFsWatch = useCallback(async () => {
     if (watchFsHandle) {
@@ -149,7 +153,7 @@ const QuailOverlayComponent = ({ canvas }) => {
         }
       }, 250);
     }
-  }, [watchFsHandle, fsHandle, parseWCE]);
+  }, [watchFsHandle, parseWCE]);
 
   useEffect(() => {
     if (!modelExporterLoaded) {
@@ -231,6 +235,7 @@ const QuailOverlayComponent = ({ canvas }) => {
         left    : 0,
       }}
     >
+      {quailDialogOpen ? <QuailDialog onClose={() => setQuailDialogOpen(false)} /> : null}
       <Allotment onDragEnd={onDragEnd} defaultSizes={[100, 200]}>
         <Allotment.Pane minSize={100} maxSize={maxSize}>
           <FileExplorer
@@ -267,6 +272,13 @@ const QuailOverlayComponent = ({ canvas }) => {
               text={'Process WCE'}
               Icon={ConstructionIcon}
               toggleDrawer={() => parseWCE(fsHandle)}
+            />
+            <DrawerButton
+              drawerState={{}}
+              drawer="createQuail"
+              text={'Create Quail'}
+              Icon={CreateNewFolderIcon}
+              toggleDrawer={() => setQuailDialogOpen(true)}
             />
             <DrawerButton
               drawerState={{}}

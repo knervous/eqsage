@@ -108,7 +108,7 @@ class SageFileSystemFileHandle {
   kind = 'file';
   name = '';
   constructor(path) {
-    this.#path = path;
+    this.#path = path.endsWith('/') ? path.slice(0, path.length - 2) : path;
     this.name = path.split('/').at(-1);
 
   }
@@ -127,8 +127,8 @@ class SageFileSystemFileHandle {
       }
     };
   }
-  async removeEntry() {
-    await fsInterface.delete(this.#path);
+  async removeEntry(path) {
+    await fsInterface.delete(`${this.#path}/${path}`);
   }
   async getFile() {
     const rootPath = this.#path;
@@ -185,13 +185,16 @@ export class SageFileSystemDirectoryHandle {
 
   async getDirectoryHandle(name, options) {
     const path = `${this.#path}/${name}`;
-    if (options.create) {
+    if (options?.create) {
       await fsInterface.createIfNotExist(path); 
     }
     return new SageFileSystemDirectoryHandle(path);
   }
 }
 
+export const createFileSystemHandle = path => {
+  return new SageFileSystemFileHandle(path);
+};
 
 export const createDirectoryHandle = path => {
   return new SageFileSystemDirectoryHandle(path);
