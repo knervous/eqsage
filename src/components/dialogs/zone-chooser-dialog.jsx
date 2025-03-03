@@ -307,7 +307,7 @@ export const ZoneChooserDialog = ({ open }) => {
           onClick={enterQuailWorkspace}
           Icon={CodeIcon}
           isNew
-          title="Quail Workspace (Under Development)"
+          title="Quail Workspace (New!)"
         />
         <FlyoutButton
           disabled={selectedZone}
