@@ -1,6 +1,6 @@
 {
   "name": "eqsage",
-  "version": "1.8.7",
+  "version": "1.8.8",
   "author": {
     "name": "temp0",
     "email": "eqadvancedmaps@gmail.com",
@@ -30,7 +30,7 @@
       "src/fsInterface.js",
       "package.json",
       "dist/**/*",
-      "!**/node_modules/*"
+      "!node_modules/**/*"
     ],
     "mac": {
       "icon": "public/favicon.icns",
