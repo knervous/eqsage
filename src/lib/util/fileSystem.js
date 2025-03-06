@@ -8,19 +8,21 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
   if (isElectron()) {
     // Fetch wrap here
     // --- Hook for fetch ---
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async (input, init) => {
-      let newInput = input;
-      // For any URL starting with /, replace with a relative path
-      if (typeof input === 'string' && input.startsWith('/')) {
-        newInput = `.${input}`;
-      } else if (input instanceof Request && input.url.startsWith('/')) {
-        newInput = new Request(`.${input.url}`, input);
-      }
-      // This gets doubled up from relative path
-      newInput = newInput.replace('/static', '');
-      return originalFetch(newInput, init);
-    };
+    if (!import.meta.env.DEV) { 
+      const originalFetch = globalThis.fetch;
+      globalThis.fetch = async (input, init) => {
+        let newInput = input;
+        // For any URL starting with /, replace with a relative path
+        if (typeof input === 'string' && input.startsWith('/')) {
+          newInput = `.${input}`;
+        } else if (input instanceof Request && input.url.startsWith('/')) {
+          newInput = new Request(`.${input.url}`, input);
+        }
+        // This gets doubled up from relative path
+        newInput = newInput.replace('/static', '');
+        return originalFetch(newInput, init);
+      };
+    }
 
     const { promises: fs } = require('fs');
     const path = require('path');

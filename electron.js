@@ -60,9 +60,9 @@ app.whenReady().then(() => {
   createWindow();
 });
 
-if (process.env.LOCAL_DEV === 'true') {
-  autoUpdater.forceDevUpdateConfig = true;
-}
+// if (process.env.LOCAL_DEV === 'true') {
+//   autoUpdater.forceDevUpdateConfig = true;
+// }
 
 autoUpdater.checkForUpdatesAndNotify();
 

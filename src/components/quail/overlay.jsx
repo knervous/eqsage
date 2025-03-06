@@ -115,7 +115,7 @@ const QuailOverlayComponent = ({ canvas }) => {
       setOption('selectedModel', '');
       setTimeout(() => {
         setOption('selectedModel', model);
-      }, 0);
+      }, 50);
     },
     [openAlert, refresh, setOption]
   );
