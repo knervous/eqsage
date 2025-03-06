@@ -2,12 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Box,
   Button,
-  Checkbox,
   IconButton,
-  ListItem,
-  MenuItem,
   Stack,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -15,7 +11,6 @@ import { Menu } from '@base-ui-components/react/menu';
 import { SimpleTreeView, TreeItem } from '@mui/x-tree-view';
 import FolderIcon from '@mui/icons-material/Folder';
 import CloseIcon from '@mui/icons-material/Close';
-import ConstructionIcon from '@mui/icons-material/Construction';
 
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
@@ -24,12 +19,8 @@ import SaveIcon from '@mui/icons-material/Save';
 // import LinkOffIcon from '@mui/icons-material/LinkOff';
 import Editor from '@monaco-editor/react';
 import { Allotment } from 'allotment';
-import { quailProcessor } from '@/modules/quail';
 import { definitionProvider, wceLanguage } from './wce';
-import { NavFooter } from '../common/nav/nav-footer';
-import { DrawerButton } from '../common/nav/drawer-button';
 import { useAlertContext } from '@/context/alerts';
-import { S3DDecoder } from '@/lib/s3d/s3d-decoder';
 
 import './fs.scss';
 import styles from './index.module.css';
@@ -79,9 +70,12 @@ export const FileExplorer = ({
       return [...files.sort(sort), ...dirs.sort(sort)];
     };
 
-    const tree = await loadTree(fsHandle);
-    setTreeData(tree);
-  }, [fsHandle]);
+    await loadTree(fsHandle).then(tree => {
+      setTreeData(tree);
+    }).catch(() => {
+      unlink();
+    });
+  }, [fsHandle, unlink]);
 
   useEffect(() => {
     setMaxSize(fileHandle ? 900 : 200);

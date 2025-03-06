@@ -20,7 +20,7 @@ import { useAlertContext } from '@/context/alerts';
 import { quailProcessor } from '@/modules/quail';
 import { GlobalStore } from '@/state';
 
-export const QuailDialog = ({ onClose }) => {
+export const QuailDialog = ({ onClose, open, setFsHandle }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [overwrite, setOverWrite] = useState(false);
@@ -32,7 +32,7 @@ export const QuailDialog = ({ onClose }) => {
           {
             description: 'EverQuest S3D File',
             accept     : {
-              'application/octet-stream': ['.s3d'],
+              'application/octet-stream': ['.s3d', '.eqg'],
             },
           },
         ],
@@ -54,6 +54,7 @@ export const QuailDialog = ({ onClose }) => {
       console.warn('Selected handle is not a directory.');
     }
   }, []);
+
   const process = useCallback(async () => {
     if (!selectedFile || !selectedFolder) {
       return;
@@ -79,10 +80,12 @@ export const QuailDialog = ({ onClose }) => {
     await quailProcessor.createQuail(selectedFile, selectedFolder, name);
     GlobalStore.actions.setLoading(false);
     openAlert(`Successfully created Quail folder: ${name}`);
-  }, [selectedFile, selectedFolder, openAlert, overwrite]);
+    await setFsHandle(await selectedFolder.getDirectoryHandle(name));
+  }, [selectedFile, selectedFolder, openAlert, overwrite, setFsHandle]);
   const createDisabled = selectedFile === null || selectedFolder === null;
   return (
     <CommonDialog
+      open={open}
       onClose={onClose}
       additionalButtons={[
         <Button

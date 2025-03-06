@@ -22,16 +22,17 @@ import { S3DDecoder } from '@/lib/s3d/s3d-decoder';
 import { quailProcessor } from '@/modules/quail';
 import { NavRight } from '../common/nav/nav-right';
 import { defaultOptions, stateCallback } from '../exporter/overlay';
-
-import 'allotment/dist/style.css';
 import { ExporterNavHeader } from '../exporter/header';
 import { locations } from '../exporter/constants';
 import { useEqOptions } from '../exporter/use-options';
 import { ModelOverlay } from '../exporter/model-overlay';
-
-import './overlay.scss';
 import { GlobalStore } from '@/state';
 import { QuailDialog } from './quail-dialog';
+import { EQGDecoder } from '@/lib/eqg/eqg-decoder';
+
+import './overlay.scss';
+import 'allotment/dist/style.css';
+
 
 const cachedBlobUrls = {};
 
@@ -60,6 +61,7 @@ const QuailOverlayComponent = ({ canvas }) => {
     fsHandle,
     onFolderSelected,
     unlink,
+    setFsHandle
   ] = usePermissions('quail-workspace');
 
   const [maxSize, setMaxSize] = useState(300);
@@ -71,24 +73,37 @@ const QuailOverlayComponent = ({ canvas }) => {
   const selectedModelRef = useRef(selectedModel);
   const { openAlert } = useAlertContext();
   const parseWCE = useCallback(
-    async (handle, isS3d = false) => {
+    async (handle, isS3d = false, isEqg = false) => {
       GlobalStore.actions.setLoading(true);
       GlobalStore.actions.setLoadingTitle('Processing...');
       GlobalStore.actions.setLoadingText('Loading, please wait...');
-      const buffer = isS3d
+      const buffer = isS3d || isEqg
         ? await handle.getFile().then((f) => f.arrayBuffer())
         : await quailProcessor.parseWce(handle);
-      const s3dDecoder = new S3DDecoder(undefined, { forceWrite: true });
-      await s3dDecoder.processS3D(
-        {
-          arrayBuffer() {
-            return buffer;
-          },
-          name: handle.name,
+
+      if (!buffer) {
+        openAlert('Error processing EQ File. Check dev console output', 'warning');
+        GlobalStore.actions.setLoading(false);
+
+        return;
+      }
+      const eqg = handle?.name?.endsWith('.eqg') || isEqg;
+      const fhWrapper = {
+        arrayBuffer() {
+          return buffer;
         },
-        true
-      );
-      await s3dDecoder.export();
+        name: handle.name,
+      };
+      if (!eqg) {
+        const s3dDecoder = new S3DDecoder(undefined, { forceWrite: true });
+        await s3dDecoder.processS3D(fhWrapper);
+        await s3dDecoder.export();
+      } else {
+        const eqgDecoder = new EQGDecoder(fhWrapper);
+        await eqgDecoder.processEQG(fhWrapper);
+        await eqgDecoder.export();
+      }
+   
       GlobalStore.actions.setLoading(false);
 
       gameController.SpawnController.clearAssetContainer();
@@ -97,7 +112,7 @@ const QuailOverlayComponent = ({ canvas }) => {
       await refresh();
       const model = selectedModelRef.current;
       // This lets us swap back and rehydrate based on effects just one render cycle
-      setOption('selectedModel', model === 'bam' ? 'baf' : 'bam');
+      setOption('selectedModel', '');
       setTimeout(() => {
         setOption('selectedModel', model);
       }, 0);
@@ -120,9 +135,9 @@ const QuailOverlayComponent = ({ canvas }) => {
       .showOpenFilePicker({
         types: [
           {
-            description: 'EverQuest S3D File',
+            description: 'EverQuest S3D/EQG File',
             accept     : {
-              'application/octet-stream': ['.s3d'],
+              'application/octet-stream': ['.s3d', '.eqg'],
             },
           },
         ],
@@ -147,8 +162,9 @@ const QuailOverlayComponent = ({ canvas }) => {
         }
         // The file has been updated, process
         if (lastModified > watchLastModified.current) {
+          const eqg = file.name.endsWith('.eqg');
           processing = true;
-          await parseWCE(file, true);
+          await parseWCE(file, !eqg, eqg);
           processing = false;
           watchLastModified.current = lastModified;
         }
@@ -236,7 +252,7 @@ const QuailOverlayComponent = ({ canvas }) => {
         left    : 0,
       }}
     >
-      {quailDialogOpen ? <QuailDialog onClose={() => setQuailDialogOpen(false)} /> : null}
+      <QuailDialog setFsHandle={setFsHandle} open={quailDialogOpen} onClose={() => setQuailDialogOpen(false)} />
       <Allotment onDragEnd={onDragEnd} defaultSizes={[100, 200]}>
         <Allotment.Pane minSize={100} maxSize={maxSize}>
           <FileExplorer
@@ -278,6 +294,7 @@ const QuailOverlayComponent = ({ canvas }) => {
             <DrawerButton
               drawerState={{}}
               drawer="process"
+              disabled={!fsHandle}
               text={'Process WCE'}
               Icon={ConstructionIcon}
               toggleDrawer={() => parseWCE(fsHandle)}
@@ -293,7 +310,7 @@ const QuailOverlayComponent = ({ canvas }) => {
               drawerState={{}}
               drawer="process"
               className={!!watchFsHandle ? 'pulse' : ''}
-              text={'Watch S3D'}
+              text={'Watch S3D/EQG'}
               Icon={VisibilityIcon}
               toggleDrawer={selectFsWatch}
             />

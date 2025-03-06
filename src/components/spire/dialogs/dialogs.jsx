@@ -4,6 +4,7 @@ import { SettingsDialog } from './settings-dialog';
 import { ZoneDialog } from './zone-dialog';
 import { NpcDialog } from './npc-dialog';
 import { QuestDialog } from './quest-dialog';
+import Drawer from '../drawer';
 
 export const OverlayDialogs = () => {
   const { dialogState, closeDialogs } = useOverlayContext();
@@ -15,6 +16,7 @@ export const OverlayDialogs = () => {
       {dialogState['npc'] && (
         <NpcDialog onClose={closeDialogs} />
       )}
+      <Drawer />
     </>
   );
 };

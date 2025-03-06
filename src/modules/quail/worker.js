@@ -188,7 +188,6 @@ const createQuail = async (file, folder) => {
     const inputS3D = `/${file.name}`;
     fs.setEntry(inputS3D, fs.makeFileEntry(undefined, uint8Array));
 
-    // Convert the S3D -> JSON + extracted assets
     const baseQuailName = `${baseName}.quail`;
     quail.convert(inputS3D, `/${baseQuailName}`);
     const rootDirHandle = await folder.getDirectoryHandle(baseQuailName, {

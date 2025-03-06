@@ -205,14 +205,14 @@ export const SpireOverlay = ({ inZone }) => {
             toggleDrawer={toggleDialog}
           />
 
-          <DrawerButton
+          {/* <DrawerButton
             drawerState={dialogState}
             drawer="regions"
             disabled={!inZone}
             text={'Regions'}
             Icon={RegionIcon}
             toggleDrawer={toggleDialog}
-          />
+          /> */}
           {import.meta.env.VITE_LOCAL_DEV === 'true' && false ? (
             <DrawerButton
               drawerState={dialogState}

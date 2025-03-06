@@ -177,6 +177,13 @@ export const usePermissions = (name = 'eqdir') => {
       }
     }
   }, [name, checkHandlePermissions]);
+
+  const informFsHandle = useCallback(async handle => {
+    await set(name, handle);
+    setFsHandle(handle);
+    checkHandlePermissions(handle);
+  }, [checkHandlePermissions, name]);
+  
   return [
     permissionStatus === PermissionStatusTypes.NeedRefresh && window.electronAPI
       ? PermissionStatusTypes.Ready
@@ -188,5 +195,6 @@ export const usePermissions = (name = 'eqdir') => {
     fsHandle,
     onFolderSelected,
     unlink,
+    informFsHandle
   ];
 };

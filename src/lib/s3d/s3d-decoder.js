@@ -90,7 +90,7 @@ export class S3DDecoder {
     const images = [];
     // Preprocess images
     this.shaderMap = {};
-    for (const [fileName, data] of this.pfsArchive.files.entries()) {
+    for (const [fileName, _data] of this.pfsArchive.files.entries()) {
       this.files[fileName] = this.pfsArchive.getFile(fileName);
 
       if (fileName.endsWith('.wld')) {
@@ -118,9 +118,8 @@ export class S3DDecoder {
     for (const image of images) {
       image.shaderType = this.shaderMap[image.name];
     }
-
     console.log(`Processed - ${file.name}`);
-    if (!skipImages && !this.options?.forceWrite) {
+    if (!skipImages) {
       await imageProcessor.parseImages(images);
       console.log(`Done processing images ${file.name} - ${images.length}`);
     }
