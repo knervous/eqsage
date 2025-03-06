@@ -1,5 +1,12 @@
 // electron.js
-import { app, BrowserWindow, ipcMain, dialog, nativeImage, screen } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  nativeImage,
+  screen,
+} from 'electron';
 import pkg from 'electron-updater';
 import path from 'path';
 import { fsInterface } from './src/fsInterface.js';
@@ -18,9 +25,13 @@ app.setName('EQ Sage');
 function createWindow() {
   console.log('Creating');
   const win = new BrowserWindow({
-    width         : 1024,
-    height        : 768,
-    icon          : path.join(__dirname, 'public', process.platform === 'darwin' ? 'favicon.icns' : 'favicon.ico'),
+    width : 1024,
+    height: 768,
+    icon  : path.join(
+      __dirname,
+      'public',
+      process.platform === 'darwin' ? 'favicon.icns' : 'favicon.ico'
+    ),
     webPreferences: {
       nodeIntegrationInWorker: true,
       preload                : path.join(__dirname, 'preload.cjs'),
@@ -29,6 +40,7 @@ function createWindow() {
   if (process.env.LOCAL_DEV === 'true') {
     console.log('Loading local dev');
     win.loadURL('http://localhost:4200');
+    // win.loadFile(path.join(__dirname, 'dist', 'index.html'));
   } else {
     win.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
@@ -77,7 +89,7 @@ ipcMain.handle('electron:delete-file', async (_event, filePath) => {
 ipcMain.handle('electron:delete-folder', async (_event, filePath) => {
   return fsInterface.deleteFolder(filePath);
 });
-ipcMain.handle('electron:create-dir', async (_event, path) => { 
+ipcMain.handle('electron:create-dir', async (_event, path) => {
   return fsInterface.createIfNotExist(path);
 });
 ipcMain.handle('electron:read-dir', async (_event, filePath) => {
@@ -100,32 +112,33 @@ ipcMain.handle('electron:select-directory', async () => {
 });
 
 ipcMain.handle('electron:proxy', async (_event, url, data) => {
-  console.log('Got URL', url);
-  console.log('Got Data', data);
   try {
+    console.log('Proxy url', url);
     const [_apiPrefix, path] = url.split('/').filter(Boolean);
     const remoteApi = data.headers?.['x-remote-api'];
-
+    let res = null;
     switch (path) {
-      case 'auth':
+      case 'login':
       case 'v1':
         if (remoteApi) {
-          return await fetch(`${remoteApi}${url}`, data).then(r => r.text());
+          res = await fetch(`${remoteApi}${url}`, data).then((r) => r.text());
         }
         break;
       case 'magelo':
         if (remoteApi) {
           const remotePath = data.headers?.['x-remote-path'];
-          return await fetch(`${remoteApi}${remotePath}`, data).then(r => r.text());
+          res = await fetch(`${remoteApi}${remotePath}`, data).then((r) =>
+            r.text()
+          );
         }
         break;
       default:
         break;
     }
+    return res;
   } catch (e) {
     console.log('Error during electron proxy', e);
   }
-
 
   return null;
 });
