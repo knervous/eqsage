@@ -75,5 +75,4 @@ if (window.electronAPI) {
   };
 
   addHooks();
-  console.log('Spire i', SpireApi);
 }
