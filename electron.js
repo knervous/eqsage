@@ -1,9 +1,14 @@
 // electron.js
 import { app, BrowserWindow, ipcMain, dialog, nativeImage, screen } from 'electron';
+import pkg from 'electron-updater';
 import path from 'path';
 import { fsInterface } from './src/fsInterface.js';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+
+const { autoUpdater } = pkg;
+
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,7 +30,7 @@ function createWindow() {
     console.log('Loading local dev');
     win.loadURL('http://localhost:4200');
   } else {
-    win.loadURL('https://eqsage.vercel.app');
+    win.loadFile(path.join(__dirname, 'dist', 'index.html'));
   }
 }
 
@@ -42,6 +47,12 @@ app.whenReady().then(() => {
 
   createWindow();
 });
+
+if (process.env.LOCAL_DEV === 'true') {
+  autoUpdater.forceDevUpdateConfig = true;
+}
+
+autoUpdater.checkForUpdatesAndNotify();
 
 // Quit the app when all windows are closed (except on macOS).
 app.on('window-all-closed', () => {
@@ -85,5 +96,36 @@ ipcMain.handle('electron:select-directory', async () => {
   if (!result.canceled && result.filePaths.length > 0) {
     return result.filePaths[0];
   }
+  return null;
+});
+
+ipcMain.handle('electron:proxy', async (_event, url, data) => {
+  console.log('Got URL', url);
+  console.log('Got Data', data);
+  try {
+    const [_apiPrefix, path] = url.split('/').filter(Boolean);
+    const remoteApi = data.headers?.['x-remote-api'];
+
+    switch (path) {
+      case 'auth':
+      case 'v1':
+        if (remoteApi) {
+          return await fetch(`${remoteApi}${url}`, data).then(r => r.text());
+        }
+        break;
+      case 'magelo':
+        if (remoteApi) {
+          const remotePath = data.headers?.['x-remote-path'];
+          return await fetch(`${remoteApi}${remotePath}`, data).then(r => r.text());
+        }
+        break;
+      default:
+        break;
+    }
+  } catch (e) {
+    console.log('Error during electron proxy', e);
+  }
+
+
   return null;
 });

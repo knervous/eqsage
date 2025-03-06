@@ -17,12 +17,11 @@ function customProxyMiddleware(context, options) {
       return res.end('Error: Missing X-Remote-Api header');
     }
 
-
-    
     delete req.headers.host;
-    const httpTarget = target.startsWith('http://') || target.startsWith('https://')
-      ? target
-      : `http://${target}`;
+    const httpTarget =
+      target.startsWith('http://') || target.startsWith('https://')
+        ? target
+        : `http://${target}`;
 
     const path = req.headers['x-remote-path'];
     if (path) {
@@ -35,7 +34,7 @@ function customProxyMiddleware(context, options) {
       res.end(await r.text());
       return;
     }
-  
+
     proxy.web(
       req,
       res,
@@ -119,7 +118,16 @@ const silenceSomeSassDeprecationWarnings = {
   },
 };
 
+const electronBuildConfig =
+  process.env.ELECTRON_BUILD === 'true'
+    ? {
+      base: './',
+    }
+    : {};
+
+
 export default defineConfig({
+  ...electronBuildConfig,
   plugins: [
     react(),
     proxyPlugin(),
@@ -129,7 +137,12 @@ export default defineConfig({
     esbuildCommonjs(['spire-api']),
   ],
   optimizeDeps: {
-    include: ['spire-api', '@babylonjs/core', '@babylonjs/gui', '@babylonjs/inspector'],
+    include: [
+      'spire-api',
+      '@babylonjs/core',
+      '@babylonjs/gui',
+      '@babylonjs/inspector',
+    ],
   },
 
   server: {

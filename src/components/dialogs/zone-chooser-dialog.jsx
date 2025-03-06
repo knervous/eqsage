@@ -212,7 +212,7 @@ export const ZoneChooserDialog = ({ open }) => {
               z = zones;
               setZoneList(zones);
             })
-            .catch(async () => {
+            .catch(async e => {
               await fetch('/static/zoneData.json')
                 .then((r) => r.json())
                 .then(setZoneList);

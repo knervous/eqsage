@@ -80,6 +80,7 @@ export const ExportS3DDialog = ({ open, setOpen }) => {
       getEQDir("output").then((d) => setFsHandle(d));
     }
   }, [fsHandleSelected]);
+  const prefix = window.electronAPI ? './' : '/';
 
   return (
     <CommonDialog
@@ -114,9 +115,9 @@ export const ExportS3DDialog = ({ open, setOpen }) => {
             <img
               height="45"
               style={{ margin: "0px 10px" }}
-              src="/static/q.png"
+              src={`${prefix}static/q.png`}
             ></img>
-            <img height="45" src="/static/qi.png"></img>
+            <img height="45" src={`${prefix}static/qi.png`}></img>
           </Stack>
           <Typography
             sx={{

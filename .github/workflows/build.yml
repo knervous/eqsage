@@ -66,6 +66,11 @@ jobs:
         env:
           CI: true
 
+      - name: Build
+        run: npm run build:electron
+        env:
+          CI: true
+
       - name: Build Electron App for macOS
         if: matrix.os == 'macos-latest'
         run: |
@@ -97,30 +102,29 @@ jobs:
             dist/**/*${{ env.VERSION }}*.rpm
 
   release:
-    name: Create Release and Upload Artifacts
-    needs: [build, check_version]
+    name: Publish Electron App
+    needs: check_version
     if: needs.check_version.outputs.tag_exists == 'false'
     runs-on: ubuntu-latest
     env:
-      # Again, use the package version without the v prefix
+      # Use the package version without the v prefix if necessary
       VERSION: ${{ needs.check_version.outputs.package_version }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GITHUB_RELEASE_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Download Build Artifacts
-        uses: actions/download-artifact@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          path: build-artifacts
+          node-version: '20'
 
-      - name: Create Automatic Release
-        uses: marvinpinto/action-automatic-releases@latest
-        with:
-          repo_token: "${{ secrets.GH_TOKEN }}"
-          # The release tag is prefixed with v, while VERSION is without it.
-          automatic_release_tag: "v${{ env.VERSION }}"
-          prerelease: false
-          title: "${{ env.VERSION }}"
-          files: |
-            build-artifacts/**
+      - name: Install Dependencies
+        run: npm ci --no-audit
+        env:
+          CI: true
+
+      - name: Publish Electron App
+        run: npm run release
+

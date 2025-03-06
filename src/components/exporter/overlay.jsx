@@ -95,12 +95,13 @@ const ExporterOverlayComponent = () => {
       );
     });
   }, [area]);
+  const prefix = window.electronAPI ? './' : '/';
 
   return (
     <>
       <img
         alt="ModelViewer"
-        src="/static/model-viewer.png"
+        src={`${prefix}static/model-viewer.png`}
         width="145"
         height="145"
         style={{

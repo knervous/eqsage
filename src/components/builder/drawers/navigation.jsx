@@ -73,7 +73,6 @@ export const NavigationDrawer = () => {
     const data = recastPlugin.serializeNav(project?.nav?.params);
     await writeEQFile('nav', `${name}.nav`, data);
     openAlert(`Successfully saved under EQ/nav/${name}.nav`);
-    console.log('Got data', data);
   }, [recastPlugin, project?.nav?.params, name, openAlert]);
 
   const buildNavMesh = useCallback(async () => {

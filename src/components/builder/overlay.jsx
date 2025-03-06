@@ -34,11 +34,13 @@ export const BuilderOverlay = () => {
     window.addEventListener('keydown', keyHandler);
     return () => window.removeEventListener('keydown', keyHandler);
   }, [closeDrawers]);
+  const prefix = window.electronAPI ? './' : '/';
+
   return (
     <>
       <img
         alt="ModelViewer"
-        src="/static/zone-builder.png"
+        src={`${prefix}static/zone-builder.png`}
         width="155"
         height="155"
         style={{

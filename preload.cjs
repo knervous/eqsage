@@ -4,7 +4,24 @@ const { contextBridge, ipcRenderer, webUtils, webFrame } = require('electron');
 contextBridge.exposeInMainWorld('electronAPI', {
   selectDirectory: () => ipcRenderer.invoke('electron:select-directory'),
   getPath        : file => webUtils.getPathForFile(file).replaceAll('\\', '/'),
+  proxyFetch     : async (url, data) => {
+    const text = await ipcRenderer.invoke('electron:proxy', url, data).catch(e => {
+      console.log('Error during proxy invoke', e);
+      return '';
+    });
+    return {
+      async text() {
+        return text;
+      },
+      async json() {
+        return JSON.parse(text);
+      }
+    };
+  },
   setZoomFactor,
+  hasStandalone() {
+    return true;
+  }
 });
 
 contextBridge.exposeInMainWorld('electronFS', {

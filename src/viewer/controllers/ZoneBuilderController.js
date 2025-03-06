@@ -170,9 +170,10 @@ class ZoneBuilderController extends GameControllerChild {
     this.regionMaterial.diffuseColor = new Color3(0, 127, 65); // Red color
     this.regionMaterial.emissiveColor = new Color4(0, 127, 65, 0.3); // Red color
     this.regionMaterial.depthFunction = Engine.ALWAYS;
+    const prefix = window.electronAPI ? './' : '/';
 
     const hdrTexture = CubeTexture.CreateFromPrefilteredData(
-      '/static/environment.env',
+      `${prefix}static/environment.env`,
       this.scene
     );
     this.scene.environmentTexture = hdrTexture;
@@ -726,8 +727,10 @@ class ZoneBuilderController extends GameControllerChild {
 
     const png_array = [];
     const map = ['px', 'py', 'pz', 'nx', 'ny', 'nz'];
+    const prefix = window.electronAPI ? './' : '/';
+    
     for (let i = 0; i < 6; i++) {
-      png_array.push(`/static/skybox_${map[i]}.jpg`);
+      png_array.push(`${prefix}static/skybox_${map[i]}.jpg`);
     }
     skyboxMaterial.reflectionTexture = new CubeTexture(
       '/',

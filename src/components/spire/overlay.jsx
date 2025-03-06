@@ -46,11 +46,13 @@ export const SpireOverlay = ({ inZone }) => {
   const headerText = selectedZone?.long_name
     ? `${selectedZone.long_name} - ${selectedZone?.short_name}`
     : 'Select a Zone';
+  const prefix = window.electronAPI ? './' : '/';
+
   return (
     <>
       <img
         alt="ModelViewer"
-        src="/static/zone-editor.png"
+        src={`${prefix}static/zone-editor.png`}
         width="155"
         height="155"
         style={{

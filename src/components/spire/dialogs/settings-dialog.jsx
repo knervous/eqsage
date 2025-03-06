@@ -40,7 +40,11 @@ export const SettingsDialog = ({ onClose }) => {
     UserContext.getUser()
       .then((a) => {
         console.log('user', a);
-        setTestState('Succeeded');
+        if (a) {
+          setTestState('Succeeded');
+        } else {
+          setTestState('Failed');
+        }
       })
       .catch((_e) => {
         setTestState('Failed');

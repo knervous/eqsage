@@ -1,7 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import bjs from '@bjs';
+import './electron';
+
 import './index.css';
+
 
 async function render() {
   const [

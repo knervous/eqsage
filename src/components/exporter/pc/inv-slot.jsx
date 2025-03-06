@@ -107,6 +107,7 @@ export const InventorySlot = ({ piece, atlas, noTint = false, options }) => {
       document.removeEventListener('click', clickHandler);
     };
   }, [popupOpen]);
+  const prefix = window.electronAPI ? './' : '/';
   return (
     <Box
       title={piece}
@@ -118,7 +119,7 @@ export const InventorySlot = ({ piece, atlas, noTint = false, options }) => {
         boxShadow         : '2px 2px 2px 2px rgba(0,0,0,0.1)',
         margin            : '3px',
         zoom              : 1.4,
-        backgroundImage   : `url('/static/eqassets/images/${atlasPiece?.texture}')`,
+        backgroundImage   : `url('${prefix}static/eqassets/images/${atlasPiece?.texture}')`,
         backgroundPosition: `-${atlasPiece.left}px -${atlasPiece.top}px`,
       }}
     >
@@ -136,7 +137,7 @@ export const InventorySlot = ({ piece, atlas, noTint = false, options }) => {
               marginLeft        : '10%',
               marginTop         : '10%',
               backgroundPosition: `-${wornAtlasPiece.x}px -${wornAtlasPiece.y}px`,
-              backgroundImage   : `url('/static/eqassets/images/${wornAtlasPiece?.texture}')`,
+              backgroundImage   : `url('${prefix}static/eqassets/images/${wornAtlasPiece?.texture}')`,
             }}
           />
           <Box
