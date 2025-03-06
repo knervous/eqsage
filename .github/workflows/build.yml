@@ -39,73 +39,14 @@ jobs:
             echo "Tag v$PACKAGE_VERSION does not exist."
             echo "::set-output name=tag_exists::false"
           fi
-
-  build:
-    name: Build on ${{ matrix.os }}
+  release:
+    name: Publish Electron App
     needs: check_version
     if: needs.check_version.outputs.tag_exists == 'false'
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      # Use the package version from check_version without the v prefix
-      VERSION: ${{ needs.check_version.outputs.package_version }}
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Install Dependencies
-        run: npm ci --no-audit
-        env:
-          CI: true
-
-      - name: Build
-        run: npm run build:electron
-        env:
-          CI: true
-
-      - name: Build Electron App for macOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          echo "Building for macOS (arm64)..."
-          npm run build:electron:mac
-
-      - name: Build Electron App for Windows
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "Building for Windows (x64)..."
-          npm run build:electron:win
-
-      - name: Build Electron App for Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          echo "Building for Linux (x64)..."
-          npm run build:electron:linux
-
-      - name: Upload Build Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-${{ matrix.os }}-${{ env.VERSION }}
-          path: |
-            dist/**/*${{ env.VERSION }}*.dmg
-            dist/**/*${{ env.VERSION }}*.zip
-            dist/**/*${{ env.VERSION }}*.exe
-            dist/**/*${{ env.VERSION }}*.AppImage
-            dist/**/*${{ env.VERSION }}*.deb
-            dist/**/*${{ env.VERSION }}*.rpm
-
-  release:
-    name: Publish Electron App
-    needs: check_version
-    if: needs.check_version.outputs.tag_exists == 'false'
-    runs-on: ubuntu-latest
     env:
       # Use the package version without the v prefix if necessary
       VERSION: ${{ needs.check_version.outputs.package_version }}
@@ -125,6 +66,27 @@ jobs:
         env:
           CI: true
 
-      - name: Publish Electron App
-        run: npm run release
+      - name: Build
+        run: npm run build:electron
+        env:
+          CI: true
+
+    
+      - name: Build Electron App for macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Building for macOS (arm64)..."
+          npm run build:electron:mac
+
+      - name: Build Electron App for Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "Building for Windows (x64)..."
+          npm run build:electron:win
+
+      - name: Build Electron App for Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "Building for Linux (x64)..."
+          npm run build:electron:linux
 
