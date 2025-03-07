@@ -70,6 +70,7 @@ const QuailOverlayComponent = ({ canvas }) => {
   const [quailDialogOpen, setQuailDialogOpen] = useState(false);
   const watchLastModified = useRef(0);
   const watchInterval = useRef(-1);
+  const overlayRef = useRef({});
   const selectedModelRef = useRef(selectedModel);
   const { openAlert } = useAlertContext();
   const parseWCE = useCallback(
@@ -77,6 +78,7 @@ const QuailOverlayComponent = ({ canvas }) => {
       GlobalStore.actions.setLoading(true);
       GlobalStore.actions.setLoadingTitle('Processing...');
       GlobalStore.actions.setLoadingText('Loading, please wait...');
+      const animation = overlayRef.current.animation;
       const buffer = isS3d || isEqg
         ? await handle.getFile().then((f) => f.arrayBuffer())
         : await quailProcessor.parseWce(handle);
@@ -108,6 +110,11 @@ const QuailOverlayComponent = ({ canvas }) => {
 
       gameController.SpawnController.clearAssetContainer();
       gameController.SpawnController.disposeModel();
+
+      if (gameController.SpawnController?.modelExport?.rootNode) {
+        gameController.SpawnController.modelExport.rootNode.material.getActiveTextures().forEach(t => t.dispose());
+      }
+      gameController.engine.resetTextureCache();
       openAlert('Finished processing');
       await refresh();
       const model = selectedModelRef.current;
@@ -115,6 +122,9 @@ const QuailOverlayComponent = ({ canvas }) => {
       setOption('selectedModel', '');
       setTimeout(() => {
         setOption('selectedModel', model);
+        if (animation) {
+          overlayRef.current.setAnimation(animation);
+        }
       }, 50);
     },
     [openAlert, refresh, setOption]
@@ -240,7 +250,6 @@ const QuailOverlayComponent = ({ canvas }) => {
   const onDragEnd = () => {
     window.gameController.resize();
   };
-  window.h = watchFsHandle;
   return (
     <Box
       className="quail-overlay"
@@ -270,6 +279,7 @@ const QuailOverlayComponent = ({ canvas }) => {
               selectedType={selectedType}
               selectedModel={selectedModel}
               itemOptions={itemOptions}
+              refHandler={overlayRef.current}
             />
           ) : null}
           <NavHeader width="80">

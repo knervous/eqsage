@@ -12,6 +12,7 @@ import draco3d from 'draco3dgltf';
 import { ShaderType } from './materials/material';
 import {
   appendObjectMetadata,
+  deleteEqFileOrFolder,
   getEQFile,
   getEQFileExists,
   getEQRootDir,
@@ -112,6 +113,10 @@ export class S3DDecoder {
       if (fileName.endsWith('.bmp') || fileName.endsWith('.dds')) {
         //   await writeEQFile('img', `${fileName}`, this.files[fileName].buffer);
         images.push({ name: fileName, data: this.files[fileName].buffer });
+        if (this.options.forceWrite) {
+          const pngName = fileName.replace('.bmp', '.png').replace('.dds', '.png');
+          await deleteEqFileOrFolder('textures', pngName);
+        }
         continue;
       }
     }

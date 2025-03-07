@@ -30,13 +30,14 @@ import './overlay.scss';
 import Draggable from 'react-draggable';
 import { GlobalStore } from '@/state';
 
-const { PBRMaterial, Texture, Color3 } = BABYLON;
+const { Texture, Color3 } = BABYLON;
 
 export const ModelOverlay = ({
   selectedModel,
   selectedType,
   itemOptions,
   hideProfile = false,
+  refHandler = undefined,
 }) => {
   const [animation, setAnimation] = useState('');
   const [head, setHead] = useState(0);
@@ -51,6 +52,10 @@ export const ModelOverlay = ({
     setOption,
     nameplateColor = '#F0F046FF',
   } = useSettingsContext();
+  if (refHandler) {
+    refHandler.setAnimation = setAnimation;
+    refHandler.animation = animation;
+  }
   useEffect(() => {
     (async () => {
       setTexture(-1);
