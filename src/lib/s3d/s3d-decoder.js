@@ -79,6 +79,7 @@ export class S3DDecoder {
    * @param {FileSystemHandle} file
    */
   async processS3D(file, skipImages = false) {
+    console.log('Processing S3D: ', file.name, "Skip Images: ", skipImages);
     const arrayBuffer = await file.arrayBuffer();
     const buf = Buffer.from(arrayBuffer);
     if (buf.length === 0) {

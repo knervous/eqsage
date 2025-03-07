@@ -29,8 +29,8 @@
       "preload.cjs",
       "src/fsInterface.js",
       "package.json",
-      "dist/**/*",
-      "!node_modules/**/*"
+      "build/**/*",
+      "!**/node_modules/**"
     ],
     "mac": {
       "icon": "public/favicon.icns",
@@ -172,10 +172,7 @@
     "build:electron:mac": "electron-builder --mac --publish always",
     "build:electron:win": "electron-builder --win --publish always",
     "build:electron:linux": "electron-builder --linux --publish always",
-    "bundle-visualize": "npx vite-bundle-visualizer",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder",
-    "release": "electron-builder --publish always"
+    "bundle-visualize": "npx vite-bundle-visualizer"
   },
   "eslintConfig": {
     "extends": [

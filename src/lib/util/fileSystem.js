@@ -58,8 +58,13 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
       writeFile: async (filePath, data) => await fs.writeFile(filePath, data),
     };
   }
-} else if (window.electronAPI) {
+} else if (window.electronAPI) { // We're in electron but not in worker scope
   fsInterface = window.electronFS;
+  window.electronAPI.onMessage((_event, message) => {
+    console.log('Electron error', message);
+    window.gameController.openAlert(`Got error from Electron: ${message}.`, 'warning');
+  });
+  
   // Debounce helper function
   function debounce(fn, delay) {
     let timer;
@@ -117,8 +122,6 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
   adjustZoomByAspectRatio();
   // Listen for window resize events using the debounced function
   window.addEventListener('resize', debouncedAdjustZoom);
-
-  
 }
 
 class SageFileSystemFileHandle {
@@ -201,11 +204,9 @@ export class SageFileSystemDirectoryHandle {
     await fsInterface.deleteFolder(this.#path);
   }
 
-  async getDirectoryHandle(name, options) {
+  async getDirectoryHandle(name, _options) {
     const path = `${this.#path}/${name}`;
-    if (options?.create) {
-      await fsInterface.createIfNotExist(path); 
-    }
+    await fsInterface.createIfNotExist(path); 
     return new SageFileSystemDirectoryHandle(path);
   }
 }

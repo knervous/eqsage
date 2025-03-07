@@ -159,9 +159,8 @@ class ModelController extends GameControllerChild {
     this.skybox.setEnabled(true);
     const png_array = [];
     const map = ['right', 'top', 'front', 'left', 'bot', 'back'];
-    const prefix = window.electronAPI ? './' : '/';
     for (let i = 0; i < 6; i++) {
-      png_array.push(`${prefix}static/bg/${bg}/${map[i]}.png`);
+      png_array.push(`/static/bg/${bg}/${map[i]}.png`);
     }
     this.skybox.material.reflectionTexture.dispose();
     this.skybox.material.reflectionTexture = new CubeTexture(

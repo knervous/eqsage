@@ -2,6 +2,7 @@
 const { contextBridge, ipcRenderer, webUtils, webFrame } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  onMessage: (callback) => ipcRenderer.on('main-error', callback),
   selectDirectory: () => ipcRenderer.invoke('electron:select-directory'),
   getPath        : file => webUtils.getPathForFile(file).replaceAll('\\', '/'),
   proxyFetch     : async (url, data) => {
@@ -31,7 +32,6 @@ contextBridge.exposeInMainWorld('electronFS', {
   readDir         : (filePath) => ipcRenderer.invoke('electron:read-dir', filePath),
   createIfNotExist: (path) => ipcRenderer.invoke('electron:create-dir', path),
   writeFile       : (filePath, data) => ipcRenderer.invoke('electron:write-file', filePath, data),
-  // You can add more methods as needed (e.g., listDir, deleteFile, etc.)
 });
 
 
