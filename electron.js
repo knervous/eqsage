@@ -42,10 +42,10 @@ function createWindow() {
   });
   if (process.env.LOCAL_DEV === "true") {
     console.log("Loading local dev");
-    win.loadURL("http://localhost:4200");
-    // win.loadFile(path.join(__dirname, 'dist', 'index.html'));
+    // win.loadURL("http://localhost:4200");
+    win.loadFile(path.join(__dirname, 'build', 'index.html'));
   } else {
-    win.loadFile(path.join(__dirname, "dist", "index.html"));
+    win.loadFile(path.join(__dirname, "build", "index.html"));
   }
 }
 

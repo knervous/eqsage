@@ -8,7 +8,7 @@
   },
   "main": "electron.js",
   "type": "module",
-  "description": "EQ Sage is a multipurpose tool for EverQuest files to decode, render and encode.",
+  "description": "EQ Sage: EverQuest => decode,encode,render",
   "module": "dist/es/lib/index.js",
   "build": {
     "appId": "com.eqsage",
@@ -30,7 +30,7 @@
       "src/fsInterface.js",
       "package.json",
       "build/**/*",
-       "!node_modules/!(electron*)/**"
+       "!node_modules/!(electron*|builder-util-runtime|debug|ms|sax|universalify|graceful-fs|jsonfile|fs-extra|js-yaml|lazy-val|lodash.escaperegexp|lodash.isequal|semver|tiny-typed-emitter|builder-util-runtime)/**"
     ],
     "mac": {
       "icon": "public/favicon.icns",
