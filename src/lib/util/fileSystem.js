@@ -148,8 +148,8 @@ class SageFileSystemFileHandle {
       }
     };
   }
-  async removeEntry(path) {
-    await fsInterface.delete(`${this.#path}/${path}`);
+  async removeEntry() {
+    await fsInterface.deleteFile(`${this.#path}`);
   }
   async getFile() {
     const rootPath = this.#path;
@@ -200,17 +200,21 @@ export class SageFileSystemDirectoryHandle {
     return new SageFileSystemFileHandle(`${this.#path}/${name}`);
   }
 
-  async removeEntry() {
-    await fsInterface.deleteFolder(this.#path);
+  async removeEntry(path) {
+    const fullPath = `${this.#path}/${path}`;
+    const errHandler = e => {
+      console.log('Error deleting path', fullPath, e);
+    };
+    await fsInterface.deleteFolder(fullPath).catch(errHandler);
+    await fsInterface.deleteFile(fullPath).catch(errHandler);
   }
-
+  
   async getDirectoryHandle(name, _options) {
     const path = `${this.#path}/${name}`;
     await fsInterface.createIfNotExist(path); 
     return new SageFileSystemDirectoryHandle(path);
   }
 }
-
 export const createFileSystemHandle = path => {
   return new SageFileSystemFileHandle(path);
 };
