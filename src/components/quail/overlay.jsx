@@ -174,9 +174,13 @@ const QuailOverlayComponent = ({ canvas }) => {
         if (lastModified > watchLastModified.current) {
           const eqg = file.name.endsWith('.eqg');
           processing = true;
-          await parseWCE(file, !eqg, eqg);
+          try {
+            await parseWCE(file, !eqg, eqg);
+            watchLastModified.current = lastModified;
+          } catch (e) {
+            console.warn('Error in watch processing file', e);
+          }
           processing = false;
-          watchLastModified.current = lastModified;
         }
       }, 250);
     }
