@@ -1,6 +1,6 @@
 {
   "name": "eqsage",
-  "version": "1.8.12",
+  "version": "1.8.13",
   "author": {
     "name": "temp0",
     "email": "eqadvancedmaps@gmail.com",
@@ -30,7 +30,7 @@
       "src/fsInterface.js",
       "package.json",
       "build/**/*",
-      "!node_modules/!(electron*|ajv|ajv-formats|atomically|debounce-fn|dot-prop|env-paths|json-schema-typed|uint8array-extras|fast-uri|fast-deep-equal|builder-util-runtime|debug|ms|sax|universalify|graceful-fs|jsonfile|fs-extra|js-yaml|lazy-val|lodash.escaperegexp|lodash.isequal|semver|tiny-typed-emitter|builder-util-runtime|conf|type-fest)/**"
+      "!node_modules/!(electron*|stubborn-fs|when-exit|ajv|ajv-formats|atomically|debounce-fn|dot-prop|env-paths|json-schema-typed|uint8array-extras|fast-uri|fast-deep-equal|builder-util-runtime|debug|ms|sax|universalify|graceful-fs|jsonfile|fs-extra|js-yaml|lazy-val|lodash.escaperegexp|lodash.isequal|semver|tiny-typed-emitter|builder-util-runtime|conf|type-fest)/**"
     ],
     "mac": {
       "icon": "public/favicon.icns",
