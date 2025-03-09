@@ -6,79 +6,64 @@ import { useOverlayContext } from './provider';
 
 import './drawer.scss';
 
-const zb = window.gameController.ZoneBuilderController;
+const zb = window.gameController.ZoneController;
 
 export const Drawer = () => {
-  const { openDrawer, toggleDrawer } = useOverlayContext();
+  const { dialogState, toggleDialog } = useOverlayContext();
   const [selectedObject, setSelectedObject] = useState(null);
-
-  useEffect(() => {
-    if (openDrawer) {
-      return;
-    }
-    const clickCallback = (mesh) => {
-      if (mesh.parent === zb.objectContainer) {
-        setSelectedObject(mesh);
-        toggleDrawer('objects', true, true);
-      }
-    };
-    zb.addClickCallback(clickCallback);
-
-    return () => zb.removeClickCallback(clickCallback);
-  }, [openDrawer, toggleDrawer]);
-
+  const openDrawer = useMemo(() => Object.entries(dialogState).find(([_key, value]) => !!value)?.[0], [dialogState]);
   const content = useMemo(() => {
     switch (openDrawer) {
       case 'doors':
+        console.log('drawers case');
         return <DoorsDrawer />;
       default:
+        console.log('null case');
         return null;
     }
   }, [openDrawer]);
 
-  return (
-    <>
+  return content ? (
+    <Box
+      className={classNames('drawer-bg', {
+        'drawer-bg-open'  : openDrawer,
+        'drawer-bg-closed': !openDrawer,
+      })}
+      sx={{
+        width   : '300px',
+        overflow: 'hidden',
+        display : 'flex',
+        height  : 'calc(100% - 40px)',
+        position: 'fixed',
+        padding : '15px',
+        zIndex  : 1000,
+        top     : 0,
+      }}
+    >
       <Box
-        className={classNames('drawer-bg', {
-          'drawer-bg-open'  : openDrawer,
-          'drawer-bg-closed': !openDrawer,
-        })}
         sx={{
-          width   : '300px',
-          overflow: 'hidden',
-          display : 'flex',
-          height  : 'calc(100% - 40px)',
-          position: 'fixed',
-          padding : '15px',
-          zIndex  : 1000,
-          top     : 0,
+          width    : '100%',
+          height   : 'calc(100% - 5px)',
+          maxHeight: 'calc(100% - 5px',
+          overflowY: 'scroll',
+          padding  : '10px !important',
         }}
       >
-        <Box
+        <Typography
+          variant="h6"
           sx={{
-            width    : '100%',
-            height   : 'calc(100% - 5px)',
-            maxHeight: 'calc(100% - 5px',
-            overflowY: 'scroll',
-            padding  : '10px !important',
+            marginBottom  : '15px',
+            textAlign     : 'center',
+            fontWeight    : 300,
+            textDecoration: 'underline',
           }}
         >
-          <Typography
-            variant="h6"
-            sx={{
-              marginBottom  : '15px',
-              textAlign     : 'center',
-              fontWeight    : 300,
-              textDecoration: 'underline',
-            }}
-          >
-            {openDrawer?.toUpperCase()}
-          </Typography>
-          {content}
-        </Box>
+          {openDrawer?.toUpperCase()}
+        </Typography>
+        {content}
       </Box>
-    </>
-  );
+    </Box>
+  ) : null;
 };
 
 export default Drawer;

@@ -26,7 +26,7 @@ import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import PauseIcon from '@mui/icons-material/Pause';
 
 import { useMainContext } from '../main/context';
-import { getEQFile } from '../../lib/util/fileHandler';
+import { getEQFile } from 'sage-core/util/fileHandler';
 import { audioController } from '../sound/AudioController';
 import { SOUNDFONTS } from '../sound/midi/config';
 

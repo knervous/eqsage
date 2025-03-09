@@ -23,7 +23,7 @@ import { animateVignette, gaussianBlurTeleport } from '@bjs/util';
 import { ExporterNavHeader } from './header';
 import { useAlertContext } from '@/context/alerts';
 import { useConfirm } from 'material-ui-confirm';
-import { deleteEqFolder } from '@/lib/util/fileHandler';
+import { deleteEqFolder } from 'sage-core/util/fileHandler';
 import BABYLON from '@bjs';
 import { DevOverlay } from './dev-overlay';
 

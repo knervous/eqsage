@@ -34,13 +34,13 @@ import CodeIcon from '@mui/icons-material/Code';
 import { useMainContext } from '../main/context';
 import * as keyval from 'idb-keyval';
 import { useConfirm } from 'material-ui-confirm';
-import { VERSION, expansions } from '../../lib/model/constants';
+import { VERSION, expansions } from 'sage-core/model/constants';
 import { gameController } from '../../viewer/controllers/GameController';
 import {
   deleteEqFolder,
   getEQFile,
   writeEQFile,
-} from '../../lib/util/fileHandler';
+} from 'sage-core/util/fileHandler';
 import { Flyout, FlyoutButton } from '../common/flyout';
 import { AboutDialog } from './about-dialog';
 const ITEM_HEIGHT = 48;

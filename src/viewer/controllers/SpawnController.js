@@ -8,7 +8,7 @@ import { GameControllerChild } from './GameControllerChild';
 import { BabylonSpawn } from '../models/BabylonSpawn';
 import { GlobalStore } from '../../state';
 import { dedup, prune, textureCompress } from '@gltf-transform/functions';
-import { getEQFile, getEQFileExists } from '../../lib/util/fileHandler';
+import { getEQFile, getEQFileExists } from 'sage-core/util/fileHandler';
 import {
   GLOBAL_VERSION,
   processGlobal,

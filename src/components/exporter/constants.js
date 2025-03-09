@@ -1,5 +1,5 @@
 
-import { modelDefinitions } from '../../lib/model/constants';
+import { modelDefinitions } from 'sage-core/model/constants';
 
 
 export const locations = [

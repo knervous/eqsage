@@ -18,7 +18,7 @@ import {
 import { RecastNavigationJSPlugin } from '../../../plugins/RecastNavigationJSPlugin';
 import { gameController } from '../../../viewer/controllers/GameController';
 import { useProject } from '../hooks/metadata';
-import { getEQSageDir, writeEQFile } from '../../../lib/util/fileHandler';
+import { getEQSageDir, writeEQFile } from 'sage-core/util/fileHandler';
 import { useAlertContext } from '../../../context/alerts';
 import AZoneCore from '../../../modules/azone';
 import AWaterCore from '../../../modules/awater';

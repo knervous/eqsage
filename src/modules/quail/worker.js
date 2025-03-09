@@ -3,7 +3,7 @@ import { CreateQuail } from './wrapper';
 import {
   createDirectoryHandle,
   createFileSystemHandle,
-} from '@/lib/util/fileSystem';
+} from 'sage-core/util/fileSystem';
 /**
  * @typedef QueueItem
  * @property {string} name

@@ -3,10 +3,10 @@ import { WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { GameControllerChild } from './GameControllerChild';
 import { GlobalStore } from '../../state';
-import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
+import { RegionType } from 'sage-core/s3d/bsp/bsp-tree';
 import { instantiate3dMover, teardown3dMover } from '../util/babylonUtil';
-import { flipImageX } from '../../lib/util/util';
-import { getEQFile } from '../../lib/util/fileHandler';
+import { flipImageX } from 'sage-core/util/util';
+import { getEQFile } from 'sage-core/util/fileHandler';
 
 const {
   AbstractMesh,

@@ -1,5 +1,5 @@
-import { PFSArchive } from '../../lib/pfs/pfs';
-import { getEQDir, getEQFile, getEQFileExists, getEQRootDir, getFiles, getRootFiles, writeEQFile } from '../../lib/util/fileHandler';
+import { PFSArchive } from 'sage-core/pfs/pfs';
+import { getEQDir, getEQFile, getEQFileExists, getEQRootDir, getFiles, getRootFiles, writeEQFile } from 'sage-core/util/fileHandler';
 import { GlobalStore } from '../../state';
 import LocalFilesManager from './midi/LocalFilesManager';
 import { MIDIPlayer } from './midi/MIDIPlayer';

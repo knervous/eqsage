@@ -13,11 +13,11 @@ import {
   getEQDir,
   writeEQFile,
   writeFile,
-} from '../../lib/util/fileHandler';
+} from 'sage-core/util/fileHandler';
 import { useAlertContext } from '../../context/alerts';
 import { usePermissions } from '../../hooks/permissions';
 import { useProject } from './hooks/metadata';
-import { createS3DZone } from '../../lib/s3d/export/s3d-export';
+import { createS3DZone } from 'sage-core/s3d/export/s3d-export';
 
 export function getCleanByteArray(arr) {
   const newBuffer = new ArrayBuffer(arr.byteLength);

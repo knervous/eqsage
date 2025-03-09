@@ -13,7 +13,7 @@ import {
   NavMeshQuery,
   setRandomSeed,
 } from 'recast-navigation';
-import { TypedArrayWriter } from '../lib/util/typed-array-reader.js';
+import { TypedArrayWriter } from 'sage-core/util/typed-array-reader.js';
 
 const {
   VertexData,

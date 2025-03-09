@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { getEQDir, getFiles } from '../../lib/util/fileHandler';
+import { getEQDir, getFiles } from 'sage-core/util/fileHandler';
 import { models, pcModels } from './constants';
 
 export const useEqOptions = (useRawItems = false) => {

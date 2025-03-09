@@ -4,10 +4,10 @@
     background-repeat: repeat;
     background-position: center;
     border-width: 2px;
-    position: absolute;
+    position: fixed;
     border-style: solid;
     color: white;
-    z-index: 10;
+    z-index: 100000 !important;
     border-color: rgb(180, 173, 134) rgb(142, 134, 107) rgb(61, 58, 48) rgb(177, 170, 142);
     transition: right 0.2s ease;
 }

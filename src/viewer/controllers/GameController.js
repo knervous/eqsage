@@ -1,4 +1,5 @@
 import BABYLON from '@bjs';
+import { setGlobals } from 'sage-core';
 import { cameraController } from './CameraController';
 import { skyController } from './SkyController';
 import { modelController } from './ModelController';
@@ -7,7 +8,7 @@ import { zoneController } from './ZoneController';
 import { zoneBuilderController } from './ZoneBuilderController';
 
 import { GlobalStore } from '../../state';
-import { getEQFile } from '../../lib/util/fileHandler';
+import { getEQFile } from 'sage-core/util/fileHandler';
 
 const { Engine, ThinEngine, WebGPUEngine, Database, SceneLoader, GLTFLoader } =
   BABYLON;
@@ -409,4 +410,5 @@ export class GameController {
 }
 
 export const gameController = new GameController();
+setGlobals({ gameController });
 window.gc = window.gameController = gameController;

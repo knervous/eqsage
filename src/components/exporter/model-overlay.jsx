@@ -20,7 +20,7 @@ import {
   getEQDir,
   getEQFileExists,
   getFiles,
-} from '../../lib/util/fileHandler';
+} from 'sage-core/util/fileHandler';
 import { PCConfig } from './pc/pc-config';
 import { useSettingsContext } from '@/context/settings';
 import { optionType, pcModels, wearsRobe } from './constants';

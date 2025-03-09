@@ -4,7 +4,7 @@ import { ZonePointApi } from 'spire-api/api/zone-point-api';
 import { useMainContext } from '../../main/context';
 import { useAlertContext } from '../../../context/alerts';
 import { UpgradeState } from '../constants';
-import { RegionType } from '../../../lib/s3d/bsp/bsp-tree';
+import { RegionType } from 'sage-core/s3d/bsp/bsp-tree';
 import { useProject } from '../hooks/metadata';
 
 const initialState = {};

@@ -8,7 +8,7 @@ import {
   TextField,
 } from '@mui/material';
 import React, { useEffect, useRef, useState } from 'react';
-import { getEQDir, getFiles } from '../../../lib/util/fileHandler';
+import { getEQDir, getFiles } from 'sage-core/util/fileHandler';
 import { InventorySlot } from './inv-slot';
 import { MageloDialog } from '../dialogs/magelo-dialog';
 import { ProfileDialog } from '../dialogs/profile-dialog';

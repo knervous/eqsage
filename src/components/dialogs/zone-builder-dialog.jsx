@@ -18,7 +18,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import * as msgpack from '@msgpack/msgpack';
 import pako from 'pako';
 import { useMainContext } from '../main/context';
-import { VERSION } from '../../lib/model/constants';
+import { VERSION } from 'sage-core/model/constants';
 import {
   deleteEqFileOrFolder,
   getEQDir,
@@ -27,10 +27,10 @@ import {
   getEQRootDir,
   getFiles,
   writeEQFile,
-} from '../../lib/util/fileHandler';
+} from 'sage-core/util/fileHandler';
 import { useAlertContext } from '../../context/alerts';
 import { ZoneBuilder } from '../builder/zone-builder';
-import { optimizeBoundingBoxes } from '../../lib/s3d/bsp/region-utils';
+import { optimizeBoundingBoxes } from 'sage-core/s3d/bsp/region-utils';
 import { GlobalStore } from '../../state';
 import { useConfirm } from 'material-ui-confirm';
 

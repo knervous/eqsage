@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getEQDir, getEQFile, getFiles } from '../../../lib/util/fileHandler';
+import { getEQDir, getEQFile, getFiles } from 'sage-core/util/fileHandler';
 
 export const useModels = () => {
   const [models, setModels] = useState([]);

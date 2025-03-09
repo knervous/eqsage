@@ -8,7 +8,7 @@ import {
   Select,
 } from '@mui/material';
 import { useMemo, useState } from 'react';
-import { expansions } from '../../lib/model/constants';
+import { expansions } from 'sage-core/model/constants';
 
 export const useExpansionList = ({ zones }) => {
   const [expansionFilter, setExpansionFilter] = useState([]);

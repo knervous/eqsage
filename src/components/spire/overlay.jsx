@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { Box, Button, Divider, Stack, Typography } from '@mui/material';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -22,11 +22,12 @@ import { NavLeft } from '../common/nav/nav-left';
 import { DrawerButton } from '../common/nav/drawer-button';
 import { NavHeader } from '../common/nav/nav-header';
 import { useMainContext } from '../main/context';
-import { getRootFiles } from '@/lib/util/fileHandler';
-import { S3DDecoder } from '@/lib/s3d/s3d-decoder';
-import { EQGDecoder } from '@/lib/eqg/eqg-decoder';
+import { getRootFiles } from 'sage-core/util/fileHandler';
+import { S3DDecoder } from 'sage-core/s3d/s3d-decoder';
+import { EQGDecoder } from 'sage-core/eqg/eqg-decoder';
 
 import './overlay.scss';
+import Drawer from './drawer';
 
 export const SpireOverlay = ({ inZone }) => {
   const { toggleDialog, dialogState, closeDialogs } = useOverlayContext();
@@ -42,6 +43,8 @@ export const SpireOverlay = ({ inZone }) => {
     window.addEventListener('keydown', keyHandler);
     return () => window.removeEventListener('keydown', keyHandler);
   }, [closeDialogs]);
+
+  const drawerOpen = useMemo(() => dialogState['doors'], [dialogState]);
 
   const headerText = selectedZone?.long_name
     ? `${selectedZone.long_name} - ${selectedZone?.short_name}`
@@ -71,6 +74,8 @@ export const SpireOverlay = ({ inZone }) => {
         {inZone && <Compass />}
         <NavHeader
           width={45}
+          offset={drawerOpen}
+          offsetPx={120}
           minWidth={'500px'}
           height={inZone ? 80 : 50}
           sx={{ padding: '5px 5vw', height: '100%' }}
@@ -192,7 +197,7 @@ export const SpireOverlay = ({ inZone }) => {
           />
           <DrawerButton
             drawerState={dialogState}
-            drawer="objects"
+            drawer="doors"
             disabled={!inZone}
             text={'Doors'}
             Icon={DoorIcon}
@@ -272,6 +277,7 @@ export const SpireOverlay = ({ inZone }) => {
         </NavLeft>
       </Box>
       <OverlayDialogs />
+      <Drawer />
       <SpawnNavBar />
     </>
   );

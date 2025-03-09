@@ -18,7 +18,7 @@ import { Box } from '@mui/material';
 import { Allotment } from 'allotment';
 import { FileExplorer } from './file-explorer';
 import { usePermissions } from '@/hooks/permissions';
-import { S3DDecoder } from '@/lib/s3d/s3d-decoder';
+import { S3DDecoder } from 'sage-core/s3d/s3d-decoder';
 import { quailProcessor } from '@/modules/quail';
 import { NavRight } from '../common/nav/nav-right';
 import { defaultOptions, stateCallback } from '../exporter/overlay';
@@ -28,7 +28,7 @@ import { useEqOptions } from '../exporter/use-options';
 import { ModelOverlay } from '../exporter/model-overlay';
 import { GlobalStore } from '@/state';
 import { QuailDialog } from './quail-dialog';
-import { EQGDecoder } from '@/lib/eqg/eqg-decoder';
+import { EQGDecoder } from 'sage-core/eqg/eqg-decoder';
 
 import './overlay.scss';
 import 'allotment/dist/style.css';
@@ -101,7 +101,7 @@ const QuailOverlayComponent = ({ canvas }) => {
         await s3dDecoder.processS3D(fhWrapper);
         await s3dDecoder.export();
       } else {
-        const eqgDecoder = new EQGDecoder(fhWrapper);
+        const eqgDecoder = new EQGDecoder(fhWrapper, { forceWrite: true });
         await eqgDecoder.processEQG(fhWrapper);
         await eqgDecoder.export();
       }

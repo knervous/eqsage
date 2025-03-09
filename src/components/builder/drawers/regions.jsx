@@ -21,7 +21,7 @@ import {
 } from '@mui/material';
 import { UpgradeState } from '../constants';
 import { useProject } from '../hooks/metadata';
-import { RegionType } from '../../../lib/s3d/bsp/bsp-tree';
+import { RegionType } from 'sage-core/s3d/bsp/bsp-tree';
 import { useMainContext } from '../../main/context';
 import { ZonePointChooserDialog } from './zp-chooser-dialog';
 

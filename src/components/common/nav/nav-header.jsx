@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Stack } from '@mui/material';
 import './nav.scss';
 
-export const NavHeader = ({ children, offset = false, minWidth = '400px', height = 75, width = 60, sx }) => {
+export const NavHeader = ({ children, offset = false, offsetPx = 250, minWidth = '400px', height = 75, width = 60, sx }) => {
   const bgOptions = {
     minWidth: `calc(${minWidth} + 4px)`,
     height  : `${height + 2}px`,
@@ -18,8 +18,8 @@ export const NavHeader = ({ children, offset = false, minWidth = '400px', height
 
   };
   if (offset) {
-    bgOptions.left = 'calc(25% - 252px) !important';
-    options.left = 'calc(25% - 250px) !important';
+    bgOptions.left = `calc(25% - ${offsetPx + 2}px) !important`;
+    options.left = `calc(25% - ${offsetPx}px) !important`;
   }
   return (
     <>

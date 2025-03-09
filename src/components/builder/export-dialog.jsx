@@ -18,16 +18,16 @@ import {
   getEQSageDir,
   writeEQFile,
   writeFile,
-} from '../../lib/util/fileHandler';
-import { PFSArchive } from '../../lib/pfs/pfs';
+} from 'sage-core/util/fileHandler';
+import { PFSArchive } from 'sage-core/pfs/pfs';
 import { useAlertContext } from '../../context/alerts';
-import { SoundInstance } from '../../lib/s3d/sound/sound';
-import { TypedArrayWriter } from '../../lib/util/typed-array-reader';
-import { RegionType } from '../../lib/s3d/bsp/bsp-tree';
+import { SoundInstance } from 'sage-core/s3d/sound/sound';
+import { TypedArrayWriter } from 'sage-core/util/typed-array-reader';
+import { RegionType } from 'sage-core/s3d/bsp/bsp-tree';
 import { mat4, vec3 } from 'gl-matrix';
 import { usePermissions } from '../../hooks/permissions';
 import { useProject } from './hooks/metadata';
-import { imageProcessor } from '../../lib/util/image/image-processor';
+import { imageProcessor } from 'sage-core/util/image/image-processor';
 
 const { SubMesh, Vector3, Color3, VertexBuffer, PBRMaterial } = BABYLON;
 

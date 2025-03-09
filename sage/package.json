@@ -1,0 +1,46 @@
+{
+  "name": "sage-core",
+  "version": "0.0.1",
+  "description": "Sage core library for encoding/decoding",
+  "main": "index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./*": "./lib/*"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/knervous/eqsage.git"
+  },
+  "keywords": [
+    "EverQuest",
+    "PFS",
+    "S3D",
+    "EQG"
+  ],
+  "author": "temp0",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/knervous/eqsage/issues"
+  },
+  "homepage": "https://github.com/knervous/eqsage#readme",
+  "dependencies": {
+    "@gltf-transform/core": "^4.1.1",
+    "@gltf-transform/extensions": "^4.1.1",
+    "@gltf-transform/functions": "^3.10.0",
+    "buffer": "^6.0.3",
+    "comlink": "^4.4.2",
+    "draco3dgltf": "^1.5.7",
+    "dxt-js": "^0.0.3",
+    "gl-matrix": "^3.4.3",
+    "jimp": "^0.22.12"
+  }
+}

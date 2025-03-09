@@ -2,7 +2,7 @@ import _React, { useCallback, useState } from 'react';
 import * as msgpack from '@msgpack/msgpack';
 import pako from 'pako';
 import { gameController } from '../../../viewer/controllers/GameController';
-import { writeEQFile } from '../../../lib/util/fileHandler';
+import { writeEQFile } from 'sage-core/util/fileHandler';
 import { useAlertContext } from '../../../context/alerts';
 
 export const useProject = () => {

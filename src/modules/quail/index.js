@@ -1,5 +1,5 @@
 import * as Comlink from 'comlink';
-import { SageFileSystemDirectoryHandle } from '@/lib/util/fileSystem';
+import { SageFileSystemDirectoryHandle } from 'sage-core/util/fileSystem';
 
 class QuailProcessor {
   /**

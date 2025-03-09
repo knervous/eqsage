@@ -1,3 +1,5 @@
+import { setGlobals } from 'sage-core';
+
 /**
  * @type {import ('@babylonjs/core')}
  */
@@ -66,6 +68,7 @@ const exportObject = {
     addImport(import('@babylonjs/core/Cameras/'));
 
     await Promise.all(importPromises);
+    setGlobals({ BABYLON: exportObject });
   }
 };
 

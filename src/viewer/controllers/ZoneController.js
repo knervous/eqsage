@@ -1,7 +1,7 @@
 import BABYLON from '@bjs';
 import { GameControllerChild } from './GameControllerChild';
-import { optimizeBoundingBoxes } from '../../lib/s3d/bsp/region-utils';
-import { getEQFile, writeEQFile } from '../../lib/util/fileHandler';
+import { optimizeBoundingBoxes } from 'sage-core/s3d/bsp/region-utils';
+import { getEQFile, writeEQFile } from 'sage-core/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { WebIO } from '@gltf-transform/core';
@@ -590,6 +590,10 @@ class ZoneController extends GameControllerChild {
 
       const regionNode = new TransformNode('regions', this.scene);
       this.regionNode = regionNode;
+
+      const doorNode = new TransformNode('doors', this.scene);
+      this.doorNode = doorNode;
+
       regionNode.setEnabled(!!this.regionsShown);
       console.log('Unoptimized', metadata.unoptimizedRegions);
       if (!metadata.regions?.length && metadata.unoptimizedRegions?.length) {
@@ -685,11 +689,6 @@ class ZoneController extends GameControllerChild {
 
       for (const mesh of instanceContainer.rootNodes[0].getChildMeshes()) {
         if (mesh.getTotalVertices() > 0) {
-          // mesh.rotation = new Vector3(
-          //   Tools.ToRadians(rotateX),
-          //   Tools.ToRadians(-rotateY) + Tools.ToRadians(90),
-          //   Tools.ToRadians(rotateZ)
-          // );
           meshes.push(mesh);
         }
       }

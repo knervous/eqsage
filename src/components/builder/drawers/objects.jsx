@@ -25,7 +25,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import BABYLON from '@bjs';
 import { gameController } from '../../../viewer/controllers/GameController';
 import { ObjectDialog } from './object-dialog';
-import { getEQDir, getEQFile } from '../../../lib/util/fileHandler';
+import { getEQDir, getEQFile } from 'sage-core/util/fileHandler';
 import { useProject } from '../hooks/metadata';
 
 const { Tools } = BABYLON;

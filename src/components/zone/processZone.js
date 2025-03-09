@@ -1,5 +1,5 @@
-import { EQFileHandle } from '../../lib/model/file-handle';
-import { getEQFile, getFilesRecursively, writeEQFile } from '../../lib/util/fileHandler';
+import { EQFileHandle } from 'sage-core/model/file-handle';
+import { getEQFile, getFilesRecursively, writeEQFile } from 'sage-core/util/fileHandler';
 import { GlobalStore } from '../../state';
 import { gameController } from '../../viewer/controllers/GameController';
 

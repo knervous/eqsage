@@ -15,11 +15,11 @@ import {
   Typography,
 } from '@mui/material';
 import { CommonDialog } from '../spire/dialogs/common';
-import { getEQDir, writeEQFile, writeFile } from '../../lib/util/fileHandler';
+import { getEQDir, writeEQFile, writeFile } from 'sage-core/util/fileHandler';
 import { useAlertContext } from '../../context/alerts';
 import { usePermissions } from '../../hooks/permissions';
 import { useProject } from './hooks/metadata';
-import { createS3DZone } from '../../lib/s3d/export/s3d-export';
+import { createS3DZone } from 'sage-core/s3d/export/s3d-export';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 

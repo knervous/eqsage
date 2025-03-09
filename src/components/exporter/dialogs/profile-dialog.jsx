@@ -20,8 +20,8 @@ import {
 import { useMainContext } from '@/components/main/context';
 import { useAlertContext } from '@/context/alerts';
 import { useSettingsContext } from '@/context/settings';
-import { writeEQFile } from '@/lib/util/fileHandler';
-import { getEQDir, getFiles, deleteEqFileOrFolder } from '@/lib/util/fileHandler';
+import { writeEQFile } from 'sage-core/util/fileHandler';
+import { getEQDir, getFiles, deleteEqFileOrFolder } from 'sage-core/util/fileHandler';
 import DeleteForever from '@mui/icons-material/DeleteForever';
 import { useConfirm } from 'material-ui-confirm';
 

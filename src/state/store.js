@@ -1,3 +1,4 @@
+import { setGlobals } from 'sage-core';
 import { createContext, createElement } from 'react';
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider, createStoreHook, createDispatchHook, createSelectorHook } from 'react-redux';
@@ -17,6 +18,8 @@ export const GlobalStore = configureStore({
   reducer,
 });
 window.GlobalStore = GlobalStore;
+
+setGlobals({ GlobalStore });
 
 GlobalStore.actions = getActions();
 
