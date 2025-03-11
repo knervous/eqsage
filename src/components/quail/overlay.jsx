@@ -17,7 +17,7 @@ import BABYLON from '@bjs';
 import { Box } from '@mui/material';
 import { Allotment } from 'allotment';
 import { FileExplorer } from './file-explorer';
-import { usePermissions } from '@/hooks/permissions';
+import { usePermissions } from 'sage-core/hooks/permissions';
 import { S3DDecoder } from 'sage-core/s3d/s3d-decoder';
 import { quailProcessor } from '@/modules/quail';
 import { NavRight } from '../common/nav/nav-right';

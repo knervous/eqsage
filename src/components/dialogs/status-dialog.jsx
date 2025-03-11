@@ -9,7 +9,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { PermissionStatusTypes } from '../../hooks/permissions';
+import { PermissionStatusTypes } from 'sage-core/hooks/permissions';
 import './status-dialog.scss';
 import { useMainContext } from '../main/context';
 

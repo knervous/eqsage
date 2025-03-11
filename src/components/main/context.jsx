@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { PermissionStatusTypes, usePermissions } from '../../hooks/permissions';
+import { PermissionStatusTypes, usePermissions } from 'sage-core/hooks/permissions';
 import { SpireApi, SpireQueryBuilder } from 'spire-api';
 import { Spawn2Api } from 'spire-api/api/spawn2-api';
 import { SpawngroupApi } from 'spire-api/api/spawngroup-api';

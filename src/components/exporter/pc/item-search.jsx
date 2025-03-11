@@ -23,12 +23,12 @@ export const ItemSearch = ({ label, piece, onSelect, onClose, baseOptions, fully
   const [options, setOptions] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
-
+  console.log('b', baseOptions);
   // This function performs the API call.
   const fetchOptions = async (query) => {
     setLoading(true);
     try {
-      if (baseOptions) {
+      if (baseOptions?.length) {
         const options = [];
         for (const o of baseOptions) {
           if (o.label.toLowerCase().includes(query)) {

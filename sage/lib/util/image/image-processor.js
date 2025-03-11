@@ -3,7 +3,6 @@ import { globals } from '../../globals';
 import { getEQDir, getFiles } from '../fileHandler.js';
 import { SageFileSystemDirectoryHandle } from '../fileSystem.js';
 
-const { GlobalStore } = globals;
 
 function chunkArray(array, numChunks) {
   if (numChunks < 1) {
@@ -107,13 +106,13 @@ class ImageProcessor {
       return;
     }
     const imageChunks = chunkArray(unionImages, this.#workers.length);
-    GlobalStore.actions.setLoadingTitle('Loading Images');
+    globals.GlobalStore.actions.setLoadingTitle('Loading Images');
     let count = 0;
     const workerLength = this.#workers.length;
     const incrementContainer = {
       incrementParsedImage() {
         count++;
-        GlobalStore.actions.setLoadingText(
+        globals.GlobalStore.actions.setLoadingText(
           `Decoded ${count} of ${images.length} images using ${workerLength} threads`
         );
       },

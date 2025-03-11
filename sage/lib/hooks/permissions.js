@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as keyval from 'idb-keyval';
-import { createDirectoryHandle } from 'sage-core/util/fileSystem';
+import { createDirectoryHandle } from '../util/fileSystem';
 
 export const PermissionStatusTypes = {
   ApiUnavailable: -1,

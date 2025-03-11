@@ -27,8 +27,6 @@ import { imageProcessor } from '../util/image/image-processor';
 import { ActorType } from './animation/actor';
 import { globals } from '../globals';
 
-const { GlobalStore } = globals;
-
 const io = new WebIO()
   .registerDependencies({
     'draco3d.decoder': await draco3d.createDecoderModule({
@@ -157,7 +155,7 @@ export class S3DDecoder {
           this.options.forceWrite ||
           !(await getEQFileExists('data', `${baseName}-animations.json`))
         ) {
-          GlobalStore.actions.setLoadingText(
+          globals.GlobalStore.actions.setLoadingText(
             `Writing shared animations for ${baseName}`
           );
           await writeEQFile(
@@ -415,7 +413,7 @@ export class S3DDecoder {
     )) {
       track.parseTrackData();
     }
-    GlobalStore.actions.setLoadingTitle('Exporting models');
+    globals.GlobalStore.actions.setLoadingTitle('Exporting models');
     // Sort these to export animation suppliers first
     wld.skeletons = wld.skeletons.sort((a, _b) => {
       let isAnimationSupplier = false;
@@ -438,7 +436,7 @@ export class S3DDecoder {
       const alternateModel = AnimationSources.hasOwnProperty(modelBase)
         ? AnimationSources[modelBase]
         : modelBase;
-      GlobalStore.actions.setLoadingText(`Exporting model ${modelBase}`);
+      globals.GlobalStore.actions.setLoadingText(`Exporting model ${modelBase}`);
       await new Promise((res) => setTimeout(res, 0));
       // TODO: Alternate model bases
       wld.tracks
@@ -1174,17 +1172,17 @@ export class S3DDecoder {
     for (const wld of this.wldFiles) {
       switch (wld.type) {
         case WldType.Zone:
-          GlobalStore.actions.setLoadingText('Exporting zone');
+          globals.GlobalStore.actions.setLoadingText('Exporting zone');
           await this.exportZone(wld);
           break;
         case WldType.ZoneObjects:
           break;
         case WldType.Objects:
-          GlobalStore.actions.setLoadingText('Exporting zone objects');
+          globals.GlobalStore.actions.setLoadingText('Exporting zone objects');
           await this.exportObjects(wld);
           break;
         case WldType.Characters:
-          GlobalStore.actions.setLoadingText('Exporting zone models');
+          globals.GlobalStore.actions.setLoadingText('Exporting zone models');
           await this.exportModels(wld);
           break;
         case WldType.Equipment:

@@ -1,6 +1,6 @@
 {
   "name": "sage-core",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "Sage core library for encoding/decoding",
   "main": "index.js",
   "publishConfig": {
@@ -32,6 +32,10 @@
     "url": "https://github.com/knervous/eqsage/issues"
   },
   "homepage": "https://github.com/knervous/eqsage#readme",
+  "peerDependencies": {
+    "react": ">=18.0.0 || ^19.0.0",
+    "react-dom": ">=18.0.0 || ^19.0.0"
+  },
   "dependencies": {
     "@gltf-transform/core": "^4.1.1",
     "@gltf-transform/extensions": "^4.1.1",
@@ -41,6 +45,7 @@
     "draco3dgltf": "^1.5.7",
     "dxt-js": "^0.0.3",
     "gl-matrix": "^3.4.3",
+    "idb-keyval": "^6.2.1",
     "jimp": "^0.22.12"
   }
 }

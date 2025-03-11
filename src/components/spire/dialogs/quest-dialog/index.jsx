@@ -17,7 +17,7 @@ import { PaperComponent } from '../common';
 import {
   PermissionStatusTypes,
   usePermissions,
-} from '../../../../hooks/permissions';
+} from 'sage-core/hooks/permissions';
 import classNames from 'classnames';
 import { QuestEditor } from './quest-editor';
 

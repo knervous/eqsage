@@ -40,7 +40,7 @@ export const useEqOptions = (useRawItems = false) => {
   );
 
   useEffect(() => {
-    if (!useRawItems) {
+    if (useRawItems) {
       return;
     }
     fetch('/static/items.json')

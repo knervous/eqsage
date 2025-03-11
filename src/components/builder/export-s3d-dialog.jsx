@@ -15,7 +15,7 @@ import {
   writeFile,
 } from 'sage-core/util/fileHandler';
 import { useAlertContext } from '../../context/alerts';
-import { usePermissions } from '../../hooks/permissions';
+import { usePermissions } from 'sage-core/hooks/permissions';
 import { useProject } from './hooks/metadata';
 import { createS3DZone } from 'sage-core/s3d/export/s3d-export';
 

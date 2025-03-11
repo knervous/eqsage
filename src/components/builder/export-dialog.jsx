@@ -25,7 +25,7 @@ import { SoundInstance } from 'sage-core/s3d/sound/sound';
 import { TypedArrayWriter } from 'sage-core/util/typed-array-reader';
 import { RegionType } from 'sage-core/s3d/bsp/bsp-tree';
 import { mat4, vec3 } from 'gl-matrix';
-import { usePermissions } from '../../hooks/permissions';
+import { usePermissions } from 'sage-core/hooks/permissions';
 import { useProject } from './hooks/metadata';
 import { imageProcessor } from 'sage-core/util/image/image-processor';
 
@@ -157,27 +157,27 @@ export const ExportDialog = ({ open, setOpen }) => {
     // Create EQG
     const eqgArchive = new PFSArchive();
     const imageWritePromises = [];
-    const writePfsFile = (name, data, override = false) => {
-      if (eqgArchive.fileExists(name) && !override) {
+    const writePfsFile = (fileName, data, override = false) => {
+      if (eqgArchive.fileExists(fileName) && !override) {
         return;
       }
 
       // Compress all png and let this happen with some concurrency.
       // First write a blank file so this doesn't get hit twice, then store the promise for later
       // Where we can await until they're all finished before finalizing
-      if (name.endsWith(".png") && !override) {
+      if (fileName.endsWith(".png") && !override) {
         // Skip compression for materials that need alpha testing since jpeg doesn't support opacity.
         // Figure out multimaterial and submeshes with indexed positions later
         for (const m of zb.scene.materials) {
           if (
-            m.name.toLowerCase() === name.replace(".png", "").toLowerCase() &&
+            m.name.toLowerCase() === fileName.replace(".png", "").toLowerCase() &&
             (m.needAlphaTesting() || m?.albedoTexture?.hasAlpha)
           ) {
-            eqgArchive.setFile(name, data);
+            eqgArchive.setFile(fileName, data);
             return;
           }
         }
-        const convertedName = name.replace(".png", ".jpg");
+        const convertedName = fileName.replace(".png", ".jpg");
         eqgArchive.setFile(convertedName, "");
         imageWritePromises.push(
           new Promise((res) =>
@@ -193,7 +193,7 @@ export const ExportDialog = ({ open, setOpen }) => {
         );
         return true;
       } else {
-        eqgArchive.setFile(name, data);
+        eqgArchive.setFile(fileName, data);
       }
     };
 
@@ -255,9 +255,14 @@ export const ExportDialog = ({ open, setOpen }) => {
       if (terrain) {
         const zoneTextures = zb.zoneContainer.getChildMeshes().flatMap(m => m?.material?.getActiveTextures() ?? []);
         zoneTextures.forEach(texture => {
-          const didChange = writePfsFile(texture.name, texture._buffer);
+          let texName = texture.name;
+          texName = texName.replace(' (Base Color)', '');
+          if (!texName.endsWith('.png')) {
+            texName = `${texName}.png`;
+          }
+          const didChange = writePfsFile(texName, texture._buffer instanceof ArrayBuffer ? new Uint8Array(texture._buffer) : texture._buffer);
           textureNames.push(
-            didChange ? texture.name.replace(".png", "") + '.jpg' : texture.name
+            didChange ? texName.replace(".png", "") + '.jpg' : texName
           );
         })
       } else {
@@ -825,6 +830,7 @@ export const ExportDialog = ({ open, setOpen }) => {
     await new Promise((res) => setTimeout(res, 0));
     const savePerf = performance.now();
     const file = eqgArchive.saveToFile();
+     console.log('Entries', eqgArchive.files);
     console.log(`Took ${performance.now() - savePerf} to pack archive`);
     await fsWrite("output", `${name}.eqg`, file, name);
     const defaultDir = `${(await getEQSageDir()).name}/output/${name}`;

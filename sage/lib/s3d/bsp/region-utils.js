@@ -1,8 +1,6 @@
 import { globals } from '../../globals';
 import { RegionType } from './bsp-tree';
 
-const { GlobalStore } = globals;
-
 function getBoxDataKey(box) {
   return `${box.regionType}|${box.zoneLineInfo ? JSON.stringify(box.zoneLineInfo) : 'null'}`;
 }
@@ -133,8 +131,8 @@ export async function optimizeBoundingBoxes(boxes) {
     });
   });
 
-  GlobalStore.actions.setLoadingTitle('Optimizing Regions');
-  GlobalStore.actions.setLoadingText('Running BSP region optimization algorithm...');
+  globals.GlobalStore.actions.setLoadingTitle('Optimizing Regions');
+  globals.GlobalStore.actions.setLoadingText('Running BSP region optimization algorithm...');
   const startTime = performance.now();
   await new Promise(res => setTimeout(res, 0));
 
