@@ -830,7 +830,6 @@ export const ExportDialog = ({ open, setOpen }) => {
     await new Promise((res) => setTimeout(res, 0));
     const savePerf = performance.now();
     const file = eqgArchive.saveToFile();
-     console.log('Entries', eqgArchive.files);
     console.log(`Took ${performance.now() - savePerf} to pack archive`);
     await fsWrite("output", `${name}.eqg`, file, name);
     const defaultDir = `${(await getEQSageDir()).name}/output/${name}`;
