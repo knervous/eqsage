@@ -652,7 +652,9 @@ class SpawnController extends GameControllerChild {
           textureCompress({
             targetFormat: imgCompression,
           })
-        );
+        ).catch(e => {
+          console.log('Error optimizing glb', e);
+        });
         const bin = await io.writeBinary(doc);
         if (download) {
           const assetBlob = new Blob([bin]);

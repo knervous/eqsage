@@ -26,6 +26,7 @@ import { Wld, WldType } from './wld/wld';
 import { imageProcessor } from '../util/image/image-processor';
 import { ActorType } from './animation/actor';
 import { globals } from '../globals';
+import { optimizeBoundingBoxes } from './bsp/region-utils';
 
 const io = new WebIO()
   .registerDependencies({
@@ -871,7 +872,9 @@ export class S3DDecoder {
         center: [leafNode.center[0], leafNode.center[2], leafNode.center[1]],
       });
     }
-    zoneMetadata.unoptimizedRegions = regions;
+    zoneMetadata.regions = await optimizeBoundingBoxes(
+      regions
+    );
 
     // Process object instances.
     const objWld = this.wldFiles.find((f) => f.type === WldType.ZoneObjects);
