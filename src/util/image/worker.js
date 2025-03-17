@@ -1,8 +1,8 @@
 import * as Comlink from 'comlink';
-import { convertDDS2Jimp } from '../image-processing';
+import { convertDDS2Jimp } from 'sage-core/util/image-processing';
 import 'jimp/browser/lib/jimp';
 import dxt from 'dxt-js';
-import { createDirectoryHandle } from '../fileSystem';
+import { createDirectoryHandle } from 'sage-core/util/fileSystem';
 
 const ShaderType = {
   Diffuse                        : 0,

@@ -1,8 +1,7 @@
-import { imageProcessor } from '../../util/image/image-processor';
 import { Suffixes } from './constants';
 
 async function compressPNG(inputBuffer, name) {
-  const result = await imageProcessor.compressImage(inputBuffer, name);
+  const result = await window.imageProcessor.compressImage(inputBuffer, name);
   if (result === null) {
     console.log('Fallback for buffer', name);
   }

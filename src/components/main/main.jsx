@@ -11,6 +11,8 @@ import { ZoneBuilderDialog } from '../dialogs/zone-builder-dialog';
 import { AudioDialog } from '../dialogs/audio-dialog';
 import { GlobalStore } from '@/state';
 
+import '../../util/image/image-processor';
+
 import './main.scss';
 
 const CONSTANTS = {

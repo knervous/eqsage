@@ -8,24 +8,27 @@ import { writeMetadata } from './common';
 import { draco, DRACO_DEFAULTS } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 
-const io = new WebIO()
-  .registerDependencies({
-    'draco3d.decoder': await draco3d.createDecoderModule({
-      locateFile: (file) => {
-        return `/static/${file}`;
-      },
-      print   : console.log,
-      printErr: console.error,
-    }),
-    'draco3d.encoder': await draco3d.createEncoderModule({
-      locateFile: (file) => {
-        return `/static/${file}`;
-      },
-      print   : console.log,
-      printErr: console.error,
-    }),
-  })
-  .registerExtensions(ALL_EXTENSIONS);
+let io;
+(async () => {
+  io = new WebIO()
+    .registerDependencies({
+      'draco3d.decoder': await draco3d.createDecoderModule({
+        locateFile: (file) => {
+          return `/static/${file}`;
+        },
+        print   : console.log,
+        printErr: console.error,
+      }),
+      'draco3d.encoder': await draco3d.createEncoderModule({
+        locateFile: (file) => {
+          return `/static/${file}`;
+        },
+        print   : console.log,
+        printErr: console.error,
+      }),
+    })
+    .registerExtensions(ALL_EXTENSIONS);
+})();
 
 // Helper function to convert uint32 (assumed format 0xAARRGGBB) to normalized [r, g, b, a]
 function uint32ToRGBA(color) {

@@ -27,7 +27,6 @@ import { RegionType } from 'sage-core/s3d/bsp/bsp-tree';
 import { mat4, vec3 } from 'gl-matrix';
 import { usePermissions } from 'sage-core/hooks/permissions';
 import { useProject } from './hooks/metadata';
-import { imageProcessor } from 'sage-core/util/image/image-processor';
 
 const { SubMesh, Vector3, Color3, VertexBuffer, PBRMaterial } = BABYLON;
 
@@ -71,7 +70,7 @@ const propertiesUsed = [
 const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
 
 async function compressPNG(inputBuffer) {
-  const result = await imageProcessor.compressImage(inputBuffer);
+  const result = await window.imageProcessor.compressImage(inputBuffer);
   const byteArray = new Uint8Array(result);
   return byteArray;
 }

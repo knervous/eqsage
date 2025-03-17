@@ -1,6 +1,6 @@
 {
   "name": "sage-core",
-  "version": "0.0.4",
+  "version": "0.0.15",
   "description": "Sage core library for encoding/decoding",
   "main": "index.js",
   "publishConfig": {

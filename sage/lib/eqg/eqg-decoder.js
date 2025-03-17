@@ -1,6 +1,5 @@
 /* eslint-disable */
 
-import { imageProcessor } from "../util/image/image-processor";
 import { Zone } from "./zone/zone";
 import { ZoneData } from "./zone/v4-zone";
 import { Model, Animation, Lit } from "./model/model";
@@ -9,8 +8,7 @@ import { exportv4 } from "./gltf-export/v4";
 import { exportv3 } from "./gltf-export/v3";
 import { writeModels } from "./gltf-export/common";
 import { PFSArchive } from "../pfs/pfs";
-import {  deleteEqFileOrFolder, getEQRootDir, writeEQFile } from "../util/fileHandler";
-import { S3DDecoder } from "../s3d/s3d-decoder";
+import {  deleteEqFileOrFolder, writeEQFile } from "../util/fileHandler";
 
 export class EQGDecoder {
   #options = {
@@ -163,7 +161,7 @@ export class EQGDecoder {
     console.log(`Processed - ${name}`);
     console.log('Images', images)
     if (!skipImages) {
-      await imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
+      await window.imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
       console.log("Done processing images");
     }
   }

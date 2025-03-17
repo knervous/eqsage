@@ -1,7 +1,7 @@
 import * as Comlink from 'comlink';
-import { globals } from '../../globals';
-import { getEQDir, getFiles } from '../fileHandler.js';
-import { SageFileSystemDirectoryHandle } from '../fileSystem.js';
+import { globals } from 'sage-core/globals';
+import { getEQDir, getFiles } from 'sage-core/util/fileHandler';
+import { SageFileSystemDirectoryHandle } from 'sage-core/util/fileSystem';
 
 
 function chunkArray(array, numChunks) {
