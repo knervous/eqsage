@@ -73,7 +73,6 @@ export class EQGDecoder {
         console.log('File', fileName)
       }
       if (fileName.endsWith(".lit")) {
-      //  console.log('Filename', fileName, 'data', this.files[fileName])
         const lit = new Lit(
           this.files[fileName],
           this.#fileHandle,
