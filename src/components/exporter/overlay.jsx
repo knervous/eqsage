@@ -96,7 +96,6 @@ const ExporterOverlayComponent = () => {
     });
   }, [area]);
   const prefix = window.electronAPI ? './' : '/';
-
   return (
     <>
       <img
@@ -123,7 +122,7 @@ const ExporterOverlayComponent = () => {
           itemOptions={itemOptions}
         />
       ) : null}
-      {import.meta.env.VITE_LOCAL_DEV === 'true' ? <DevOverlay refresh={refresh} /> : null}
+      {import.meta.env.DEV ? <DevOverlay refresh={refresh} /> : null}
       <NavHeader minWidth={'800px'}>
         <ExporterNavHeader
           gameController={gameController}

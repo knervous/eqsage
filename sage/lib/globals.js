@@ -9,6 +9,7 @@ export const globals = {
     getState() {},
   },
   BABYLON: {},
+  root   : 'eqsage',
 };
 
 if (import.meta.env.DEV === true) {

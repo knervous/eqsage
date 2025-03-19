@@ -32,11 +32,12 @@ const Jimp = globalThis.Jimp; // eslint-disable-line
 
 const fullAlphaToDoubleAlphaThreshold = 64;
 const alphaShaderMap = {
-  [ShaderType.Transparent25]      : 64,
-  [ShaderType.Transparent50]      : 128,
-  [ShaderType.TransparentSkydome] : 128,
-  [ShaderType.Transparent75]      : 192,
-  [ShaderType.TransparentAdditive]: 192,
+  [ShaderType.Transparent25]           : 64,
+  [ShaderType.Transparent50]           : 128,
+  [ShaderType.TransparentSkydome]      : 128,
+  [ShaderType.Transparent75]           : 192,
+  [ShaderType.TransparentAdditive]     : 192,
+  [ShaderType.TransparentAdditiveUnlit]: 192,
 };
 
 const mainThreadFuncs = Comlink.wrap(self); // eslint-disable-line

@@ -1,3 +1,6 @@
+
+import { globals } from '../globals';
+
 async function* getDirFiles(entry, path = '') {
   if (entry.kind === 'file') {
     const file = await entry;
@@ -22,7 +25,7 @@ export async function* getFilesRecursively(entry, path = '', nameCheck = undefin
       }
     }
   } else if (entry.kind === 'directory') {
-    if (entry.name === 'eqsage') {
+    if (entry.name === globals.root) {
       return;
     }
     for await (const handle of entry.values()) {
@@ -112,7 +115,7 @@ export const getEQSageDir = async () => {
   const eqsageDir =
     cachedDirHandle ||
     (await window.gameController.rootFileSystemHandle.getDirectoryHandle(
-      'eqsage',
+      globals.root,
       {
         create: true,
       }
@@ -139,7 +142,7 @@ export const getEQDir = async (name) => {
     const eqsageDir =
       cachedDirHandle ||
       (await window.gameController.rootFileSystemHandle.getDirectoryHandle(
-        'eqsage',
+        globals.root,
         {
           create: true,
         }

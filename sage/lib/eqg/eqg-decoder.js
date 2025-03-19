@@ -115,9 +115,13 @@ export class EQGDecoder {
       if (fileName.endsWith(".bmp") || fileName.endsWith(".dds")) {
         // await writeEQFile('output', `${fileName}`, this.files[fileName].buffer )
         images.push({ name: fileName, data: this.files[fileName].buffer });
-        if (this.options?.forceWrite) {
+        if (this.#options?.forceWrite) {
           const pngName = fileName.replace('.bmp', '.png').replace('.dds', '.png');
           await deleteEqFileOrFolder('textures', pngName);
+        }
+        if (this.#options.rawImageWrite) {
+          await writeEQFile('textures', fileName
+            .replace('.bmp', '.dds').toLowerCase(), this.files[fileName].buffer);
         }
         continue;
       }
@@ -160,7 +164,9 @@ export class EQGDecoder {
     }
     console.log(`Processed - ${name}`);
     console.log('Images', images)
-    if (!skipImages) {
+    if (this.#options.rawImageWrite) {
+      console.log('Using raw image write');
+    } else if (!skipImages) {
       await window.imageProcessor.parseImages(images, this.#fileHandle.rootFileHandle);
       console.log("Done processing images");
     }

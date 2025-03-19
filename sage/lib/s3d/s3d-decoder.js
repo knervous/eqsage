@@ -4,6 +4,7 @@ import { Accessor, WebIO } from '@gltf-transform/core';
 import {
   ALL_EXTENSIONS,
   KHRMaterialsSpecular,
+  KHRMaterialsUnlit,
 } from '@gltf-transform/extensions';
 import { Document } from '@gltf-transform/core';
 import draco3d from 'draco3dgltf';
@@ -120,6 +121,11 @@ export class S3DDecoder {
             .replace('.dds', '.png');
           await deleteEqFileOrFolder('textures', pngName);
         }
+
+        if (this.options.rawImageWrite) {
+          await writeEQFile('textures', fileName
+            .replace('.bmp', '.dds').toLowerCase(), this.files[fileName].buffer);
+        }
         continue;
       }
     }
@@ -128,7 +134,9 @@ export class S3DDecoder {
       image.shaderType = this.shaderMap[image.name];
     }
     console.log(`Processed - ${file.name}`);
-    if (!skipImages) {
+    if (this.options.rawImageWrite) {
+      console.log('Using raw image write');
+    } else if (!skipImages) {
       await window.imageProcessor.parseImages(images);
       console.log(`Done processing images ${file.name} - ${images.length}`);
     }
@@ -401,6 +409,272 @@ export class S3DDecoder {
     }
   }
 
+  /**
+ * @param {Wld} wld - The WLD file containing sky data
+ * @param {boolean} [doExport=true] - Whether to perform the export
+ * @param {string} [path='sky'] - Export path
+ */
+  async exportSky(wld, doExport = true, path = 'sky') {
+    const skySkeletons = wld.skeletons;
+    const skySkeletonMeshNames = new Set();
+  
+    skySkeletons.forEach(skeleton => {
+      skeleton.skeleton.forEach(bone => {
+        if (bone.meshReference?.mesh) {
+          skySkeletonMeshNames.add(bone.meshReference.mesh.name);
+        }
+      });
+    });
+
+    // Get meshes not referenced by skeletons
+    const skyMeshes = wld.meshes
+      .filter(mesh => !skySkeletonMeshNames.has(mesh.name));
+
+    // Gather materials from both skeletons and meshes
+    const materialLists = wld.materialList;
+
+    // Export layered sky meshes (LAYER#1_ and LAYER#3_)
+    let layerIndex = 1;
+    while (true) {
+      const layerMeshes = skyMeshes.filter(mesh => 
+        new RegExp(`LAYER${layerIndex}[13]_`).test(mesh.name)
+      );
+
+      if (layerMeshes.length === 0) {
+        break;
+      }
+
+      if (doExport) {
+        const name = `sky${layerIndex}`;
+        const document = new Document(name);
+        const buffer = document.createBuffer();
+        const scene = document.createScene(name);
+        const node = document.createNode(name).setTranslation([0, 0, 0]);
+        scene.addChild(node);
+
+        // Add materials
+        const materials = await this.getMaterials(materialLists.flatMap(ml => ml.materialList), document, { unlit: true });
+
+        // Process each mesh
+        const gltfMesh = document.createMesh(name);
+        node.setMesh(gltfMesh);
+        for (const mesh of layerMeshes) {
+
+
+          const primitiveMap = {};
+          let polygonIndex = 0;
+
+          for (const matGroup of mesh.materialGroups) {
+            const matName = mesh.materialList.materialList[matGroup.materialIndex].name;
+            const gltfMat = materials[matName];
+            if (!gltfMat) {
+              continue;
+            }
+
+            let prim = primitiveMap[matName];
+            if (!prim) {
+              prim = primitiveMap[matName] = {
+                gltfPrim: document.createPrimitive(matName)
+                  .setMaterial(gltfMat)
+                  .setName(matName),
+                indices: [],
+                vecs   : [],
+                normals: [],
+                uv     : []
+              };
+              gltfMesh.addPrimitive(prim.gltfPrim);
+            }
+
+            for (let i = 0; i < matGroup.polygonCount; i++) {
+              const idc = mesh.indices[polygonIndex];
+              const idxArr = [idc.v1, idc.v2, idc.v3];
+                      
+              const [v1, v2, v3] = idxArr.map((idx) => mesh.vertices[idx]);
+              const [n1, n2, n3] = idxArr.map((idx) => mesh.normals[idx]);
+              const [u1, u2, u3] = idxArr.map(
+                (idx) => mesh.textureUvCoordinates[idx]
+              );
+    
+              const { vecs, normals, uv } = prim;
+              const ln = prim.indices.length;
+              const newIndices = [ln + 0, ln + 1, ln + 2];
+              prim.indices.push(...newIndices);
+              vecs.push(
+                ...[v1, v2, v3].flatMap((v) => [
+                  -1 * (v[0] + mesh.center[0]),
+                  v[2] + mesh.center[2],
+                  v[1] + mesh.center[1],
+                ])
+              );
+              normals.push(...[n1, n2, n3].flatMap((v) => [v[0] * -1, v[2], v[1]]));
+              uv.push(...[u1, u2, u3].flatMap((v) => [v[0], -1 * v[1]]));
+              polygonIndex++;
+            }
+          }
+
+          // Create accessors
+          for (const [name, prim] of Object.entries(primitiveMap)) {
+            prim.gltfPrim
+              .setIndices(document.createAccessor()
+                .setType(Accessor.Type.SCALAR)
+                .setArray(new Uint16Array(prim.indices))
+                .setBuffer(buffer))
+              .setAttribute('POSITION', document.createAccessor()
+                .setType(Accessor.Type.VEC3)
+                .setArray(new Float32Array(prim.vecs))
+                .setBuffer(buffer))
+              .setAttribute('NORMAL', document.createAccessor()
+                .setType(Accessor.Type.VEC3)
+                .setArray(new Float32Array(prim.normals))
+                .setBuffer(buffer))
+              .setAttribute('TEXCOORD_0', document.createAccessor()
+                .setType(Accessor.Type.VEC2)
+                .setArray(new Float32Array(prim.uv))
+                .setBuffer(buffer));
+            // Reverse winding order
+            const indicesAccessor = prim.gltfPrim.getIndices();
+            const indexArray = indicesAccessor.getArray();
+            for (let i = 0; i < indexArray.length; i += 3) {
+              [indexArray[i], indexArray[i + 2]] = [indexArray[i + 2], indexArray[i]];
+            }
+            indicesAccessor.setArray(indexArray);
+          }
+        }
+
+        const bytes = await io.writeBinary(document);
+        await writeEQFile(path, `sky${layerIndex}.glb`, bytes);
+      }
+
+      layerIndex++;
+    }
+
+    // Export skeleton-based sky objects
+    for (const skeleton of skySkeletons) {
+      if (!doExport) {
+        continue;
+      }
+
+      const document = new Document(skeleton.modelBase);
+      const buffer = document.createBuffer();
+      const scene = document.createScene(skeleton.modelBase);
+      const rootNode = document.createNode(skeleton.modelBase).setTranslation([0, 0, 0]);
+      scene.addChild(rootNode);
+
+      // Add materials
+      const materials = await this.getMaterials(materialLists.flatMap(ml => ml.materialList), document);
+
+      const combinedMeshName = fragmentNameCleaner(skeleton);
+      const gltfMesh = document.createMesh(combinedMeshName);
+
+      // Process each bone with a mesh
+      skeleton.skeleton.forEach((bone, boneIndex) => {
+        const mesh = bone.meshReference?.mesh;
+        if (!mesh) {
+          return;
+        }
+
+        // Similar to C# ShiftMeshVertices - assuming this is handled in data prep
+        const primitiveMap = {};
+        let polygonIndex = 0;
+
+        for (const matGroup of mesh.materialGroups) {
+          const matName = mesh.materialList.materialList[matGroup.materialIndex].name;
+          const gltfMat = materials[matName];
+          if (!gltfMat) {
+            continue;
+          }
+
+          let prim = primitiveMap[matName];
+          if (!prim) {
+            prim = primitiveMap[matName] = {
+              gltfPrim: document.createPrimitive(matName)
+                .setMaterial(gltfMat)
+                .setName(matName),
+              indices: [],
+              vecs   : [],
+              normals: [],
+              uv     : [],
+              joints : [],
+              weights: []
+            };
+            gltfMesh.addPrimitive(prim.gltfPrim);
+          }
+
+          for (let i = 0; i < matGroup.polygonCount; i++) {
+            const idc = mesh.indices[polygonIndex++];
+            const idxArr = [idc.v1, idc.v2, idc.v3];
+                  
+            prim.indices.push(...idxArr);
+            prim.vecs.push(...idxArr.flatMap(idx => [
+              mesh.vertices[idx][0] + mesh.center[0],
+              mesh.vertices[idx][2] + mesh.center[2],
+              mesh.vertices[idx][1] + mesh.center[1]
+            ]));
+            prim.normals.push(...idxArr.flatMap(idx => [
+              -mesh.normals[idx][0],
+              mesh.normals[idx][2],
+              mesh.normals[idx][1]
+            ]));
+            prim.uv.push(...idxArr.flatMap(idx => [
+              mesh.textureUvCoordinates[idx][0],
+              -mesh.textureUvCoordinates[idx][1]
+            ]));
+            prim.joints.push(...idxArr.flatMap(() => [boneIndex, 0, 0, 0]));
+            prim.weights.push(...idxArr.flatMap(() => [1, 0, 0, 0]));
+          }
+        }
+
+        // Create accessors
+        for (const [name, prim] of Object.entries(primitiveMap)) {
+          prim.gltfPrim
+            .setIndices(document.createAccessor()
+              .setType(Accessor.Type.SCALAR)
+              .setArray(new Uint16Array(prim.indices))
+              .setBuffer(buffer))
+            .setAttribute('POSITION', document.createAccessor()
+              .setType(Accessor.Type.VEC3)
+              .setArray(new Float32Array(prim.vecs))
+              .setBuffer(buffer))
+            .setAttribute('NORMAL', document.createAccessor()
+              .setType(Accessor.Type.VEC3)
+              .setArray(new Float32Array(prim.normals))
+              .setBuffer(buffer))
+            .setAttribute('TEXCOORD_0', document.createAccessor()
+              .setType(Accessor.Type.VEC2)
+              .setArray(new Float32Array(prim.uv))
+              .setBuffer(buffer))
+            .setAttribute('JOINTS_0', document.createAccessor()
+              .setType(Accessor.Type.VEC4)
+              .setArray(new Uint16Array(prim.joints))
+              .setBuffer(buffer))
+            .setAttribute('WEIGHTS_0', document.createAccessor()
+              .setType(Accessor.Type.VEC4)
+              .setArray(new Float32Array(prim.weights))
+              .setBuffer(buffer));
+        }
+      });
+
+      // Add skeleton and animations
+      const animWriter = new S3DAnimationWriter(document);
+      const skeletonNodes = animWriter.addNewSkeleton(skeleton);
+      
+      rootNode.setMesh(gltfMesh);
+      const skin = document.createSkin('sky-skeleton');
+      skeletonNodes.forEach(node => skin.addJoint(node));
+      rootNode.setSkin(skin).addChild(skeletonNodes[0]);
+
+      // Add animations if requested
+      // if (this.options.exportAllAnimationFrames) {
+      animWriter.applyAnimationToSkeleton(skeleton, 'pos', false, true, skeletonNodes);
+      for (const animationKey of Object.keys(skeleton.animations)) {
+        animWriter.applyAnimationToSkeleton(skeleton, animationKey, false, false, skeletonNodes);
+      }
+      // }
+
+      const bytes = await io.writeBinary(document);
+      await writeEQFile(path, `${skeleton.modelBase}.glb`, bytes);
+    }
+  }
   /**
    *
    * @param {Wld} wld
@@ -1074,7 +1348,7 @@ export class S3DDecoder {
    * @param {[import('./materials/material-list').MaterialList]}
    * @param {Document} document
    */
-  async getMaterials(materialList, document) {
+  async getMaterials(materialList, document, options = { unlit: false }) {
     const materials = {};
     for (const eqMaterial of materialList) {
       if (materials[eqMaterial.name]) {
@@ -1099,16 +1373,28 @@ export class S3DDecoder {
         .setSpecularColorFactor([0, 0, 0]);
       gltfMaterial.setExtension('KHR_materials_specular', specular);
 
+      if (options.unlit) {
+        const unlitExtension = document.createExtension(KHRMaterialsUnlit);
+        const unlit = unlitExtension.createUnlit();
+        gltfMaterial.setExtension('KHR_materials_unlit', unlit);
+      }
+
+      let extras = {
+        eqShader: eqMaterial.shaderType,
+      };
       if (eqMaterial.bitmapInfo?.reference?.flags?.isAnimated) {
         name = eqMaterial.bitmapInfo.reference.bitmapNames[0].name;
         gltfMaterial.setName(name);
-        gltfMaterial.setExtras({
+        extras = {
+          ...extras,
           animationDelay: eqMaterial.bitmapInfo.reference.animationDelayMs,
           frames        : eqMaterial.bitmapInfo.reference.bitmapNames.map((m) =>
             m.name.toLowerCase()
           ),
-        });
+        };
       }
+
+      gltfMaterial.setExtras(extras);
       let image = new Uint8Array(await getEQFile('textures', `${name}.png`));
       if (!image.byteLength) {
         console.log(`No byte length for image: ${name}`);
@@ -1124,10 +1410,11 @@ export class S3DDecoder {
       }
       const texture = document
         .createTexture(name.toLowerCase())
-        // .setImage(image)
+        .setImage(image)
         .setURI(`/eq/textures/${name}`)
         .setExtras({
           name,
+          eqShader: eqMaterial.shaderType
         })
         .setMimeType('image/png');
       gltfMaterial.setBaseColorTexture(texture);
@@ -1197,6 +1484,7 @@ export class S3DDecoder {
         case WldType.Lights:
           break;
         case WldType.Sky:
+          await this.exportSky(wld, true, 'sky');
           break;
         default:
           console.warn('Unknown type', wld.type);
@@ -1232,7 +1520,7 @@ export class S3DDecoder {
                   const fh = await dir
                     .getFileHandle(line)
                     .then((f) => f.getFile());
-                  const decoder = new EQGDecoder(fh);
+                  const decoder = new EQGDecoder(fh, this.options);
                   await decoder.processEQG(fh);
                   for (const [name, mod] of Object.entries(decoder.models)) {
                     if (!name.includes('ter_')) {

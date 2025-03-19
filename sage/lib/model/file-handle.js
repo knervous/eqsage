@@ -13,6 +13,7 @@ export class EQFileHandle {
   #name = '';
   #initialized = false;
   #settings = {};
+  #options = {};
   /**
    * @type {FileSystemDirectoryHandle}
    */
@@ -27,11 +28,12 @@ export class EQFileHandle {
    *
    * @param {FileSystemFileHandle} fileHandles
    */
-  constructor(name, fileHandles, rootFileHandle, settings) {
+  constructor(name, fileHandles, rootFileHandle, settings, options) {
     this.#name = name;
     this.#fileHandles = fileHandles;
     this.#rootFileHandle = rootFileHandle;
     this.#settings = settings;
+    this.#options = options;
   }
 
   /**
@@ -84,14 +86,14 @@ export class EQFileHandle {
       return;
     }
     if (this.#type === FILE_TYPE.EQG) {
-      const eqgDecoder = new EQGDecoder(this);
+      const eqgDecoder = new EQGDecoder(this, this.#options);
       await eqgDecoder.process();
       if (doExport) {
         await eqgDecoder.export();
         return true;
       }
     } else if (this.#type === FILE_TYPE.S3D) {
-      const s3dDecoder = new S3DDecoder(this);
+      const s3dDecoder = new S3DDecoder(this, this.#options);
       await s3dDecoder.process();
       if (doExport) {
         await s3dDecoder.export();
