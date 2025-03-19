@@ -27,27 +27,25 @@ import { Wld, WldType } from './wld/wld';
 import { ActorType } from './animation/actor';
 import { globals } from '../globals';
 import { optimizeBoundingBoxes } from './bsp/region-utils';
-let io;
-(async () => {
-  io = new WebIO()
-    .registerDependencies({
-      'draco3d.decoder': await draco3d.createDecoderModule({
-        locateFile: (file) => {
-          return `/static/${file}`;
-        },
-        print   : console.log,
-        printErr: console.error,
-      }),
-      'draco3d.encoder': await draco3d.createEncoderModule({
-        locateFile: (file) => {
-          return `/static/${file}`;
-        },
-        print   : console.log,
-        printErr: console.error,
-      }),
-    })
-    .registerExtensions(ALL_EXTENSIONS);
-})();
+
+const io = new WebIO()
+  .registerDependencies({
+    'draco3d.decoder': await draco3d.createDecoderModule({
+      locateFile: (file) => {
+        return `/static/${file}`;
+      },
+      print   : console.log,
+      printErr: console.error,
+    }),
+    'draco3d.encoder': await draco3d.createEncoderModule({
+      locateFile: (file) => {
+        return `/static/${file}`;
+      },
+      print   : console.log,
+      printErr: console.error,
+    }),
+  })
+  .registerExtensions(ALL_EXTENSIONS);
 
 
 export class S3DDecoder {
