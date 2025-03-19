@@ -69,6 +69,7 @@ export class EQGDecoder {
     this.files = {};
     for (const [fileName, data] of this.pfsArchive.files.entries()) {
       this.files[fileName] = this.pfsArchive.getFile(fileName);
+      
       if (fileName.endsWith(".lit")) {
         const lit = new Lit(
           this.files[fileName],
