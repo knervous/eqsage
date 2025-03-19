@@ -120,7 +120,7 @@ export class EQGDecoder {
           await deleteEqFileOrFolder('textures', pngName);
         }
         if (this.#options.rawImageWrite) {
-          await writeEQFile('textures', fileName
+          writeEQFile('textures', fileName
             .replace('.bmp', '.dds').toLowerCase(), this.files[fileName].buffer);
         }
         continue;
@@ -223,7 +223,7 @@ export class EQGDecoder {
           await this.processEQG(file);
           break;
         case "txt":
-          if (file.name.endsWith('_assets.txt')) {
+          if (file.name.endsWith('_assets.txt') && !this.options.skipSubload) {
             // const contents = (await file.text()).split('\r\n');
             // for (const line of contents) {
             //   if (line.endsWith('.eqg')) {
